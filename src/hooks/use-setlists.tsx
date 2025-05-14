@@ -1,0 +1,342 @@
+import { createContext, useContext, useState, useEffect } from "react";
+import { Setlist, SetlistSong } from "@/types";
+import { useAuth } from "./use-auth";
+import { useSongs } from "./use-songs";
+import { supabase } from "@/lib/supabase";
+import { toast } from "./use-toast";
+
+interface SetlistContextProps {
+  setlists: Setlist[];
+  addSetlist: (setlist: Partial<Setlist>) => Promise<Setlist>;
+  updateSetlist: (id: string, setlist: Partial<Setlist>) => Promise<Setlist>;
+  deleteSetlist: (id: string) => Promise<void>;
+  updateSetlistSongs: (setlistId: string, songs: SetlistSong[]) => Promise<Setlist>;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const SetlistContext = createContext<SetlistContextProps | undefined>(undefined);
+
+export function SetlistProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { songs } = useSongs();
+  const [setlists, setSetlists] = useState<Setlist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadSetlists();
+    } else {
+      setSetlists([]);
+    }
+  }, [user]);
+
+  const loadSetlists = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data: setlistsData, error: setlistsError } = await supabase
+        .from('setlists')
+        .select(`
+          *,
+          setlist_songs (
+            *,
+            songs (*)
+          )
+        `)
+        .order('date', { ascending: true });
+      
+      if (setlistsError) throw setlistsError;
+      
+      const formattedSetlists: Setlist[] = setlistsData.map(setlist => ({
+        id: setlist.id,
+        name: setlist.name,
+        date: setlist.date,
+        createdAt: setlist.created_at,
+        updatedAt: setlist.updated_at,
+        songs: setlist.setlist_songs
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
+            id: ss.id,
+            songId: ss.song_id,
+            order: ss.order,
+            key: ss.key || undefined,
+            notes: ss.notes || undefined,
+            song: {
+              id: ss.songs.id,
+              title: ss.songs.title,
+              artist: ss.songs.artist,
+              notes: ss.songs.notes || "",
+              createdAt: ss.songs.created_at,
+              updatedAt: ss.songs.updated_at,
+            },
+          })),
+      }));
+      
+      setSetlists(formattedSetlists);
+    } catch (err) {
+      setError("Failed to load setlists");
+      toast({
+        title: "Error",
+        description: "Failed to load setlists",
+        variant: "destructive",
+      });
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addSetlist = async (setlistData: Partial<Setlist>): Promise<Setlist> => {
+    if (!user) throw new Error("User not authenticated");
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (!setlistData.name) {
+        throw new Error("Setlist name is required");
+      }
+      
+      if (!setlistData.date) {
+        throw new Error("Setlist date is required");
+      }
+      
+      const { data, error } = await supabase
+        .from('setlists')
+        .insert([{
+          name: setlistData.name,
+          date: setlistData.date,
+          user_id: user.id,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error("Failed to create setlist");
+      
+      const newSetlist: Setlist = {
+        id: data.id,
+        name: data.name,
+        date: data.date,
+        songs: [],
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+      
+      setSetlists(prev => [...prev, newSetlist]);
+      return newSetlist;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add setlist");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSetlist = async (id: string, setlistData: Partial<Setlist>): Promise<Setlist> => {
+    if (!user) throw new Error("User not authenticated");
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (setlistData.name === "") {
+        throw new Error("Setlist name is required");
+      }
+      
+      const { data, error } = await supabase
+        .from('setlists')
+        .update({
+          name: setlistData.name,
+          date: setlistData.date,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          setlist_songs (
+            *,
+            songs (*)
+          )
+        `)
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error("Setlist not found");
+      
+      const updatedSetlist: Setlist = {
+        id: data.id,
+        name: data.name,
+        date: data.date,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        songs: data.setlist_songs
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
+            id: ss.id,
+            songId: ss.song_id,
+            order: ss.order,
+            key: ss.key || undefined,
+            notes: ss.notes || undefined,
+            song: {
+              id: ss.songs.id,
+              title: ss.songs.title,
+              artist: ss.songs.artist,
+              notes: ss.songs.notes || "",
+              createdAt: ss.songs.created_at,
+              updatedAt: ss.songs.updated_at,
+            },
+          })),
+      };
+      
+      setSetlists(prev => prev.map(setlist => 
+        setlist.id === id ? updatedSetlist : setlist
+      ));
+      
+      return updatedSetlist;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update setlist");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSetlistSongs = async (setlistId: string, newSongs: SetlistSong[]): Promise<Setlist> => {
+    if (!user) throw new Error("User not authenticated");
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // First, delete all existing setlist songs
+      const { error: deleteError } = await supabase
+        .from('setlist_songs')
+        .delete()
+        .eq('setlist_id', setlistId);
+      
+      if (deleteError) throw deleteError;
+      
+      // Then insert the new songs
+      if (newSongs.length > 0) {
+        const { error: insertError } = await supabase
+          .from('setlist_songs')
+          .insert(
+            newSongs.map(song => ({
+              setlist_id: setlistId,
+              song_id: song.songId,
+              order: song.order,
+              key: song.key || null,
+              notes: song.notes || null,
+            }))
+          );
+        
+        if (insertError) throw insertError;
+      }
+      
+      // Fetch the updated setlist
+      const { data: setlist, error: fetchError } = await supabase
+        .from('setlists')
+        .select(`
+          *,
+          setlist_songs (
+            *,
+            songs (*)
+          )
+        `)
+        .eq('id', setlistId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      if (!setlist) throw new Error("Setlist not found");
+      
+      const updatedSetlist: Setlist = {
+        id: setlist.id,
+        name: setlist.name,
+        date: setlist.date,
+        createdAt: setlist.created_at,
+        updatedAt: setlist.updated_at,
+        songs: setlist.setlist_songs
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
+            id: ss.id,
+            songId: ss.song_id,
+            order: ss.order,
+            key: ss.key || undefined,
+            notes: ss.notes || undefined,
+            song: {
+              id: ss.songs.id,
+              title: ss.songs.title,
+              artist: ss.songs.artist,
+              notes: ss.songs.notes || "",
+              createdAt: ss.songs.created_at,
+              updatedAt: ss.songs.updated_at,
+            },
+          })),
+      };
+      
+      setSetlists(prev => prev.map(s => 
+        s.id === setlistId ? updatedSetlist : s
+      ));
+      
+      return updatedSetlist;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update setlist songs");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteSetlist = async (id: string): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase
+        .from('setlists')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setSetlists(prev => prev.filter(setlist => setlist.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete setlist");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <SetlistContext.Provider 
+      value={{ 
+        setlists, 
+        addSetlist, 
+        updateSetlist, 
+        deleteSetlist,
+        updateSetlistSongs,
+        isLoading, 
+        error 
+      }}
+    >
+      {children}
+    </SetlistContext.Provider>
+  );
+}
+
+export function useSetlists() {
+  const context = useContext(SetlistContext);
+  if (context === undefined) {
+    throw new Error("useSetlists must be used within a SetlistProvider");
+  }
+  return context;
+}
