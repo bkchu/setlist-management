@@ -22,7 +22,8 @@ export default function Songs() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add song",
+        description:
+          error instanceof Error ? error.message : "Failed to add song",
         variant: "destructive",
       });
     }
@@ -39,7 +40,8 @@ export default function Songs() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update song",
+        description:
+          error instanceof Error ? error.message : "Failed to update song",
         variant: "destructive",
       });
     }
@@ -56,7 +58,8 @@ export default function Songs() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete song",
+        description:
+          error instanceof Error ? error.message : "Failed to delete song",
         variant: "destructive",
       });
     }
@@ -65,9 +68,9 @@ export default function Songs() {
   return (
     <div className="flex h-screen flex-col">
       <Header title="Songs" />
-      
+
       <main className="flex-1 overflow-auto p-4 md:p-6">
-        <SongList 
+        <SongList
           songs={songs}
           onAddSong={handleAddSong}
           onEditSong={handleEditSong}
@@ -77,8 +80,8 @@ export default function Songs() {
 
       {/* Edit Song Dialog */}
       {selectedSong && isEditing && (
-        <Dialog 
-          open={isEditing} 
+        <Dialog
+          open={isEditing}
           onOpenChange={(open) => {
             if (!open) setIsEditing(false);
           }}

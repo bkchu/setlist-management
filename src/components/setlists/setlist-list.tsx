@@ -112,21 +112,30 @@ export function SetlistList({
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {setlist.songs.length} {setlist.songs.length === 1 ? "song" : "songs"}
+                      {setlist.songs.length}{" "}
+                      {setlist.songs.length === 1 ? "song" : "songs"}
                     </TableCell>
                     <TableCell>
-                      <Dialog open={editingSetlist?.id === setlist.id} onOpenChange={(open) => {
-                        if (!open) setEditingSetlist(null);
-                      }}>
+                      <Dialog
+                        open={editingSetlist?.id === setlist.id}
+                        onOpenChange={(open) => {
+                          if (!open) setEditingSetlist(null);
+                        }}
+                      >
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e) => e.preventDefault()}
+                          >
                             <Button variant="ghost" size="icon">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DialogTrigger asChild>
-                              <DropdownMenuItem onClick={() => setEditingSetlist(setlist)}>
+                              <DropdownMenuItem
+                                onClick={() => setEditingSetlist(setlist)}
+                              >
                                 Edit
                               </DropdownMenuItem>
                             </DialogTrigger>
