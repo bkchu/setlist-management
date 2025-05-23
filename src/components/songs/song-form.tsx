@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -162,13 +162,14 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <CardHeader>
-        <CardTitle>{song ? "Edit Song" : "Add New Song"}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+    <Card className="w-full max-w-lg shadow-xl border-none bg-zinc-900 rounded-2xl p-0">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <CardHeader className="pb-0 pt-8 px-8">
+          <CardTitle className="text-2xl font-bold text-white mb-2">{song ? "Edit Song" : "Add New Song"}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 px-8 pt-6 pb-2">
+        <div className="space-y-1">
+          <Label htmlFor="title" className="text-base font-medium text-zinc-100">Title</Label>
           <Input
             id="title"
             name="title"
@@ -176,20 +177,22 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
             onChange={handleChange}
             placeholder="Enter song title"
             required
+            className="h-12 rounded-lg px-4 bg-zinc-800 border-zinc-700 text-lg text-zinc-100 focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="artist">Artist</Label>
+        <div className="space-y-1">
+          <Label htmlFor="artist" className="text-base font-medium text-zinc-100">Artist</Label>
           <Input
             id="artist"
             name="artist"
             value={formData.artist}
             onChange={handleChange}
             placeholder="Enter artist name"
+            className="h-12 rounded-lg px-4 bg-zinc-800 border-zinc-700 text-lg text-zinc-100 focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="notes">Notes</Label>
+        <div className="space-y-1">
+          <Label htmlFor="notes" className="text-base font-medium text-zinc-100">Notes</Label>
           <Textarea
             id="notes"
             name="notes"
@@ -197,11 +200,12 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
             onChange={handleChange}
             placeholder="Add notes about the song (optional)"
             rows={4}
+            className="rounded-lg px-4 py-3 bg-zinc-800 border-zinc-700 text-lg text-zinc-100 focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Files</Label>
-          <div className="rounded-lg border border-dashed p-4">
+        <div className="space-y-1">
+          <Label className="text-base font-medium text-zinc-100">Files</Label>
+          <div className="rounded-lg border border-dashed border-zinc-700 bg-zinc-800/50 p-4">
             <input
               type="file"
               id="files"
@@ -213,7 +217,7 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
             />
             <label
               htmlFor="files"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-md bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-zinc-700"
             >
               {isUploading ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -227,7 +231,7 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
                 {formData.files.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-md border bg-card p-2 text-sm"
+                    className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-800 p-2 text-sm text-zinc-100"
                   >
                     <div className="flex items-center gap-2">
                       <FileIcon className="h-4 w-4 text-muted-foreground" />
@@ -248,19 +252,25 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-end gap-3 px-8 pb-8 pt-2 border-none bg-transparent">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={isSubmitting}
+          className="h-11 px-8 rounded-lg text-base border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="h-11 px-8 rounded-lg text-base font-semibold"
+        >
           {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
         </Button>
       </CardFooter>
-    </form>
+      </form>
+    </Card>
   );
 }

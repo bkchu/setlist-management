@@ -613,7 +613,7 @@ export default function SetlistPage() {
         open={!!editingSong}
         onOpenChange={(open) => !open && setEditingSong(null)}
       >
-        <DialogContent className="sm:max-w-md p-0">
+        <DialogContent className="sm:max-w-md">
           <div className="">
             <DialogTitle className="text-xl font-semibold mb-4">
               Edit Song
