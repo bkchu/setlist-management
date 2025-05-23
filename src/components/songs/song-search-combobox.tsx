@@ -33,7 +33,7 @@ export function SongSearchCombobox({ songs }: SongSearchComboboxProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-60 justify-between"
+          className="max-w-60 justify-between"
         >
           {value
             ? songs.find((song) => song.id === value)?.title
@@ -41,7 +41,7 @@ export function SongSearchCombobox({ songs }: SongSearchComboboxProps) {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-0">
+      <PopoverContent className="w-60 p-0" align="end">
         <Command>
           <CommandInput
             placeholder="Search by title or artist..."

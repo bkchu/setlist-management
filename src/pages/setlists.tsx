@@ -5,10 +5,8 @@ import { useSetlists } from "@/hooks/use-setlists";
 import { toast } from "@/hooks/use-toast";
 import { Setlist } from "@/types";
 
-
 export default function Setlists() {
   const { setlists, addSetlist, updateSetlist, deleteSetlist } = useSetlists();
-
 
   const handleAddSetlist = async (setlistData: Partial<Setlist>) => {
     try {
@@ -20,13 +18,17 @@ export default function Setlists() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create setlist",
+        description:
+          error instanceof Error ? error.message : "Failed to create setlist",
         variant: "destructive",
       });
     }
   };
 
-  const handleEditSetlist = async (id: string, setlistData: Partial<Setlist>) => {
+  const handleEditSetlist = async (
+    id: string,
+    setlistData: Partial<Setlist>
+  ) => {
     try {
       await updateSetlist(id, setlistData);
       toast({
@@ -36,7 +38,8 @@ export default function Setlists() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update setlist",
+        description:
+          error instanceof Error ? error.message : "Failed to update setlist",
         variant: "destructive",
       });
     }
@@ -52,7 +55,8 @@ export default function Setlists() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete setlist",
+        description:
+          error instanceof Error ? error.message : "Failed to delete setlist",
         variant: "destructive",
       });
     }
@@ -61,12 +65,12 @@ export default function Setlists() {
   return (
     <div className="flex h-screen flex-col">
       <Header
-  title="Setlists"
-  searchBar={<SetlistSearchCombobox setlists={setlists} />}
-/>
-      
+        title="Setlists"
+        searchBar={<SetlistSearchCombobox setlists={setlists} />}
+      />
+
       <main className="flex-1 p-4">
-        <SetlistList 
+        <SetlistList
           setlists={setlists}
           onAddSetlist={handleAddSetlist}
           onEditSetlist={handleEditSetlist}

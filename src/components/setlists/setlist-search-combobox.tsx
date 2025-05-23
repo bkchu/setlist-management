@@ -33,7 +33,7 @@ export function SetlistSearchCombobox({ setlists }: SetlistSearchComboboxProps) 
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-60 justify-between"
+          className="max-w-60 justify-between"
         >
           {value
             ? setlists.find((setlist) => setlist.id === value)?.name
@@ -41,7 +41,7 @@ export function SetlistSearchCombobox({ setlists }: SetlistSearchComboboxProps) 
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-0">
+      <PopoverContent className="w-60 p-0" align="end">
         <Command>
           <CommandInput
             placeholder="Search by name or date..."
