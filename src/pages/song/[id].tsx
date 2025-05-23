@@ -9,13 +9,19 @@ import { SongForm } from "@/components/songs/song-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import { EditIcon, FileIcon, ExternalLinkIcon, Loader2Icon, MusicIcon } from "lucide-react";
+import {
+  EditIcon,
+  FileIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
+  MusicIcon,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 
@@ -25,16 +31,18 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 export default function SongPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { songs, updateSong } = useSongs();
+  const { songs, updateSong, isLoading: isSongsLoading } = useSongs();
   const [isEditing, setIsEditing] = useState(false);
   const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
-  
-  const song = songs.find(s => s.id === id);
+
+  const song = songs.find((s) => s.id === id);
 
   useEffect(() => {
-    if (!song && !useSongs().isLoading) {
+    if (isSongsLoading) return;
+    
+    if (!song) {
       navigate("/songs");
       toast({
         title: "Song not found",
@@ -42,20 +50,20 @@ export default function SongPage() {
         variant: "destructive",
       });
     }
-  }, [song, navigate]);
+  }, [song, isSongsLoading, navigate]);
 
   useEffect(() => {
     if (song?.files) {
       song.files.forEach(async (file) => {
         if (!fileUrls[file.path]) {
           try {
-            setIsLoading(prev => ({ ...prev, [file.path]: true }));
+            setIsLoading((prev) => ({ ...prev, [file.path]: true }));
             const { data, error } = await supabase.storage
-              .from('song-files')
+              .from("song-files")
               .createSignedUrl(file.path, 3600); // 1 hour expiry
 
             if (error) {
-              if (error.message.includes('Object not found')) {
+              if (error.message.includes("Object not found")) {
                 toast({
                   title: "File not found",
                   description: `The file "${file.name}" is no longer available.`,
@@ -68,17 +76,17 @@ export default function SongPage() {
             }
 
             if (data?.signedUrl) {
-              setFileUrls(prev => ({ ...prev, [file.path]: data.signedUrl }));
+              setFileUrls((prev) => ({ ...prev, [file.path]: data.signedUrl }));
             }
           } catch (error) {
-            console.error('Error getting file URL:', error);
+            console.error("Error getting file URL:", error);
             toast({
               title: "Error",
               description: "Failed to load file",
               variant: "destructive",
             });
           } finally {
-            setIsLoading(prev => ({ ...prev, [file.path]: false }));
+            setIsLoading((prev) => ({ ...prev, [file.path]: false }));
           }
         }
       });
@@ -88,21 +96,23 @@ export default function SongPage() {
   const handleFileOpen = (path: string) => {
     const url = fileUrls[path];
     if (url) {
-      window.open(url, '_blank');
+      window.open(url, "_blank");
     }
   };
 
   const getFileExtension = (filename: string) => {
-    return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+    return filename
+      .slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2)
+      .toLowerCase();
   };
 
   const isImage = (filename: string) => {
     const ext = getFileExtension(filename);
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    return ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
   };
 
   const isPDF = (filename: string) => {
-    return getFileExtension(filename) === 'pdf';
+    return getFileExtension(filename) === "pdf";
   };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -111,7 +121,7 @@ export default function SongPage() {
 
   const handleEditSong = async (songData: Partial<typeof song>) => {
     if (!song) return;
-    
+
     try {
       await updateSong(song.id, songData);
       setIsEditing(false);
@@ -134,20 +144,21 @@ export default function SongPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header title={song.title}>
-        <Button onClick={() => setIsEditing(true)}>
-          <EditIcon className="mr-2 h-4 w-4" />
-          Edit Song
-        </Button>
-      </Header>
+      <Header title={song.title} />
 
       <div className="flex-1 space-y-8 overflow-auto p-8">
-        <Breadcrumb
-          items={[
-            { href: "/songs", label: "Songs" },
-            { href: `/song/${song.id}`, label: song.title },
-          ]}
-        />
+        <div className="flex items-center justify-between mb-6">
+          <Breadcrumb
+            items={[
+              { href: "/songs", label: "Songs" },
+              { href: `/song/${song.id}`, label: song.title },
+            ]}
+          />
+          <Button onClick={() => setIsEditing(true)}>
+            <EditIcon className="mr-2 h-4 w-4" />
+            Edit Song
+          </Button>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="md:col-span-2">
@@ -157,11 +168,15 @@ export default function SongPage() {
                   <h2 className="text-lg font-semibold">Details</h2>
                   <div className="mt-2 space-y-2">
                     <div>
-                      <span className="text-sm text-muted-foreground">Artist</span>
+                      <span className="text-sm text-muted-foreground">
+                        Artist
+                      </span>
                       <p className="text-foreground">{song.artist}</p>
                     </div>
                     <div>
-                      <span className="text-sm text-muted-foreground">Notes</span>
+                      <span className="text-sm text-muted-foreground">
+                        Notes
+                      </span>
                       <p className="whitespace-pre-wrap text-foreground">
                         {song.notes || "No notes added"}
                       </p>
@@ -183,7 +198,10 @@ export default function SongPage() {
                             <div className="flex items-center gap-2">
                               <MusicIcon className="h-4 w-4 text-muted-foreground" />
                               <span className="text-sm">
-                                Key: <Badge variant="secondary">{keyEntry.key}</Badge>
+                                Key:{" "}
+                                <Badge variant="secondary">
+                                  {keyEntry.key}
+                                </Badge>
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -194,7 +212,12 @@ export default function SongPage() {
                                 {keyEntry.setlistName}
                               </Link>
                               <span>•</span>
-                              <span>{format(new Date(keyEntry.playedAt), "MMM d, yyyy")}</span>
+                              <span>
+                                {format(
+                                  new Date(keyEntry.playedAt),
+                                  "MMM d, yyyy"
+                                )}
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -210,10 +233,7 @@ export default function SongPage() {
                   {song.files && song.files.length > 0 ? (
                     <div className="mt-4 space-y-6">
                       {song.files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="rounded-md border bg-card"
-                        >
+                        <div key={index} className="rounded-md border bg-card">
                           <div className="flex items-center justify-between border-b p-3">
                             <div className="flex items-center gap-2">
                               <FileIcon className="h-4 w-4 text-muted-foreground" />
@@ -232,39 +252,44 @@ export default function SongPage() {
                             <div className="flex items-center justify-center p-8">
                               <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
-                          ) : fileUrls[file.path] && (
-                            <div className="p-4">
-                              {isImage(file.name) ? (
-                                <img
-                                  src={fileUrls[file.path]}
-                                  alt={file.name}
-                                  className="mx-auto max-h-[600px] rounded-md object-contain"
-                                  loading="lazy"
-                                />
-                              ) : isPDF(file.name) ? (
-                                <div className="flex justify-center">
-                                  <Document
-                                    file={fileUrls[file.path]}
-                                    onLoadSuccess={onDocumentLoadSuccess}
-                                    loading={
-                                      <div className="flex items-center justify-center p-8">
-                                        <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
-                                      </div>
-                                    }
-                                  >
-                                    {Array.from(new Array(numPages || 0), (_, index) => (
-                                      <Page
-                                        key={`page_${index + 1}`}
-                                        pageNumber={index + 1}
-                                        width={500}
-                                        renderTextLayer={false}
-                                        renderAnnotationLayer={false}
-                                      />
-                                    ))}
-                                  </Document>
-                                </div>
-                              ) : null}
-                            </div>
+                          ) : (
+                            fileUrls[file.path] && (
+                              <div className="p-4">
+                                {isImage(file.name) ? (
+                                  <img
+                                    src={fileUrls[file.path]}
+                                    alt={file.name}
+                                    className="mx-auto max-h-[600px] rounded-md object-contain"
+                                    loading="lazy"
+                                  />
+                                ) : isPDF(file.name) ? (
+                                  <div className="flex justify-center">
+                                    <Document
+                                      file={fileUrls[file.path]}
+                                      onLoadSuccess={onDocumentLoadSuccess}
+                                      loading={
+                                        <div className="flex items-center justify-center p-8">
+                                          <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
+                                        </div>
+                                      }
+                                    >
+                                      {Array.from(
+                                        new Array(numPages || 0),
+                                        (_, index) => (
+                                          <Page
+                                            key={`page_${index + 1}`}
+                                            pageNumber={index + 1}
+                                            width={500}
+                                            renderTextLayer={false}
+                                            renderAnnotationLayer={false}
+                                          />
+                                        )
+                                      )}
+                                    </Document>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
                           )}
                         </div>
                       ))}
@@ -286,11 +311,15 @@ export default function SongPage() {
                 <div className="mt-2 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created</span>
-                    <span>{format(new Date(song.createdAt), "MMM d, yyyy")}</span>
+                    <span>
+                      {format(new Date(song.createdAt), "MMM d, yyyy")}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Last updated</span>
-                    <span>{format(new Date(song.updatedAt), "MMM d, yyyy")}</span>
+                    <span>
+                      {format(new Date(song.updatedAt), "MMM d, yyyy")}
+                    </span>
                   </div>
                 </div>
               </CardContent>

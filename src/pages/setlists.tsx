@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { SetlistSearchCombobox } from "@/components/setlists/setlist-search-combobox";
 import { Header } from "@/components/layout/header";
 import { SetlistList } from "@/components/setlists/setlist-list";
 import { useSetlists } from "@/hooks/use-setlists";
 import { toast } from "@/hooks/use-toast";
 import { Setlist } from "@/types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { SetlistForm } from "@/components/setlists/setlist-form";
+
 
 export default function Setlists() {
   const { setlists, addSetlist, updateSetlist, deleteSetlist } = useSetlists();
+
 
   const handleAddSetlist = async (setlistData: Partial<Setlist>) => {
     try {
@@ -60,7 +60,10 @@ export default function Setlists() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header title="Setlists" />
+      <Header
+  title="Setlists"
+  searchBar={<SetlistSearchCombobox setlists={setlists} />}
+/>
       
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <SetlistList 

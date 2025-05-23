@@ -1,3 +1,5 @@
+import React from "react";
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { MusicIcon, ListMusic, HomeIcon, LogOutIcon } from "lucide-react";
@@ -48,12 +50,11 @@ export function Sidebar() {
               <p className="text-xs text-muted-foreground">{user?.email || "user@example.com"}</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          <Button
+             onClick={logout}
           >
             <LogOutIcon className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

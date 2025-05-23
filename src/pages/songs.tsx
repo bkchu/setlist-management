@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { Header } from "@/components/layout/header";
 import { SongList } from "@/components/songs/song-list";
 import { useSongs } from "@/hooks/use-songs";
@@ -8,9 +9,12 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SongForm } from "@/components/songs/song-form";
 
 export default function Songs() {
+
   const { songs, addSong, updateSong, deleteSong } = useSongs();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+
+
 
   const handleAddSong = async (songData: Partial<Song>) => {
     try {
@@ -67,7 +71,12 @@ export default function Songs() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header title="Songs" />
+      <Header
+  title="Songs"
+  searchBar={
+    <SongSearchCombobox songs={songs} />
+  }
+/>
 
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <SongList

@@ -473,21 +473,7 @@ export default function SetlistPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header title={setlist.name}>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleViewFiles}
-            disabled={allFiles.length === 0}
-          >
-            View Files
-          </Button>
-          <Button onClick={() => setIsEditing(true)}>
-            <EditIcon className="mr-2 h-4 w-4" />
-            Edit Setlist
-          </Button>
-        </div>
-      </Header>
+      <Header title={setlist.name} />
 
       {/* File Carousel Dialog */}
       <Dialog open={showCarousel} onOpenChange={setShowCarousel}>
@@ -502,12 +488,12 @@ export default function SetlistPage() {
           style={isFullscreen ? { padding: 0, margin: 0 } : {}}
         >
           {isFullscreen && (
-            <button
-              className="absolute top-4 right-4 z-50 bg-white/80 rounded px-4 py-2 shadow"
+            <Button
+              className="absolute top-4 right-4 z-50 bg-white/80 shadow"
               onClick={() => document.exitFullscreen()}
             >
               Exit Fullscreen
-            </button>
+            </Button>
           )}
           <div className="space-y-4">
             <DialogTitle className="text-xl font-semibold">
@@ -846,12 +832,27 @@ export default function SetlistPage() {
       </Dialog>
 
       <div className="flex-1 space-y-8 overflow-auto p-8">
-        <Breadcrumb
-          items={[
-            { href: "/setlists", label: "Setlists" },
-            { href: `/setlist/${setlist.id}`, label: setlist.name },
-          ]}
-        />
+        <div className="flex items-center justify-between mb-6">
+          <Breadcrumb
+            items={[
+              { href: "/setlists", label: "Setlists" },
+              { href: `/setlist/${setlist.id}`, label: setlist.name },
+            ]}
+          />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleViewFiles}
+              disabled={allFiles.length === 0}
+            >
+              View Files
+            </Button>
+            <Button onClick={() => setIsEditing(true)}>
+              <EditIcon className="mr-2 h-4 w-4" />
+              Edit Setlist
+            </Button>
+          </div>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="md:col-span-2">

@@ -10,6 +10,7 @@ import Setlists from '@/pages/setlists';
 import SongPage from '@/pages/song/[id]';
 import SetlistPage from '@/pages/setlist/[id]';
 import { Sidebar } from '@/components/layout/sidebar';
+import { MobileNav } from '@/components/layout/mobile-nav';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ThemeProvider } from '@/components/theme-provider';
 
@@ -26,9 +27,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <ScrollArea className="flex-1">{children}</ScrollArea>
+    <div className="relative flex h-screen w-full overflow-hidden">
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col h-full">
+        <ScrollArea className="flex-1 pb-20">{children}</ScrollArea>
+      </div>
+      {/* Global Mobile Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <MobileNav />
+      </div>
     </div>
   );
 }
