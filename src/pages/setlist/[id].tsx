@@ -611,18 +611,18 @@ export default function SetlistPage() {
               ref={carouselContainerRef}
               className={
                 isFullscreen
-                  ? "carousel-container relative h-[calc(100vh-80px)]"
+                  ? "carousel-container relative h-[calc(100vh-100px)]"
                   : "carousel-container relative h-[calc(100vh-200px)]"
               }
             >
-              <div className="overflow-hidden" ref={emblaRef}>
-                <div className="flex">
+              <div className="overflow-hidden h-full" ref={emblaRef}>
+                <div className="flex h-full">
                   {flattenedSlides.map((slide) => (
                     <div
                       key={slide.key}
-                      className="relative min-w-full flex-[0_0_100%]"
+                      className="relative min-w-full flex-[0_0_100%] h-full"
                     >
-                      <div className="space-y-4 flex flex-col">
+                      <div className="space-y-4 flex flex-col h-full">
                         <div>
                           <h3 className="text-lg font-medium">
                             {slide.songTitle}
