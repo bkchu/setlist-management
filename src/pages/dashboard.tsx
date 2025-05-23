@@ -15,9 +15,16 @@ export default function Dashboard() {
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  const upcomingSetlists = sortedSetlists.filter(
-    (setlist) => new Date(setlist.date) >= new Date()
-  );
+  // Helper to normalize a date to midnight (local time)
+function normalizeToDateOnly(date: Date | string) {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+const today = normalizeToDateOnly(new Date());
+const upcomingSetlists = sortedSetlists.filter(
+  (setlist) => normalizeToDateOnly(setlist.date) >= today
+);
 
   const nextSetlist = upcomingSetlists.length > 0 ? upcomingSetlists[0] : null;
 
@@ -79,7 +86,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Next Setlist</CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-4">
             {nextSetlist ? (
               <Link
                 to={`/setlist/${nextSetlist.id}`}

@@ -26,6 +26,7 @@ import {
   Edit as EditIcon,
   Music2Icon,
   PlusIcon,
+  StickyNoteIcon,
   XIcon,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -35,7 +36,9 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AnimatePresence, motion } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
 import { SetlistForm } from "@/components/setlists/setlist-form";
+import { NotesWindow } from "@/components/setlists/notes-window";
 
+// Interface used in getKeyHistoryForSong
 interface KeyHistoryItem {
   key: string;
   usages: { date: string; setlistName: string }[];
@@ -88,11 +91,11 @@ const KEY_OPTIONS = [
   "Ab",
 ];
 
-function getKeyHistoryForSong(songId: string, setlists: any) {
+function getKeyHistoryForSong(songId: string, setlists: Setlist[]) {
   // Returns [{ key, date, setlistName }]
   const history: { key: string; date: string; setlistName: string }[] = [];
-  setlists.forEach((setlist: any) => {
-    setlist.songs.forEach((song: any) => {
+  setlists.forEach((setlist) => {
+    setlist.songs.forEach((song: SetlistSong) => {
       if (song.songId === songId && song.key) {
         history.push({
           key: song.key,
@@ -139,6 +142,17 @@ export default function SetlistPage() {
     notes: "",
   });
   const [allFiles, setAllFiles] = useState<FileWithUrl[]>([]);
+  interface SlideItem extends FileWithUrl {
+    key: string;
+    type: "image" | "pdf";
+    pageNumber?: number;
+    songTitle?: string;
+    // Add these to match what we're accessing in the code
+    song_id: string;
+  }
+
+  const [flattenedSlides, setFlattenedSlides] = useState<SlideItem[]>([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     align: "center",
@@ -147,7 +161,12 @@ export default function SetlistPage() {
   const [numPages, setNumPages] = useState<Record<string, number>>({});
   const [showCarousel, setShowCarousel] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isNotesWindowOpen, setIsNotesWindowOpen] = useState(false);
+  const [localNotes, setLocalNotes] = useState<string>("");
+  const [notesDirty, setNotesDirty] = useState(false);
+
   const dialogContentRef = useRef<HTMLDivElement>(null);
+  const carouselContainerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({
     width: 0,
     height: 0,
@@ -162,7 +181,6 @@ export default function SetlistPage() {
       navigate("/setlists");
       toast({
         title: "Setlist not found",
-        description: "The requested setlist could not be found.",
         variant: "destructive",
       });
     }
@@ -189,7 +207,6 @@ export default function SetlistPage() {
     if (setlist) {
       const loadFiles = async () => {
         const files: FileWithUrl[] = [];
-
         for (const setlistSong of setlist.songs) {
           const song = songs.find((s) => s.id === setlistSong.songId);
           if (song?.files) {
@@ -198,17 +215,19 @@ export default function SetlistPage() {
                 const { data, error } = await supabase.storage
                   .from("song-files")
                   .createSignedUrl(file.path, 3600);
-
                 if (error) {
                   console.error("Error getting signed URL:", error);
                   continue;
                 }
-
+                // Ensure all required properties for FileWithUrl are included
                 files.push({
                   ...file,
                   url: data.signedUrl,
                   songTitle: song.title,
                   songArtist: song.artist,
+                  id: file.id || `temp-${file.path}`,
+                  created_at: file.created_at || new Date().toISOString(),
+                  song_id: song.id,
                 });
               } catch (error) {
                 console.error("Error loading file:", error);
@@ -216,21 +235,88 @@ export default function SetlistPage() {
             }
           }
         }
-
         setAllFiles(files);
       };
-
       loadFiles();
     }
   }, [setlist, songs]);
 
+  // Flatten allFiles into slides (images as single slide, PDFs as one slide per page)
+  useEffect(() => {
+    const slides: SlideItem[] = [];
+    allFiles.forEach((file) => {
+      if (isImage(file.name)) {
+        slides.push({
+          ...file,
+          type: "image",
+          key: file.path,
+        });
+      } else if (isPDF(file.name)) {
+        const num = numPages[file.path] || 1;
+        for (let i = 1; i <= num; i++) {
+          const isMultiPage = num > 1;
+          const songTitle = isMultiPage
+            ? `${file.name} - Page ${i} of ${num}`
+            : file.name;
+
+          slides.push({
+            ...file,
+            songTitle,
+            type: "pdf",
+            pageNumber: i,
+            key: `${file.path}__page_${i}`,
+          });
+        }
+      }
+    });
+    setFlattenedSlides(slides);
+  }, [allFiles, numPages]);
+
   const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
+    if (emblaApi) {
+      emblaApi.scrollPrev();
+      const newIndex = emblaApi.selectedScrollSnap();
+      setCurrentSlideIndex(newIndex);
+    }
   }, [emblaApi]);
 
   const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
+    if (emblaApi) {
+      emblaApi.scrollNext();
+      const newIndex = emblaApi.selectedScrollSnap();
+      setCurrentSlideIndex(newIndex);
+    }
   }, [emblaApi]);
+
+  useEffect(() => {
+    if (emblaApi) {
+      const onSelect = () => {
+        setCurrentSlideIndex(emblaApi.selectedScrollSnap());
+      };
+
+      emblaApi.on("select", onSelect);
+      // Initialize with current slide
+      setCurrentSlideIndex(emblaApi.selectedScrollSnap());
+
+      return () => {
+        emblaApi.off("select", onSelect);
+      };
+    }
+  }, [emblaApi]);
+
+  // Keyboard navigation for carousel
+  useEffect(() => {
+    if (!showCarousel) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        scrollPrev();
+      } else if (e.key === "ArrowRight") {
+        scrollNext();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showCarousel, scrollPrev, scrollNext]);
 
   useEffect(() => {
     if (emblaApi) {
@@ -266,17 +352,22 @@ export default function SetlistPage() {
     (song) => !setlist?.songs.some((s) => s.songId === song.id)
   );
 
-  const handleEditSetlist = async (setlistData: Partial<typeof setlist>) => {
+  const handleEditSetlist = async (updatedSetlist: Partial<Setlist>) => {
     if (!setlist) return;
 
     try {
-      await updateSetlist(setlist.id, setlistData);
+      // Preserve songs array and update other fields
+      await updateSetlist(setlist.id, {
+        ...updatedSetlist,
+        songs: setlist.songs,
+      });
+
       setIsEditing(false);
       toast({
         title: "Setlist updated",
         description: "The setlist has been updated successfully",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update setlist",
@@ -322,7 +413,7 @@ export default function SetlistPage() {
           title: "Song updated",
           description: "Changes have been saved successfully",
         });
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to update song",
@@ -374,7 +465,7 @@ export default function SetlistPage() {
         title: "Song added",
         description: "New song has been added successfully",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to add song",
@@ -396,7 +487,7 @@ export default function SetlistPage() {
         title: "Song removed",
         description: "The song has been removed from the setlist",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove song",
@@ -433,7 +524,7 @@ export default function SetlistPage() {
         title: "Order updated",
         description: "The song order has been updated",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update song order",
@@ -467,6 +558,20 @@ export default function SetlistPage() {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    if (!setlist || !flattenedSlides[currentSlideIndex]) return;
+    
+    // Get the songId for the current slide
+    const slide = flattenedSlides[currentSlideIndex];
+    const songId = slide.song_id;
+    
+    // Find the song in the setlist that matches this songId
+    const song = setlist.songs.find(song => song.songId === songId);
+    
+    // Use the notes from the song, ensuring all pages of the same song share notes
+    setLocalNotes(song?.notes || "");
+  }, [currentSlideIndex, setlist, flattenedSlides]);
+
   if (!setlist) {
     return null;
   }
@@ -476,14 +581,16 @@ export default function SetlistPage() {
       <Header title={setlist.name} />
 
       {/* File Carousel Dialog */}
-      <Dialog open={showCarousel} onOpenChange={setShowCarousel}>
+      <Dialog
+        open={showCarousel}
+        onOpenChange={setShowCarousel}
+      >
         <DialogContent
           ref={dialogContentRef}
-          fullscreen={isFullscreen}
           className={
             isFullscreen
-              ? "fixed inset-0 z-50 bg-background p-0 m-0 w-screen h-screen max-w-none rounded-none flex flex-col"
-              : "max-w-6xl"
+              ? "fixed inset-0 z-50 bg-background m-0 w-screen h-screen max-w-none rounded-none flex flex-col"
+              : "max-w-6xl w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]"
           }
           style={isFullscreen ? { padding: 0, margin: 0 } : {}}
         >
@@ -495,11 +602,13 @@ export default function SetlistPage() {
               Exit Fullscreen
             </Button>
           )}
-          <div className="space-y-4">
+          {/* Best Practice: Wrap content in relative container for proper positioning context */}
+          <div className="relative space-y-4 p-4 w-full">
             <DialogTitle className="text-xl font-semibold">
               Files ({currentSlide + 1} of {allFiles.length})
             </DialogTitle>
             <div
+              ref={carouselContainerRef}
               className={
                 isFullscreen
                   ? "carousel-container relative h-[calc(100vh-80px)]"
@@ -508,30 +617,25 @@ export default function SetlistPage() {
             >
               <div className="overflow-hidden" ref={emblaRef}>
                 <div className="flex">
-                  {allFiles.map((file, index) => (
+                  {flattenedSlides.map((slide) => (
                     <div
-                      key={file.path}
+                      key={slide.key}
                       className="relative min-w-full flex-[0_0_100%]"
                     >
                       <div className="space-y-4 flex flex-col">
                         <div>
                           <h3 className="text-lg font-medium">
-                            {file.songTitle}
+                            {slide.songTitle}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            {file.songArtist}
+                            {slide.songArtist}
                           </p>
                         </div>
-                        <div
-                          className="flex flex-1 justify-center overflow-y-auto bg-muted/20 rounded-lg p-4"
-                          style={{
-                            minHeight: "400px",
-                          }}
-                        >
-                          {isImage(file.name) && file.url && (
+                        <div className="flex flex-1 justify-center overflow-y-auto bg-muted/20 rounded-lg p-4">
+                          {slide.type === "image" && slide.url && (
                             <img
-                              src={file.url}
-                              alt={file.name}
+                              src={slide.url}
+                              alt={slide.name}
                               className="h-auto max-w-full rounded-lg object-contain"
                               style={{
                                 maxHeight: "calc(100vh - 109px)",
@@ -539,11 +643,11 @@ export default function SetlistPage() {
                               }}
                             />
                           )}
-                          {isPDF(file.name) && file.url && (
+                          {slide.type === "pdf" && slide.url && (
                             <Document
-                              file={file.url}
+                              file={slide.url}
                               onLoadSuccess={(pdf) =>
-                                onDocumentLoadSuccess(pdf, file.path)
+                                onDocumentLoadSuccess(pdf, slide.path)
                               }
                               loading={
                                 <div className="flex h-[400px] items-center justify-center">
@@ -556,25 +660,12 @@ export default function SetlistPage() {
                                 </div>
                               }
                             >
-                              {Array.from(
-                                new Array(numPages[file.path] || 0),
-                                (_, pageIndex) => (
-                                  <div
-                                    key={`page_${pageIndex + 1}`}
-                                    className="mb-4"
-                                  >
-                                    <Page
-                                      pageNumber={pageIndex + 1}
-                                      width={Math.min(
-                                        800,
-                                        containerDimensions.width
-                                      )}
-                                      renderTextLayer={false}
-                                      renderAnnotationLayer={false}
-                                    />
-                                  </div>
-                                )
-                              )}
+                              <Page
+                                pageNumber={slide.pageNumber}
+                                width={Math.min(800, containerDimensions.width)}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                              />
                             </Document>
                           )}
                         </div>
@@ -583,12 +674,13 @@ export default function SetlistPage() {
                   ))}
                 </div>
               </div>
+
               {allFiles.length > 1 && (
                 <>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/60 backdrop-blur-sm text-black"
                     onClick={scrollPrev}
                   >
                     <ChevronLeftIcon className="h-4 w-4" />
@@ -596,12 +688,81 @@ export default function SetlistPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/60 backdrop-blur-sm text-black"
                     onClick={scrollNext}
                   >
                     <ChevronRightIcon className="h-4 w-4" />
                   </Button>
                 </>
+              )}
+              {/* Notes Button */}
+              {isFullscreen && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute bottom-4 right-4 rounded-full bg-white/60 backdrop-blur-sm text-black hover:bg-white/80"
+                  onClick={() => setIsNotesWindowOpen((prev) => !prev)}
+                >
+                  <StickyNoteIcon className="h-5 w-5" />
+                </Button>
+              )}
+
+              {/* Notes Window Toggle and Window */}
+              {isFullscreen && (
+                <NotesWindow
+                  isOpen={isNotesWindowOpen}
+                  onOpenChange={(open) => {
+                    setIsNotesWindowOpen(open);
+                  }}
+                  notes={localNotes}
+                  onNotesChange={(val) => {
+                    setLocalNotes(val);
+                    setNotesDirty(val !== (setlist?.songs[currentSlideIndex]?.notes || ""));
+                  }}
+                  onSaveNotes={async () => {
+                    if (!setlist || !flattenedSlides[currentSlideIndex]) return;
+
+                    // Find the songId for the current slide
+                    const slide = flattenedSlides[currentSlideIndex];
+                    const songId = slide.song_id;
+                    if (!songId) return;
+
+                    // Find all indices in setlist.songs that match this songId
+                    const updatedSongs = setlist.songs.map((song) => {
+                      if (song.songId === songId) {
+                        return {
+                          ...song,
+                          notes: localNotes,
+                        };
+                      }
+                      return song;
+                    });
+                    try {
+                      await updateSetlistSongs(setlist.id, updatedSongs);
+                      setNotesDirty(false);
+                      toast({ title: "Notes saved", description: "Your notes were updated." });
+                    } catch (error: any) {
+                      toast({
+                        title: "Failed to save notes",
+                        description: error?.message || "Unknown error",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  notesDirty={notesDirty}
+                  songTitle={flattenedSlides[currentSlideIndex]?.songTitle || ""}
+                  pageNumber={flattenedSlides[currentSlideIndex]?.pageNumber}
+                  totalPages={(() => {
+                    const slide = flattenedSlides[currentSlideIndex];
+                    if (!slide || slide.type !== "pdf") return undefined;
+                    return numPages[slide.path];
+                  })()}
+                  containerRef={
+                    carouselContainerRef || {
+                      current: document.body as HTMLDivElement,
+                    }
+                  }
+                />
               )}
             </div>
           </div>
@@ -613,8 +774,8 @@ export default function SetlistPage() {
         open={!!editingSong}
         onOpenChange={(open) => !open && setEditingSong(null)}
       >
-        <DialogContent className="sm:max-w-md">
-          <div className="">
+        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]">
+          <div className="p-4">
             <DialogTitle className="text-xl font-semibold mb-4">
               Edit Song
             </DialogTitle>
@@ -698,7 +859,7 @@ export default function SetlistPage() {
 
       {/* Add Song Modal */}
       <Dialog open={showAddSongModal} onOpenChange={setShowAddSongModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]">
           <div className="space-y-6">
             <DialogTitle className="text-xl font-semibold">
               Add Song to Setlist
@@ -768,8 +929,8 @@ export default function SetlistPage() {
                               }
                               className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${
                                 addSongForm.key === item.key
-                                  ? 'bg-primary/10 border border-primary/20'
-                                  : 'border border-transparent'
+                                  ? "bg-primary/10 border border-primary/20"
+                                  : "border border-transparent"
                               }`}
                             >
                               <Button
@@ -799,7 +960,7 @@ export default function SetlistPage() {
                         )
                       ) : (
                         <p className="text-xs text-muted-foreground">
-                          No previous key history found for this song.
+                          No previous keys found.
                         </p>
                       )}
                     </div>
@@ -900,14 +1061,18 @@ export default function SetlistPage() {
                             className="flex items-center justify-between rounded-md border p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
                                 {index + 1}
                               </div>
                               <div className="space-y-1">
                                 <p className="text-sm font-medium">
-                                  {setlistSong.song.title} -{" "}
-                                  {setlistSong.song.artist}
+                                  {setlistSong.song.title}
                                 </p>
+                                {setlistSong.song.artist && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {setlistSong.song.artist}
+                                  </p>
+                                )}
                                 <p className="text-xs text-muted-foreground">
                                   {setlistSong.key && `Key: ${setlistSong.key}`}
                                   {setlistSong.key &&
