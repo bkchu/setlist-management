@@ -1,10 +1,6 @@
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
-import {
-  NameType,
-  Payload,
-  ValueType,
-} from 'recharts/types/component/DefaultTooltipContent';
+// Removed unused imports from recharts
 
 import { cn } from '@/lib/utils';
 
@@ -71,8 +67,9 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = 'Chart';
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+  // Using underscore variable name convention for unused variables
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([, config]) => config.theme || config.color
   );
 
   if (!colorConfig.length) {

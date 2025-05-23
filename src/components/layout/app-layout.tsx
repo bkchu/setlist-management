@@ -17,12 +17,12 @@ export function AppLayout({
   searchBar,
 }: AppLayoutProps) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex-1 flex h-screen flex-col">
       <Header title={title} subtitle={subtitle} searchBar={searchBar}>
         {headerChildren}
       </Header>
       
-      <main className="flex-1 overflow-auto p-4 pb-20">
+      <main className="flex-1 px-4 py-4">
         {children}
       </main>
       

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useSongs } from "@/hooks/use-songs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   ExternalLinkIcon,
   Loader2Icon,
   MusicIcon,
+  ArrowRightIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
@@ -36,8 +37,33 @@ export default function SongPage() {
   const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const song = songs.find((s) => s.id === id);
+
+  // Handle container resize
+  const handleResize = useCallback(() => {
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial width
+    handleResize();
+    
+    // Add resize observer
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Cleanup
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [handleResize]);
 
   useEffect(() => {
     if (isSongsLoading) return;
@@ -141,13 +167,16 @@ export default function SongPage() {
   if (!song) {
     return null;
   }
+  
+  // Calculate the max width for the PDF (80% of container or 800px, whichever is smaller)
+  const maxPdfWidth = Math.min(containerWidth * 0.9, 800);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-col">
       <Header title={song.title} />
 
-      <div className="flex-1 space-y-8 overflow-auto p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="flex-1 space-y-8 overflow-auto p-4 md:p-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <Breadcrumb
             items={[
               { href: "/songs", label: "Songs" },
@@ -189,37 +218,36 @@ export default function SongPage() {
                     <Separator />
                     <div>
                       <h2 className="text-lg font-semibold">Key History</h2>
-                      <div className="mt-4 space-y-2">
+                      <div className="mt-3 space-y-2">
                         {song.keyHistory.map((keyEntry) => (
-                          <div
+                          <Link
                             key={keyEntry.id}
-                            className="flex items-center justify-between rounded-md bg-muted p-4"
+                            to={`/setlist/${keyEntry.setlistId}`}
+                            className="group block"
                           >
-                            <div className="flex items-center gap-2">
-                              <MusicIcon className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">
-                                Key:{" "}
-                                <Badge variant="secondary">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-transparent p-3 transition-colors hover:border-muted hover:bg-muted/50 sm:p-2">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
                                   {keyEntry.key}
-                                </Badge>
-                              </span>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground line-clamp-1">
+                                    {keyEntry.setlistName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(
+                                      new Date(keyEntry.playedAt),
+                                      "MMM d, yyyy"
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground sm:mt-0 sm:ml-4">
+                                <span className="hidden sm:inline">View Setlist</span>
+                                <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Link
-                                to={`/setlist/${keyEntry.setlistId}`}
-                                className="hover:underline"
-                              >
-                                {keyEntry.setlistName}
-                              </Link>
-                              <span>•</span>
-                              <span>
-                                {format(
-                                  new Date(keyEntry.playedAt),
-                                  "MMM d, yyyy"
-                                )}
-                              </span>
-                            </div>
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -254,7 +282,7 @@ export default function SongPage() {
                             </div>
                           ) : (
                             fileUrls[file.path] && (
-                              <div className="p-4">
+                              <div className="p-4 w-full" ref={containerRef}>
                                 {isImage(file.name) ? (
                                   <img
                                     src={fileUrls[file.path]}
@@ -265,6 +293,7 @@ export default function SongPage() {
                                 ) : isPDF(file.name) ? (
                                   <div className="flex justify-center">
                                     <Document
+                                      className="w-full"
                                       file={fileUrls[file.path]}
                                       onLoadSuccess={onDocumentLoadSuccess}
                                       loading={
@@ -279,9 +308,10 @@ export default function SongPage() {
                                           <Page
                                             key={`page_${index + 1}`}
                                             pageNumber={index + 1}
-                                            width={500}
+                                            width={maxPdfWidth}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
+                                            className="pdf-page"
                                           />
                                         )
                                       )}

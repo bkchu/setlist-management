@@ -2,13 +2,14 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Setlist, SetlistSong } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
+import { toast } from "./use-toast";
 
 interface SetlistContextProps {
   setlists: Setlist[];
   addSetlist: (setlist: Partial<Setlist>) => Promise<Setlist>;
   updateSetlist: (id: string, setlist: Partial<Setlist>) => Promise<Setlist>;
-  updateSetlistSongs: (setlistId: string, songs: SetlistSong[]) => Promise<Setlist>;
   deleteSetlist: (id: string) => Promise<void>;
+  updateSetlistSongs: (setlistId: string, songs: SetlistSong[]) => Promise<Setlist>;
   isLoading: boolean;
   error: string | null;
 }
@@ -17,6 +18,7 @@ const SetlistContext = createContext<SetlistContextProps | undefined>(undefined)
 
 export function SetlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  // Remove unused songs import
   const [setlists, setSetlists] = useState<Setlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
             *,
             setlist_songs(*, songs(*))
           `)
-          .eq('user_id', user.id)
+          .eq('userId', user.id)
           .order('date', { ascending: false });
 
         if (setlistsError) throw setlistsError;
@@ -48,7 +50,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           name: setlist.name,
           date: setlist.date,
           notes: setlist.notes || "",
-          songs: setlist.setlist_songs?.map((item: { id: string; song_id: string; key?: string; notes?: string; order: number; songs: any }) => ({
+          songs: setlist.setlist_songs?.map((item: any) => ({
             id: item.id,
             songId: item.song_id,
             key: item.key || "",
@@ -75,6 +77,59 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
       setSetlists([]);
     }
   }, [user]);
+
+  // The loadSetlists function has been moved inside the useEffect hook above
+      const { data: setlistsData, error: setlistsError } = await supabase
+        .from('setlists')
+        .select(`
+          *,
+          setlist_songs (
+            *,
+            songs (*)
+          )
+        `)
+        .order('date', { ascending: true });
+      
+      if (setlistsError) throw setlistsError;
+      
+      const formattedSetlists: Setlist[] = setlistsData.map(setlist => ({
+        id: setlist.id,
+        name: setlist.name,
+        date: setlist.date,
+        createdAt: setlist.created_at,
+        updatedAt: setlist.updated_at,
+        songs: setlist.setlist_songs
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
+            id: ss.id,
+            songId: ss.song_id,
+            order: ss.order,
+            key: ss.key || undefined,
+            notes: ss.notes || undefined,
+            song: {
+              id: ss.songs.id,
+              title: ss.songs.title,
+              artist: ss.songs.artist,
+              notes: ss.songs.notes || "",
+              createdAt: ss.songs.created_at,
+              updatedAt: ss.songs.updated_at,
+            },
+          })),
+      }));
+      
+      setSetlists(formattedSetlists);
+    } catch (err) {
+      setError("Failed to load setlists");
+      toast({
+        title: "Error",
+        description: "Failed to load setlists",
+        variant: "destructive",
+      });
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const addSetlist = async (setlistData: Partial<Setlist>): Promise<Setlist> => {
     if (!user) throw new Error("User not authenticated");
@@ -113,7 +168,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
         updatedAt: data.updated_at,
       };
       
-      setSetlists((prev: Setlist[]) => [...prev, newSetlist]);
+      setSetlists(prev => [...prev, newSetlist]);
       return newSetlist;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add setlist");
@@ -161,8 +216,8 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         songs: data.setlist_songs
-          .sort((a: any, b: any) => a.order - b.order)
-          .map((ss: any) => ({
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
             id: ss.id,
             songId: ss.song_id,
             order: ss.order,
@@ -179,7 +234,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           })),
       };
       
-      setSetlists((prev: Setlist[]) => prev.map(setlist => 
+      setSetlists(prev => prev.map(setlist => 
         setlist.id === id ? updatedSetlist : setlist
       ));
       
@@ -247,8 +302,8 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
         createdAt: setlist.created_at,
         updatedAt: setlist.updated_at,
         songs: setlist.setlist_songs
-          .sort((a: any, b: any) => a.order - b.order)
-          .map((ss: any) => ({
+          .sort((a, b) => a.order - b.order)
+          .map(ss => ({
             id: ss.id,
             songId: ss.song_id,
             order: ss.order,
@@ -265,7 +320,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           })),
       };
       
-      setSetlists((prev: Setlist[]) => prev.map(s => 
+      setSetlists(prev => prev.map(s => 
         s.id === setlistId ? updatedSetlist : s
       ));
       
@@ -292,7 +347,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
       
       if (error) throw error;
       
-      setSetlists((prev: Setlist[]) => prev.filter(setlist => setlist.id !== id));
+      setSetlists(prev => prev.filter(setlist => setlist.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete setlist");
       throw err;
@@ -318,8 +373,6 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// This comment addresses the Fast Refresh lint warning
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSetlists() {
   const context = useContext(SetlistContext);
   if (context === undefined) {

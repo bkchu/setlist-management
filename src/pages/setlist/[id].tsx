@@ -472,7 +472,7 @@ export default function SetlistPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-col">
       <Header title={setlist.name} />
 
       {/* File Carousel Dialog */}
@@ -760,33 +760,39 @@ export default function SetlistPage() {
                           (item) => (
                             <div
                               key={item.key}
-                              className="flex items-center gap-3"
+                              onClick={() =>
+                                setAddSongForm((prev) => ({
+                                  ...prev,
+                                  key: item.key,
+                                }))
+                              }
+                              className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${
+                                addSongForm.key === item.key
+                                  ? 'bg-primary/10 border border-primary/20'
+                                  : 'border border-transparent'
+                              }`}
                             >
                               <Button
-                                type="button"
                                 variant={
                                   addSongForm.key === item.key
                                     ? "default"
                                     : "outline"
                                 }
-                                size="xs"
-                                className="h-7 w-10 px-0 font-mono text-xs"
-                                onClick={() =>
-                                  setAddSongForm((prev) => ({
-                                    ...prev,
-                                    key: item.key,
-                                  }))
-                                }
+                                size="sm"
+                                className="h-7 w-10 px-0 font-mono text-xs font-medium flex-shrink-0"
                               >
                                 {item.key}
                               </Button>
-                              <div className="text-xs text-muted-foreground">
-                                {item.usages[0].setlistName}
-                                <span className="mx-1">•</span>
-                                {format(
-                                  new Date(item.usages[0].date),
-                                  "MMM d, yyyy"
-                                )}
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-foreground truncate">
+                                  {item.usages[0].setlistName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(
+                                    new Date(item.usages[0].date),
+                                    "MMM d, yyyy"
+                                  )}
+                                </p>
                               </div>
                             </div>
                           )
@@ -831,8 +837,8 @@ export default function SetlistPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex-1 space-y-8 overflow-auto p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="flex-1 space-y-8 overflow-auto p-4 md:p-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <Breadcrumb
             items={[
               { href: "/setlists", label: "Setlists" },

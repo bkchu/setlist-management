@@ -2,9 +2,7 @@ import React from "react";
 import { SetlistSong } from "@/types";
 import { SetlistSongRow } from "./setlist-song-row";
 
-interface EditableSetlistSong extends Partial<SetlistSong> {
-  isNew?: boolean;
-}
+// Removed unused EditableSetlistSong interface
 
 import { Song } from "@/types";
 
@@ -14,7 +12,6 @@ interface SetlistSongListProps {
   onEdit: (song: SetlistSong) => void;
   onRemove: (songId: string) => void;
   onReorder: (songId: string, dir: "up" | "down") => void;
-  keyOptions: string[];
 }
 
 export const SetlistSongList: React.FC<SetlistSongListProps> = ({
@@ -23,7 +20,6 @@ export const SetlistSongList: React.FC<SetlistSongListProps> = ({
   onEdit,
   onRemove,
   onReorder,
-  keyOptions,
 }) => {
   return (
     <div>
@@ -35,13 +31,11 @@ export const SetlistSongList: React.FC<SetlistSongListProps> = ({
             key={setlistSong.id}
             setlistSong={setlistSong}
             song={song}
-            index={idx}
             onEdit={onEdit}
             onRemove={onRemove}
             onReorder={onReorder}
             canMoveUp={idx > 0}
             canMoveDown={idx < setlistSongs.length - 1}
-            keyOptions={keyOptions}
           />
         );
       })}

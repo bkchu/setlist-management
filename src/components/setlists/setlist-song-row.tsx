@@ -1,58 +1,33 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { motion } from "framer-motion";
 import {
   EditIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   XIcon,
-  CheckIcon,
 } from "lucide-react";
-import { SetlistSong } from "@/types";
-
-interface EditableSetlistSong extends Partial<SetlistSong> {
-  isNew?: boolean;
-}
+import { SetlistSong, Song } from "@/types";
 
 interface SetlistSongRowProps {
   setlistSong: SetlistSong;
-  song: any;
-  index: number;
-  isEditing: boolean;
-  editingSong?: EditableSetlistSong;
+  song: Song;
   onEdit: (song: SetlistSong) => void;
-  onSave: (songId: string) => void;
-  onCancel: (songId: string) => void;
   onRemove: (songId: string) => void;
   onReorder: (songId: string, dir: "up" | "down") => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  keyOptions: string[];
-  editingSongs: Record<string, EditableSetlistSong>;
-  setEditingSongs: React.Dispatch<
-    React.SetStateAction<Record<string, EditableSetlistSong>>
-  >;
 }
 
 export const SetlistSongRow: React.FC<SetlistSongRowProps> = ({
   setlistSong,
   song,
-  index,
   onEdit,
   onRemove,
   onReorder,
   canMoveUp,
   canMoveDown,
-  keyOptions,
 }) => {
   return (
     <motion.div

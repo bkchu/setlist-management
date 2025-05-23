@@ -6,25 +6,26 @@ import { useMemo } from "react";
 export function MobileNav() {
   const { pathname } = useLocation();
 
-  const navItems = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-    },
-    {
-      name: "Songs",
-      href: "/songs",
-      icon: Music,
-    },
-    {
-      name: "Setlists",
-      href: "/setlists",
-      icon: ListMusic,
-    },
-  ];
-
   const renderedNavItems = useMemo(() => {
+    // Moved navItems inside useMemo to fix the dependency array issue
+    const navItems = [
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: Home,
+      },
+      {
+        name: "Songs",
+        href: "/songs",
+        icon: Music,
+      },
+      {
+        name: "Setlists",
+        href: "/setlists",
+        icon: ListMusic,
+      },
+    ];
+    
     return navItems.map((item) => {
       let isActive;
       if (item.name === "Dashboard") {
@@ -55,7 +56,7 @@ export function MobileNav() {
         </Link>
       );
     });
-  }, [pathname, navItems]);
+  }, [pathname]); // Removed navItems from dependency array since it's now defined inside the hook
 
   return (
     <nav className="flex h-14 w-full items-center justify-around">

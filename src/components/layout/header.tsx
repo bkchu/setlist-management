@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+// Button import removed (unused)
 import { Separator } from "@/components/ui/separator";
 
 interface HeaderProps {

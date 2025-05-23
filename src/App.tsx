@@ -32,7 +32,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </div>
       <div className="flex-1 flex flex-col h-full">
-        <ScrollArea className="flex-1 pb-20">{children}</ScrollArea>
+        <ScrollArea className="flex-1 pb-[56px] md:pb-0">{children}</ScrollArea>
       </div>
       {/* Global Mobile Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
