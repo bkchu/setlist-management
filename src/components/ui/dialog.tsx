@@ -27,25 +27,18 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, fullscreen = false, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay className="overflow-y-auto grid place-items-center py-4" />
+    <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         fullscreen
           ? "fixed inset-0 z-50 w-screen h-screen bg-background p-0 m-0 max-w-none rounded-none border-0 shadow-none flex flex-col"
-          : "fixed z-50 grid w-full max-w-lg gap-4 border bg-background p-0 shadow-lg duration-200 sm:rounded-lg overflow-y-auto max-h-[90vh] my-4 mx-auto",
-        "w-[95vw] sm:w-full", // Ensure good mobile sizing
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          : "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-0 shadow-lg duration-200 sm:rounded-lg",
         className
       )}
-      style={{
-        top: fullscreen ? undefined : "50%",
-        left: fullscreen ? undefined : "50%",
-        transform: fullscreen ? undefined : "translate(-50%, -50%)"
-      }}
       {...props}
     >
-      <div className={fullscreen ? "flex-1 flex flex-col w-full h-full" : "p-6"}>{children}</div>
+      <div className={fullscreen ? "flex-1 flex flex-col w-full h-full" : "space-y-6"}>{children}</div>
       {!fullscreen && (
         <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <X className="h-4 w-4" />
@@ -63,7 +56,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
+      "flex flex-col space-y-1.5 text-left mb-4",
       className
     )}
     {...props}
@@ -92,7 +85,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "text-xl font-semibold leading-none tracking-tight",
       className
     )}
     {...props}
