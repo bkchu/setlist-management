@@ -536,6 +536,7 @@ export default function SetlistPage() {
   // Handler for opening dialog and requesting fullscreen
   const handleViewFiles = () => {
     setShowCarousel(true);
+    setIsNotesWindowOpen(false);
     setTimeout(() => {
       if (
         dialogContentRef.current &&
@@ -560,14 +561,14 @@ export default function SetlistPage() {
 
   useEffect(() => {
     if (!setlist || !flattenedSlides[currentSlideIndex]) return;
-    
+
     // Get the songId for the current slide
     const slide = flattenedSlides[currentSlideIndex];
     const songId = slide.song_id;
-    
+
     // Find the song in the setlist that matches this songId
-    const song = setlist.songs.find(song => song.songId === songId);
-    
+    const song = setlist.songs.find((song) => song.songId === songId);
+
     // Use the notes from the song, ensuring all pages of the same song share notes
     setLocalNotes(song?.notes || "");
   }, [currentSlideIndex, setlist, flattenedSlides]);
@@ -581,37 +582,24 @@ export default function SetlistPage() {
       <Header title={setlist.name} />
 
       {/* File Carousel Dialog */}
-      <Dialog
-        open={showCarousel}
-        onOpenChange={setShowCarousel}
-      >
+      <Dialog open={showCarousel} onOpenChange={setShowCarousel}>
         <DialogContent
           ref={dialogContentRef}
+          fullscreen
           className={
             isFullscreen
-              ? "fixed inset-0 z-50 bg-background m-0 w-screen h-screen max-w-none rounded-none flex flex-col"
+              ? "fixed inset-0 z-50 bg-background m-0 w-screen h-dvh max-w-none rounded-none flex flex-col"
               : "max-w-6xl w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]"
           }
           style={isFullscreen ? { padding: 0, margin: 0 } : {}}
         >
-          {isFullscreen && (
-            <Button
-              className="absolute top-4 right-4 z-50 bg-white/80 shadow"
-              onClick={() => document.exitFullscreen()}
-            >
-              Exit Fullscreen
-            </Button>
-          )}
           {/* Best Practice: Wrap content in relative container for proper positioning context */}
-          <div className="relative space-y-4 p-4 w-full">
-            <DialogTitle className="text-xl font-semibold">
-              Files ({currentSlide + 1} of {allFiles.length})
-            </DialogTitle>
+          <div className="relative space-y-4 w-full h-full">
             <div
               ref={carouselContainerRef}
               className={
                 isFullscreen
-                  ? "carousel-container relative h-[calc(100vh-100px)]"
+                  ? "carousel-container relative h-dvh"
                   : "carousel-container relative h-[calc(100vh-200px)]"
               }
             >
@@ -623,15 +611,7 @@ export default function SetlistPage() {
                       className="relative min-w-full flex-[0_0_100%] h-full"
                     >
                       <div className="space-y-4 flex flex-col h-full">
-                        <div>
-                          <h3 className="text-lg font-medium">
-                            {slide.songTitle}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {slide.songArtist}
-                          </p>
-                        </div>
-                        <div className="flex flex-1 justify-center overflow-y-auto bg-muted/20 rounded-lg p-4">
+                        <div className="flex flex-1 justify-center overflow-y-auto bg-muted/20 rounded-lg">
                           {slide.type === "image" && slide.url && (
                             <img
                               src={slide.url}
@@ -675,35 +655,22 @@ export default function SetlistPage() {
                 </div>
               </div>
 
-              {allFiles.length > 1 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/60 backdrop-blur-sm text-black"
-                    onClick={scrollPrev}
-                  >
-                    <ChevronLeftIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/60 backdrop-blur-sm text-black"
-                    onClick={scrollNext}
-                  >
-                    <ChevronRightIcon className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
               {/* Notes Button */}
               {isFullscreen && (
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute bottom-4 right-4 rounded-full bg-white/60 backdrop-blur-sm text-black hover:bg-white/80"
+                  className="absolute w-auto px-4 gap-2 h-12 bottom-4 right-4 rounded-md bg-white/60 backdrop-blur-sm hover:bg-white/80"
                   onClick={() => setIsNotesWindowOpen((prev) => !prev)}
                 >
-                  <StickyNoteIcon className="h-5 w-5" />
+                  {isNotesWindowOpen ? (
+                    <XIcon className="h-6 w-6 text-black" />
+                  ) : (
+                    <StickyNoteIcon className="h-6 w-6 text-black" />
+                  )}
+                  <p className="text-black">
+                    {isNotesWindowOpen ? "Close" : "Open"} Notes
+                  </p>
                 </Button>
               )}
 
@@ -717,7 +684,9 @@ export default function SetlistPage() {
                   notes={localNotes}
                   onNotesChange={(val) => {
                     setLocalNotes(val);
-                    setNotesDirty(val !== (setlist?.songs[currentSlideIndex]?.notes || ""));
+                    setNotesDirty(
+                      val !== (setlist?.songs[currentSlideIndex]?.notes || "")
+                    );
                   }}
                   onSaveNotes={async () => {
                     if (!setlist || !flattenedSlides[currentSlideIndex]) return;
@@ -740,7 +709,10 @@ export default function SetlistPage() {
                     try {
                       await updateSetlistSongs(setlist.id, updatedSongs);
                       setNotesDirty(false);
-                      toast({ title: "Notes saved", description: "Your notes were updated." });
+                      toast({
+                        title: "Notes saved",
+                        description: "Your notes were updated.",
+                      });
                     } catch (error: any) {
                       toast({
                         title: "Failed to save notes",
@@ -750,7 +722,9 @@ export default function SetlistPage() {
                     }
                   }}
                   notesDirty={notesDirty}
-                  songTitle={flattenedSlides[currentSlideIndex]?.songTitle || ""}
+                  songTitle={
+                    flattenedSlides[currentSlideIndex]?.songTitle || ""
+                  }
                   pageNumber={flattenedSlides[currentSlideIndex]?.pageNumber}
                   totalPages={(() => {
                     const slide = flattenedSlides[currentSlideIndex];

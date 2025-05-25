@@ -52,16 +52,16 @@ const NotesWindow = ({
   };
 
   // Calculate initial position based on container dimensions
-  const windowWidth = 350;
-  const windowHeight = 400;
+  const windowWidth = 200;
+  const windowHeight = 300;
   const calculateInitialPosition = useCallback((): { x: number; y: number } => {
     const container = containerRef.current;
     if (!container) return { x: 20, y: 20 };
 
     const rect = container.getBoundingClientRect();
     return {
-      x: Math.max(20, (rect.width - windowWidth) / 2),
-      y: Math.max(20, (rect.height - windowHeight) / 2),
+      x: Math.max(20, (rect.width - windowWidth) / 2), // or your preferred X position
+      y: Math.max(20, rect.height - windowHeight + 100), // 20px margin from bottom
     };
   }, [containerRef, windowWidth, windowHeight]);
 
@@ -76,8 +76,8 @@ const NotesWindow = ({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       position={calculateInitialPosition()}
-      width={windowWidth}
-      height={windowHeight}
+      width={400}
+      height={200}
       containerRef={containerRef}
       zIndex={10000} // Ensure it's above the carousel dialog
       className="shadow-xl"
@@ -85,10 +85,12 @@ const NotesWindow = ({
       contentClassName="p-0"
     >
       <Textarea
+        readOnly
+        disabled
         value={localNotes}
         onChange={handleNotesChange}
-        placeholder="Add notes about this song here..."
-        className="resize-none h-full border-0 focus-visible:ring-0 p-2 bg-transparent"
+        placeholder="No notes. Go back to the song to add notes."
+        className="resize-none h-full border-0 focus-visible:ring-0 p-2 bg-transparent w-full"
       />
       {Boolean(notesDirty) && (
         <div className="absolute bottom-4 right-4 z-10">
@@ -100,7 +102,10 @@ const NotesWindow = ({
           >
             {saving ? (
               <span className="flex items-center">
-                <svg className="animate-spin h-3 w-3 mr-1.5" viewBox="0 0 24 24">
+                <svg
+                  className="animate-spin h-3 w-3 mr-1.5"
+                  viewBox="0 0 24 24"
+                >
                   <circle
                     className="opacity-25"
                     cx="12"

@@ -68,13 +68,107 @@ export function DraggableWindow({
   );
 
   // Handle resize start
-  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+  const handleResizeStart = (
+    e: React.MouseEvent | React.TouchEvent,
+    direction: string,
+    isTouch = false
+  ) => {
     e.preventDefault();
-    e.stopPropagation();
+    let startX: number, startY: number;
+    if (isTouch && "touches" in e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    } else if ("clientX" in e) {
+      startX = e.clientX;
+      startY = e.clientY;
+    } else {
+      return;
+    }
     setIsResizing(true);
     setResizeDirection(direction);
-    startResizePos.current = { x: e.clientX, y: e.clientY };
+    startResizePos.current = { x: startX, y: startY };
     startResizeSize.current = { ...windowSize };
+
+    const moveHandler = (moveEvent: MouseEvent | TouchEvent) => {
+      let clientX: number, clientY: number;
+      if ("touches" in moveEvent && moveEvent.touches.length > 0) {
+        clientX = moveEvent.touches[0].clientX;
+        clientY = moveEvent.touches[0].clientY;
+      } else if ("clientX" in moveEvent) {
+        clientX = (moveEvent as MouseEvent).clientX;
+        clientY = (moveEvent as MouseEvent).clientY;
+      } else {
+        return;
+      }
+      const dx = clientX - (startResizePos?.current?.x || 0);
+      const dy = clientY - (startResizePos?.current?.y || 0);
+      let newWidth = startResizeSize?.current?.width || windowSize.width;
+      let newHeight = startResizeSize?.current?.height || windowSize.height;
+      let newX = windowPosition.x;
+      let newY = windowPosition.y;
+
+      switch (direction) {
+        case "se":
+          newWidth += dx;
+          newHeight += dy;
+          break;
+        case "sw":
+          newWidth -= dx;
+          newHeight += dy;
+          newX += dx;
+          break;
+        case "ne":
+          newWidth += dx;
+          newHeight -= dy;
+          newY += dy;
+          break;
+        case "nw":
+          newWidth -= dx;
+          newHeight -= dy;
+          newX += dx;
+          newY += dy;
+          break;
+        case "s":
+          newHeight += dy;
+          break;
+        case "n":
+          newHeight -= dy;
+          newY += dy;
+          break;
+        case "e":
+          newWidth += dx;
+          break;
+        case "w":
+          newWidth -= dx;
+          newX += dx;
+          break;
+      }
+      // Clamp to min/max size if desired
+      setWindowSize({
+        width: Math.max(minWidth, newWidth),
+        height: Math.max(minHeight, newHeight),
+      });
+      setWindowPosition({ x: newX, y: newY });
+    };
+
+    const upHandler = () => {
+      if (isTouch) {
+        document.removeEventListener("touchmove", moveHandler);
+        document.removeEventListener("touchend", upHandler);
+      } else {
+        document.removeEventListener("mousemove", moveHandler);
+        document.removeEventListener("mouseup", upHandler);
+      }
+      setIsResizing(false);
+    };
+
+    if (isTouch) {
+      document.addEventListener("touchmove", moveHandler, { passive: false });
+      document.addEventListener("touchend", upHandler);
+    } else {
+      document.addEventListener("mousemove", moveHandler);
+      document.addEventListener("mouseup", upHandler);
+    }
   };
 
   // Handle resize move
@@ -161,8 +255,8 @@ export function DraggableWindow({
 
   if (!isOpen) return null;
 
-  // Create a draggable window element
-  const windowContent = (
+  // Use React Portal to render outside the dialog hierarchy
+  return createPortal(
     <Draggable
       handle=".draggable-handle"
       position={windowPosition}
@@ -186,71 +280,66 @@ export function DraggableWindow({
           zIndex: zIndex,
         }}
       >
-            {/* Header with drag handle */}
-            <div
-              className={cn(
-                "draggable-handle p-2 flex items-center justify-between border-b bg-muted/50 cursor-grab",
-                isDragging && "cursor-grabbing",
-                titleClassName
-              )}
-            >
-              <div className="truncate">{title}</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => onOpenChange(false)}
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* Header with drag handle */}
+        <div
+          className={cn(
+            "draggable-handle p-2 h-12 flex items-center justify-between border-b bg-muted/50 cursor-grab",
+            isDragging && "cursor-grabbing",
+            titleClassName
+          )}
+        >
+          <div className="truncate text-xs">{title}</div>
+        </div>
 
-            {/* Content */}
-            <div className={cn("flex-1 overflow-auto p-4", contentClassName)}>
-              {children}
-            </div>
+        {/* Content */}
+        <div className={cn("flex-1 overflow-auto p-4", contentClassName)}>
+          {children}
+        </div>
 
-            {/* Resize handles */}
-            <div
-              className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-              onMouseDown={(e) => handleResizeStart(e, "se")}
-            />
-            <div
-              className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize"
-              onMouseDown={(e) => handleResizeStart(e, "sw")}
-            />
-            <div
-              className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize"
-              onMouseDown={(e) => handleResizeStart(e, "ne")}
-            />
-            <div
-              className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize"
-              onMouseDown={(e) => handleResizeStart(e, "nw")}
-            />
+        {/* Resize handles */}
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+          onMouseDown={(e) => handleResizeStart(e, "se", false)}
+          onTouchStart={(e) => handleResizeStart(e, "se", true)}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize"
+          onMouseDown={(e) => handleResizeStart(e, "sw", false)}
+          onTouchStart={(e) => handleResizeStart(e, "sw", true)}
+        />
+        <div
+          className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize"
+          onMouseDown={(e) => handleResizeStart(e, "ne", false)}
+          onTouchStart={(e) => handleResizeStart(e, "ne", true)}
+        />
+        <div
+          className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize"
+          onMouseDown={(e) => handleResizeStart(e, "nw", false)}
+          onTouchStart={(e) => handleResizeStart(e, "nw", true)}
+        />
 
-            <div
-              className="absolute bottom-0 left-4 right-4 h-2 cursor-s-resize"
-              onMouseDown={(e) => handleResizeStart(e, "s")}
-            />
-            <div
-              className="absolute top-0 left-4 right-4 h-2 cursor-n-resize"
-              onMouseDown={(e) => handleResizeStart(e, "n")}
-            />
-            <div
-              className="absolute right-0 top-4 bottom-4 w-2 cursor-e-resize"
-              onMouseDown={(e) => handleResizeStart(e, "e")}
-            />
-            <div
-              className="absolute left-0 top-4 bottom-4 w-2 cursor-w-resize"
-              onMouseDown={(e) => handleResizeStart(e, "w")}
-            />
-          </div>
-    </Draggable>
-  );
-
-  // Use React Portal to render outside the dialog hierarchy
-  return createPortal(
-    windowContent,
+        <div
+          className="absolute bottom-0 left-4 right-4 h-2 cursor-s-resize"
+          onMouseDown={(e) => handleResizeStart(e, "s", false)}
+          onTouchStart={(e) => handleResizeStart(e, "s", true)}
+        />
+        <div
+          className="absolute top-0 left-4 right-4 h-2 cursor-n-resize"
+          onMouseDown={(e) => handleResizeStart(e, "n", false)}
+          onTouchStart={(e) => handleResizeStart(e, "n", true)}
+        />
+        <div
+          className="absolute right-0 top-4 bottom-4 w-2 cursor-e-resize"
+          onMouseDown={(e) => handleResizeStart(e, "e", false)}
+          onTouchStart={(e) => handleResizeStart(e, "e", true)}
+        />
+        <div
+          className="absolute left-0 top-4 bottom-4 w-2 cursor-w-resize"
+          onMouseDown={(e) => handleResizeStart(e, "w", false)}
+          onTouchStart={(e) => handleResizeStart(e, "w", true)}
+        />
+      </div>
+    </Draggable>,
     containerRef?.current || document.body
   );
 }
