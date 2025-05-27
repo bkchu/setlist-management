@@ -1,14 +1,11 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import useEmblaCarousel from "embla-carousel-react";
-import { supabase } from "@/lib/supabase";
-import { useSetlists } from "@/hooks/use-setlists";
-import { useSongs } from "@/hooks/use-songs";
+import { Header } from "@/components/layout/header";
+import { NotesWindow } from "@/components/setlists/notes-window";
+import { OneTouchSongs } from "@/components/setlists/one-touch-songs";
+import { SetlistForm } from "@/components/setlists/setlist-form";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { SetlistSong } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,26 +14,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { useSetlists } from "@/hooks/use-setlists";
+import { useSongs } from "@/hooks/use-songs";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import { SetlistSong } from "@/types";
+import { format } from "date-fns";
+import useEmblaCarousel from "embla-carousel-react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   Edit as EditIcon,
   Music2Icon,
   PlusIcon,
   StickyNoteIcon,
   XIcon,
 } from "lucide-react";
-import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { Header } from "@/components/layout/header";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { AnimatePresence, motion } from "framer-motion";
-import { Separator } from "@/components/ui/separator";
-import { SetlistForm } from "@/components/setlists/setlist-form";
-import { NotesWindow } from "@/components/setlists/notes-window";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import { useNavigate, useParams } from "react-router-dom";
 
 // Interface used in getKeyHistoryForSong
 interface KeyHistoryItem {
@@ -510,9 +509,8 @@ export default function SetlistPage() {
 
     try {
       const updatedSongs = [...setlist.songs];
-      const temp = updatedSongs[songIndex];
-      updatedSongs[songIndex] = updatedSongs[newIndex];
-      updatedSongs[newIndex] = temp;
+      const [removed] = updatedSongs.splice(songIndex, 1);
+      updatedSongs.splice(newIndex, 0, removed);
 
       const reorderedSongs = updatedSongs.map((s, idx) => ({
         ...s,
@@ -655,23 +653,26 @@ export default function SetlistPage() {
                 </div>
               </div>
 
-              {/* Notes Button */}
+              {/* Quick Access Buttons */}
               {isFullscreen && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute w-auto px-4 gap-2 h-12 bottom-4 right-4 rounded-md bg-white/60 backdrop-blur-sm hover:bg-white/80"
-                  onClick={() => setIsNotesWindowOpen((prev) => !prev)}
-                >
-                  {isNotesWindowOpen ? (
-                    <XIcon className="h-6 w-6 text-black" />
-                  ) : (
-                    <StickyNoteIcon className="h-6 w-6 text-black" />
-                  )}
-                  <p className="text-black">
-                    {isNotesWindowOpen ? "Close" : "Open"} Notes
-                  </p>
-                </Button>
+                <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                  {/* Notes Button */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-auto px-4 gap-2 h-12 rounded-md bg-white/60 backdrop-blur-sm hover:bg-white/80"
+                    onClick={() => setIsNotesWindowOpen((prev) => !prev)}
+                  >
+                    {isNotesWindowOpen ? (
+                      <XIcon className="h-6 w-6 text-black" />
+                    ) : (
+                      <StickyNoteIcon className="h-6 w-6 text-black" />
+                    )}
+                    <p className="text-black">
+                      {isNotesWindowOpen ? "Close" : "Open"} Notes
+                    </p>
+                  </Button>
+                </div>
               )}
 
               {/* Notes Window Toggle and Window */}
@@ -1029,9 +1030,15 @@ export default function SetlistPage() {
                         return (
                           <motion.div
                             key={setlistSong.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
+                            layout
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 30,
+                            }}
                             className="flex items-center justify-between rounded-md border p-3"
                           >
                             <div className="flex items-center gap-3">
@@ -1109,6 +1116,10 @@ export default function SetlistPage() {
           </Card>
 
           <div className="space-y-6">
+            {/* One-Touch Songs - Desktop */}
+            <OneTouchSongs className="hidden md:block" />
+            {/* Let the component handle file loading and display on its own */}
+            {/* Information Card */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-semibold">Information</h2>
@@ -1116,24 +1127,30 @@ export default function SetlistPage() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Date</span>
                     <span>
-                      {format(new Date(setlist.date), "MMMM d, yyyy")}
+                      {setlist?.date
+                        ? format(new Date(setlist.date), "MMMM d, yyyy")
+                        : "Not scheduled"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Songs</span>
-                    <span>{setlist.songs.length}</span>
+                    <span>{setlist?.songs.length || 0}</span>
                   </div>
                   <Separator className="my-2" />
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created</span>
                     <span>
-                      {format(new Date(setlist.createdAt), "MMM d, yyyy")}
+                      {setlist?.createdAt
+                        ? format(new Date(setlist.createdAt), "MMM d, yyyy")
+                        : ""}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Last updated</span>
                     <span>
-                      {format(new Date(setlist.updatedAt), "MMM d, yyyy")}
+                      {setlist?.updatedAt
+                        ? format(new Date(setlist.updatedAt), "MMM d, yyyy")
+                        : ""}
                     </span>
                   </div>
                 </div>

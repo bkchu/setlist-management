@@ -10,9 +10,11 @@ import { Song } from "@/types";
 
 interface SongSearchComboboxProps {
   songs: Song[];
+  onSelect?: (songId: string) => void;
+  placeholder?: string;
 }
 
-export function SongSearchCombobox({ songs }: SongSearchComboboxProps) {
+export function SongSearchCombobox({ songs, onSelect, placeholder = "Search songs..." }: SongSearchComboboxProps) {
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
@@ -37,7 +39,7 @@ export function SongSearchCombobox({ songs }: SongSearchComboboxProps) {
         >
           {value
             ? songs.find((song) => song.id === value)?.title
-            : "Search songs..."}
+            : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -56,11 +58,17 @@ export function SongSearchCombobox({ songs }: SongSearchComboboxProps) {
                 key={song.id}
                 value={`${song.title} ${song.artist || ''}`}
                 onSelect={() => {
-                  setValue(song.id);
+                  setValue(""); // Reset value immediately when using onSelect
                   setInput("");
                   setOpen(false);
-                  // Navigate to song detail using client-side navigation
-                  navigate(`/song/${song.id}`);
+                  if (onSelect) {
+                    onSelect(song.id);
+                  } else {
+                    // Only set persistent value when navigating
+                    setValue(song.id);
+                    // Navigate to song detail using client-side navigation
+                    navigate(`/song/${song.id}`);
+                  }
                 }}
               >
                 <div className="flex flex-col">

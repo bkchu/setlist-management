@@ -3,13 +3,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { MoreHorizontal, MusicIcon, PlusIcon } from "lucide-react";
+import { MoreHorizontal, MusicIcon, PlusIcon, StarIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { Song } from "@/types";
 import { SongForm } from "./song-form";
+import { useSettings } from "@/hooks/use-settings";
+import { toast } from "@/hooks/use-toast";
 
 interface SongListProps {
   songs: Song[];
@@ -17,8 +19,6 @@ interface SongListProps {
   onEditSong: (id: string, song: Partial<Song>) => void;
   onDeleteSong: (id: string) => void;
 }
-
-// Removed unused interface
 
 export function SongList({
   songs,
@@ -28,6 +28,7 @@ export function SongList({
 }: SongListProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const { settings, updateOneTouchSongs } = useSettings();
 
   const handleAddSubmit = (songData: Partial<Song>) => {
     onAddSong(songData);
@@ -125,45 +126,78 @@ export function SongList({
                       {format(new Date(song.updatedAt), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      <Dialog
-                        open={editingSong?.id === song.id}
-                        onOpenChange={(open) => {
-                          if (!open) setEditingSong(null);
-                        }}
-                      >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            asChild
-                            onClick={(e) => e.preventDefault()}
-                          >
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DialogTrigger asChild>
-                              <DropdownMenuItem
-                                onClick={() => setEditingSong(song)}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                            </DialogTrigger>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => onDeleteSong(song.id)}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={settings.oneTouchSongs.songIds.includes(song.id) ? "text-yellow-500" : ""}
+                          onClick={() => {
+                            const isOneTouch = settings.oneTouchSongs.songIds.includes(song.id);
+                            const newSongIds = isOneTouch
+                              ? settings.oneTouchSongs.songIds.filter(id => id !== song.id)
+                              : [...settings.oneTouchSongs.songIds, song.id].slice(0, 3);
+                            
+                            updateOneTouchSongs(newSongIds)
+                              .then(() => {
+                                toast({
+                                  title: isOneTouch ? "Removed from One-Touch Songs" : "Added to One-Touch Songs",
+                                  description: isOneTouch
+                                    ? `"${song.title}" has been removed from your One-Touch Songs`
+                                    : `"${song.title}" has been added to your One-Touch Songs`,
+                                });
+                              })
+                              .catch(() => {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to update One-Touch Songs",
+                                  variant: "destructive",
+                                });
+                              });
+                          }}
+                        >
+                          <StarIcon className="h-4 w-4" />
+                          <span className="sr-only">Toggle One-Touch</span>
+                        </Button>
+                        <Dialog
+                          open={editingSong?.id === song.id}
+                          onOpenChange={(open) => {
+                            if (!open) setEditingSong(null);
+                          }}
+                        >
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              asChild
+                              onClick={(e) => e.preventDefault()}
                             >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <DialogContent className="sm:max-w-md">
-                          <SongForm
-                            song={song}
-                            onSubmit={handleEditSubmit}
-                            onCancel={() => setEditingSong(null)}
-                          />
-                        </DialogContent>
-                      </Dialog>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onClick={() => setEditingSong(song)}
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                              </DialogTrigger>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => onDeleteSong(song.id)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <DialogContent className="sm:max-w-md">
+                            <SongForm
+                              song={song}
+                              onSubmit={handleEditSubmit}
+                              onCancel={() => setEditingSong(null)}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </TableCell>
                   </motion.tr>
                 ))

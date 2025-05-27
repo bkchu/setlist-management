@@ -1,8 +1,8 @@
-import React from "react";
+
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MusicIcon, ListMusic, HomeIcon, LogOutIcon } from "lucide-react";
+import { MusicIcon, ListMusic, HomeIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 import { SidebarNav } from "./sidebar-nav";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -33,6 +33,11 @@ export function Sidebar() {
       title: "Setlists",
       href: "/setlists",
       icon: ListMusic,
+    },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: SettingsIcon,
     },
   ];
 

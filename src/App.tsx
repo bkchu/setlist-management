@@ -3,10 +3,12 @@ import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { SongProvider } from '@/hooks/use-songs';
 import { SetlistProvider } from '@/hooks/use-setlists';
+import { SettingsProvider } from '@/hooks/use-settings';
 import Login from '@/pages/login';
 import Dashboard from '@/pages/dashboard';
 import Songs from '@/pages/songs';
 import Setlists from '@/pages/setlists';
+import Settings from '@/pages/settings';
 import SongPage from '@/pages/song/[id]';
 import SetlistPage from '@/pages/setlist/[id]';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -48,6 +50,7 @@ function App() {
       <AuthProvider>
         <SongProvider>
           <SetlistProvider>
+            <SettingsProvider>
             <Router>
               <Routes>
                 <Route path="/login" element={<Login />} />
@@ -91,10 +94,19 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Router>
             <Toaster position="bottom-right" />
+            </SettingsProvider>
           </SetlistProvider>
         </SongProvider>
       </AuthProvider>

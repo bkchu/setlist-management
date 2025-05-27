@@ -199,72 +199,58 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     
     try {
-      // First, delete all existing setlist songs
-      const { error: deleteError } = await supabase
+      // Find the current setlist to preserve song IDs for reordering
+      const currentSetlist = setlists.find(s => s.id === setlistId);
+      if (!currentSetlist) throw new Error("Setlist not found in local state");
+      
+      // Create a map of songId to setlist_song id to preserve IDs during reordering
+      const songIdToRecordId = new Map();
+      currentSetlist.songs.forEach(song => {
+        songIdToRecordId.set(song.songId, song.id);
+      });
+      
+      // Prepare songs for database - preserve IDs for existing songs
+      const songsToUpdate = newSongs.map(song => ({
+        id: songIdToRecordId.get(song.songId), // Preserve ID if song already exists
+        setlist_id: setlistId,
+        song_id: song.songId,
+        order: song.order,
+        key: song.key || null,
+        notes: song.notes || null,
+      }));
+      
+      // Upsert approach - update or insert songs as needed
+      const { error: upsertError } = await supabase
         .from('setlist_songs')
-        .delete()
-        .eq('setlist_id', setlistId);
+        .upsert(songsToUpdate, { onConflict: 'id' });
       
-      if (deleteError) throw deleteError;
+      if (upsertError) throw upsertError;
       
-      // Then insert the new songs
-      if (newSongs.length > 0) {
-        const { error: insertError } = await supabase
+      // Delete songs that no longer exist in the setlist
+      const currentSongIds = new Set(songsToUpdate.filter(s => s.id).map(s => s.id));
+      const deletedSongs = currentSetlist.songs.filter(s => !currentSongIds.has(s.id));
+      
+      if (deletedSongs.length > 0) {
+        const { error: deleteError } = await supabase
           .from('setlist_songs')
-          .insert(
-            newSongs.map(song => ({
-              setlist_id: setlistId,
-              song_id: song.songId,
-              order: song.order,
-              key: song.key || null,
-              notes: song.notes || null,
-            }))
-          );
+          .delete()
+          .in('id', deletedSongs.map(s => s.id));
         
-        if (insertError) throw insertError;
+        if (deleteError) throw deleteError;
       }
       
-      // Fetch the updated setlist
-      const { data: setlist, error: fetchError } = await supabase
-        .from('setlists')
-        .select(`
-          *,
-          setlist_songs (
-            *,
-            songs (*)
-          )
-        `)
-        .eq('id', setlistId)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      if (!setlist) throw new Error("Setlist not found");
-      
+      // Create a local updated setlist with preserved IDs
       const updatedSetlist: Setlist = {
-        id: setlist.id,
-        name: setlist.name,
-        date: setlist.date,
-        createdAt: setlist.created_at,
-        updatedAt: setlist.updated_at,
-        songs: setlist.setlist_songs
-          .sort((a: any, b: any) => a.order - b.order)
-          .map((ss: any) => ({
-            id: ss.id,
-            songId: ss.song_id,
-            order: ss.order,
-            key: ss.key || undefined,
-            notes: ss.notes || undefined,
-            song: {
-              id: ss.songs.id,
-              title: ss.songs.title,
-              artist: ss.songs.artist,
-              notes: ss.songs.notes || "",
-              createdAt: ss.songs.created_at,
-              updatedAt: ss.songs.updated_at,
-            },
-          })),
+        ...currentSetlist,
+        updatedAt: new Date().toISOString(),
+        songs: newSongs.map(song => ({
+          ...song,
+          // Preserve the ID if it exists, otherwise generate a new one
+          id: songIdToRecordId.get(song.songId) || song.id,
+        })),
       };
       
+      // Update the local state immediately without waiting for a fetch
       setSetlists((prev: Setlist[]) => prev.map(s => 
         s.id === setlistId ? updatedSetlist : s
       ));
