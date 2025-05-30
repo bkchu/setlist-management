@@ -431,7 +431,16 @@ export default function SetlistPage() {
   );
 
   const handleAddNewSong = async () => {
-    if (!setlist || !addSongForm.songId) {
+    if (!setlist) {
+      toast({
+        title: "No setlist selected",
+        description: "Unable to determine which setlist to add the song to",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!addSongForm.songId) {
       toast({
         title: "No song selected",
         description: "Please select a song to add",
@@ -440,12 +449,32 @@ export default function SetlistPage() {
       return;
     }
 
+    // Check if song is already in the setlist
+    const songAlreadyInSetlist = setlist.songs.some(song => song.songId === addSongForm.songId);
+    if (songAlreadyInSetlist) {
+      toast({
+        title: "Song already in setlist",
+        description: "This song is already in the setlist",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const song = songs.find((s) => s.id === addSongForm.songId);
-    if (!song) return;
+    if (!song) {
+      toast({
+        title: "Song not found",
+        description: "The selected song could not be found",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      // Create the new song object with a temporary ID
+      const tempId = crypto.randomUUID();
       const newSong: SetlistSong = {
-        id: crypto.randomUUID(),
+        id: tempId,
         songId: addSongForm.songId,
         order: setlist.songs.length + 1,
         key: addSongForm.key,
@@ -453,21 +482,29 @@ export default function SetlistPage() {
         song,
       };
 
-      await updateSetlistSongs(setlist.id, [...setlist.songs, newSong]);
+      // Update the setlist with the new song
+      const updatedSongs = [...setlist.songs, newSong];
+      
+      // Update in the database - the updateSetlistSongs function will handle ID generation
+      await updateSetlistSongs(setlist.id, updatedSongs);
+      
+      // Reset form and close modal
       setAddSongForm({
         songId: "",
         key: "",
         notes: "",
       });
       setShowAddSongModal(false);
+      
       toast({
         title: "Song added",
-        description: "New song has been added successfully",
+        description: `${song.title} has been added to the setlist`,
       });
-    } catch {
+    } catch (error) {
+      console.error("Error adding song to setlist:", error);
       toast({
-        title: "Error",
-        description: "Failed to add song",
+        title: "Error adding song",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     }
