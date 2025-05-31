@@ -28,6 +28,8 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   Edit as EditIcon,
+  FileIcon,
+  FilesIcon,
   Music2Icon,
   PlusIcon,
   StickyNoteIcon,
@@ -450,7 +452,9 @@ export default function SetlistPage() {
     }
 
     // Check if song is already in the setlist
-    const songAlreadyInSetlist = setlist.songs.some(song => song.songId === addSongForm.songId);
+    const songAlreadyInSetlist = setlist.songs.some(
+      (song) => song.songId === addSongForm.songId
+    );
     if (songAlreadyInSetlist) {
       toast({
         title: "Song already in setlist",
@@ -484,10 +488,10 @@ export default function SetlistPage() {
 
       // Update the setlist with the new song
       const updatedSongs = [...setlist.songs, newSong];
-      
+
       // Update in the database - the updateSetlistSongs function will handle ID generation
       await updateSetlistSongs(setlist.id, updatedSongs);
-      
+
       // Reset form and close modal
       setAddSongForm({
         songId: "",
@@ -495,7 +499,7 @@ export default function SetlistPage() {
         notes: "",
       });
       setShowAddSongModal(false);
-      
+
       toast({
         title: "Song added",
         description: `${song.title} has been added to the setlist`,
@@ -504,7 +508,10 @@ export default function SetlistPage() {
       console.error("Error adding song to setlist:", error);
       toast({
         title: "Error adding song",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
         variant: "destructive",
       });
     }
@@ -1019,14 +1026,7 @@ export default function SetlistPage() {
             ]}
           />
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleViewFiles}
-              disabled={allFiles.length === 0}
-            >
-              View Files
-            </Button>
-            <Button onClick={() => setIsEditing(true)}>
+            <Button variant="outline" onClick={() => setIsEditing(true)}>
               <EditIcon className="mr-2 h-4 w-4" />
               Edit Setlist
             </Button>
@@ -1152,7 +1152,16 @@ export default function SetlistPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
+            <Button
+              size="xl"
+              className="w-full flex gap-2"
+              onClick={handleViewFiles}
+              disabled={allFiles.length === 0}
+            >
+              <FilesIcon /> View Files
+            </Button>
+
             {/* One-Touch Songs - Desktop */}
             <OneTouchSongs className="hidden md:block" />
             {/* Let the component handle file loading and display on its own */}
