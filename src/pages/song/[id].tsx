@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useSongs } from "@/hooks/use-songs";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Header } from "@/components/layout/header";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export default function SongPage() {
   useEffect(() => {
     // Initial width
     handleResize();
-    
+
     // Add resize observer
     const resizeObserver = new ResizeObserver(handleResize);
     if (containerRef.current) {
@@ -67,7 +67,7 @@ export default function SongPage() {
 
   useEffect(() => {
     if (isSongsLoading) return;
-    
+
     if (!song) {
       navigate("/songs");
       toast({
@@ -164,10 +164,42 @@ export default function SongPage() {
     }
   };
 
+  const keyHistory = useMemo(() => {
+    if (!song) return null;
+
+    return song.keyHistory?.map((keyEntry) => (
+      <Link
+        key={keyEntry.id}
+        to={`/setlist/${keyEntry.setlistId}`}
+        className="group block"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-transparent p-3 transition-colors hover:border-muted hover:bg-muted/50 sm:p-2">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+              {keyEntry.key}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground line-clamp-1">
+                {keyEntry.setlistName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(keyEntry.playedAt), "MMM d, yyyy")}
+              </p>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground sm:mt-0 sm:ml-4">
+            <span className="hidden sm:inline">View Setlist</span>
+            <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
+        </div>
+      </Link>
+    ));
+  }, [song]);
+
   if (!song) {
     return null;
   }
-  
+
   // Calculate the max width for the PDF (80% of container or 800px, whichever is smaller)
   const maxPdfWidth = Math.min(containerWidth * 0.9, 800);
 
@@ -213,43 +245,12 @@ export default function SongPage() {
                   </div>
                 </div>
 
-                {song.keyHistory && song.keyHistory.length > 0 && (
+                {song.keyHistory && song.keyHistory?.length > 0 && (
                   <>
                     <Separator />
                     <div>
                       <h2 className="text-lg font-semibold">Key History</h2>
-                      <div className="mt-3 space-y-2">
-                        {song.keyHistory.map((keyEntry) => (
-                          <Link
-                            key={keyEntry.id}
-                            to={`/setlist/${keyEntry.setlistId}`}
-                            className="group block"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-transparent p-3 transition-colors hover:border-muted hover:bg-muted/50 sm:p-2">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-                                  {keyEntry.key}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground line-clamp-1">
-                                    {keyEntry.setlistName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {format(
-                                      new Date(keyEntry.playedAt),
-                                      "MMM d, yyyy"
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground sm:mt-0 sm:ml-4">
-                                <span className="hidden sm:inline">View Setlist</span>
-                                <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
+                      <div className="mt-3 space-y-2">{keyHistory}</div>
                     </div>
                   </>
                 )}
@@ -311,7 +312,7 @@ export default function SongPage() {
                                             width={maxPdfWidth}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
-                                            className="pdf-page"
+                                            className="pdf-page w-full"
                                           />
                                         )
                                       )}
