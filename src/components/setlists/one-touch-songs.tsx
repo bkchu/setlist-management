@@ -1,14 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { FullscreenFileViewer } from "@/components/files/fullscreen-file-viewer";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
-import { Song } from "@/types";
-import { Button } from "@/components/ui/button";
-import { StarIcon, ChevronDownIcon, ChevronUpIcon, Music2Icon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
-import { FullscreenFileViewer } from "@/components/files/fullscreen-file-viewer";
+import { cn } from "@/lib/utils";
+import { Song } from "@/types";
+import { Music2Icon, StarIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface FileWithUrl {
   id: string;
@@ -32,7 +32,6 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
   const { settings } = useSettings();
   const { songs } = useSongs();
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [songFiles, setSongFiles] = useState<FileWithUrl[]>([]);
@@ -41,8 +40,8 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
 
   // Get the actual song objects for the one-touch songs
   const oneTouchSongs = settings.oneTouchSongs.songIds
-    .map(id => songs.find(song => song.id === id))
-    .filter(song => song !== undefined) as Song[];
+    .map((id) => songs.find((song) => song.id === id))
+    .filter((song) => song !== undefined) as Song[];
 
   // Listen for fullscreen changes
   useEffect(() => {
@@ -62,9 +61,9 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
   // Function to load song files with URLs
   const loadSongFiles = async (songId: string) => {
     setIsLoading(true);
-    
+
     try {
-      const song = songs.find(s => s.id === songId);
+      const song = songs.find((s) => s.id === songId);
       if (!song || !song.files || song.files.length === 0) {
         return [];
       }
@@ -73,12 +72,12 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
       const filesWithUrls = await Promise.all(
         song.files.map(async (file) => {
           const { data } = await supabase.storage
-            .from('song-files')
+            .from("song-files")
             .createSignedUrl(file.path, 3600);
-            
+
           const isImage = /\.(jpe?g|png|gif|bmp|webp)$/i.test(file.name);
           const isPDF = /\.pdf$/i.test(file.name);
-          
+
           if (isPDF) {
             // For PDF files, ensure we're setting pageNumber properly
             return {
@@ -91,7 +90,7 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
               song_id: song.id,
               songTitle: song.title,
               songArtist: song.artist,
-              pageNumber: 1 // Explicitly set to page 1
+              pageNumber: 1, // Explicitly set to page 1
             };
           } else if (isImage) {
             return {
@@ -103,19 +102,19 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
               url: data?.signedUrl || "",
               song_id: song.id,
               songTitle: song.title,
-              songArtist: song.artist
+              songArtist: song.artist,
             };
           }
-          
+
           // Skip other file types
           return null;
         })
       );
-      
+
       // Filter out null entries and files that don't have URLs
-      return filesWithUrls
-        .filter(file => file !== null && file.url) as FileWithUrl[];
-        
+      return filesWithUrls.filter(
+        (file) => file !== null && file.url
+      ) as FileWithUrl[];
     } catch (error) {
       console.error("Error loading files:", error);
       return [];
@@ -129,11 +128,11 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
       onSongSelect(songId);
     } else {
       const files = await loadSongFiles(songId);
-      
+
       if (files.length > 0) {
         // First update state with the files
         setSongFiles(files);
-        
+
         // Then open fullscreen viewer with a slight delay to ensure state is updated
         setTimeout(() => {
           setShowFullscreen(true);
@@ -148,43 +147,33 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
   return (
     <>
       <div className={cn("border rounded-md overflow-hidden", className)}>
-        <div 
-          className="flex items-center justify-between p-2 bg-muted/50 cursor-pointer"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
+        <div className="flex items-center justify-between p-2 bg-muted/50 cursor-pointer">
           <div className="flex items-center gap-2">
             <StarIcon className="h-4 w-4 text-yellow-500" />
             <span className="text-sm font-medium">One-Touch Songs</span>
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
-            {isExpanded ? (
-              <ChevronUpIcon className="h-4 w-4" />
-            ) : (
-              <ChevronDownIcon className="h-4 w-4" />
-            )}
-          </Button>
         </div>
 
-        {isExpanded && (
-          <div className="p-2 space-y-1">
-            {oneTouchSongs.map((song) => (
-              <Button
-                key={song.id}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-left h-auto py-2"
-                onClick={() => handleSongClick(song.id)}
-              >
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{song.title}</span>
-                  {song.artist && (
-                    <span className="text-xs text-muted-foreground">{song.artist}</span>
-                  )}
-                </div>
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="p-2 space-y-1">
+          {oneTouchSongs.map((song) => (
+            <Button
+              key={song.id}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-left h-auto py-2"
+              onClick={() => handleSongClick(song.id)}
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-medium">{song.title}</span>
+                {song.artist && (
+                  <span className="text-xs text-muted-foreground">
+                    {song.artist}
+                  </span>
+                )}
+              </div>
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Regular File Viewer Dialog - Keep for compatibility */}
@@ -214,9 +203,9 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
                 {songFiles.map((file) => (
                   <div key={file.key} className="w-full">
                     {file.type === "image" && file.url && (
-                      <img 
-                        src={file.url} 
-                        alt={file.name} 
+                      <img
+                        src={file.url}
+                        alt={file.name}
                         className="max-w-full h-auto rounded-lg mx-auto"
                       />
                     )}
@@ -238,21 +227,21 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
         updateNotes={async (songId, notes) => {
           try {
             // Get the song to update
-            const song = songs.find(s => s.id === songId);
+            const song = songs.find((s) => s.id === songId);
             if (!song) throw new Error("Song not found");
-            
+
             // Update the song notes in the database
             const { error } = await supabase
-              .from('songs')
+              .from("songs")
               .update({ notes })
-              .eq('id', songId);
-              
+              .eq("id", songId);
+
             if (error) throw error;
-            
+
             // Update local cache if needed
             // This would depend on how the useSongs hook is implemented
             // and whether it has a refresh or update method
-            
+
             return;
           } catch (error) {
             console.error("Error updating notes:", error);
