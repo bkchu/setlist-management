@@ -878,7 +878,7 @@ export default function SetlistPage() {
 
       {/* Add Song Modal */}
       <Dialog open={showAddSongModal} onOpenChange={setShowAddSongModal}>
-        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]">
+        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh] p-4">
           <div className="space-y-6">
             <DialogTitle className="text-xl font-semibold">
               Add Song to Setlist
