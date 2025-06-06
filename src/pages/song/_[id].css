@@ -1,0 +1,8 @@
+.pdf-page {
+  width: 100%;
+
+  .react-pdf__Page__canvas {
+    width: 100% !important;
+    height: unset !important;
+  }
+}
