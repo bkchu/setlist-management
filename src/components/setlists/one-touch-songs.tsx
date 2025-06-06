@@ -5,7 +5,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { Song } from "@/types";
+import { Song, getFilesForKey } from "@/types";
 import { Music2Icon, StarIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,13 +64,20 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
 
     try {
       const song = songs.find((s) => s.id === songId);
-      if (!song || !song.files || song.files.length === 0) {
+      if (!song) {
+        return [];
+      }
+
+      // For one-touch songs, we'll load default files since no specific key is selected
+      const relevantFiles = getFilesForKey(song, "default");
+
+      if (relevantFiles.length === 0) {
         return [];
       }
 
       // Get URLs for all files
       const filesWithUrls = await Promise.all(
-        song.files.map(async (file) => {
+        relevantFiles.map(async (file) => {
           const { data } = await supabase.storage
             .from("song-files")
             .createSignedUrl(file.path, 3600);
@@ -79,18 +86,18 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
           const isPDF = /\.pdf$/i.test(file.name);
 
           if (isPDF) {
-            // For PDF files, ensure we're setting pageNumber properly
             return {
               id: file.path,
-              key: `${file.path}-${song.id}-page-1`, // Explicitly include page number in key
+              key: `${file.path}-${song.id}-page-1`,
               name: file.name,
               path: file.path,
-              type: "pdf",
+              type: "pdf" as const,
               url: data?.signedUrl || "",
               song_id: song.id,
               songTitle: song.title,
               songArtist: song.artist,
-              pageNumber: 1, // Explicitly set to page 1
+              pageNumber: 1,
+              keyInfo: "default",
             };
           } else if (isImage) {
             return {
@@ -98,20 +105,19 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
               key: `${file.path}-${song.id}`,
               name: file.name,
               path: file.path,
-              type: "image",
+              type: "image" as const,
               url: data?.signedUrl || "",
               song_id: song.id,
               songTitle: song.title,
               songArtist: song.artist,
+              keyInfo: "default",
             };
           }
 
-          // Skip other file types
           return null;
         })
       );
 
-      // Filter out null entries and files that don't have URLs
       return filesWithUrls.filter(
         (file) => file !== null && file.url
       ) as FileWithUrl[];
@@ -224,30 +230,6 @@ export function OneTouchSongs({ onSongSelect, className }: OneTouchSongsProps) {
         open={showFullscreen}
         onOpenChange={setShowFullscreen}
         initialIndex={0}
-        updateNotes={async (songId, notes) => {
-          try {
-            // Get the song to update
-            const song = songs.find((s) => s.id === songId);
-            if (!song) throw new Error("Song not found");
-
-            // Update the song notes in the database
-            const { error } = await supabase
-              .from("songs")
-              .update({ notes })
-              .eq("id", songId);
-
-            if (error) throw error;
-
-            // Update local cache if needed
-            // This would depend on how the useSongs hook is implemented
-            // and whether it has a refresh or update method
-
-            return;
-          } catch (error) {
-            console.error("Error updating notes:", error);
-            throw error;
-          }
-        }}
       />
     </>
   );

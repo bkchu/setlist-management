@@ -14,6 +14,7 @@ export interface FileWithUrl {
   songTitle?: string;
   songArtist?: string;
   pageNumber?: number;
+  keyInfo?: string; // Add key information for display
 }
 
 interface FileCarouselProps {
@@ -23,18 +24,18 @@ interface FileCarouselProps {
   initialIndex?: number;
 }
 
-export function FileCarousel({ 
-  files, 
-  isFullscreen = false, 
+export function FileCarousel({
+  files,
+  isFullscreen = false,
   onSlideChange,
-  initialIndex = 0 
+  initialIndex = 0,
 }: FileCarouselProps) {
   // This state is used in the keyboard navigation and emblaApi event handlers
   const [currentSlideIndex, setCurrentSlideIndex] = useState(initialIndex);
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     align: "center",
-    startIndex: initialIndex
+    startIndex: initialIndex,
   });
   // Track PDF page counts to handle multi-page PDFs
   const [numPages, setNumPages] = useState<Record<string, number>>({});
@@ -43,20 +44,24 @@ export function FileCarousel({
     width: 0,
     height: 0,
   });
-  
+
   // Process files to handle multi-page PDFs - expand them into multiple slides
   const processedFiles = useMemo(() => {
     const processed: FileWithUrl[] = [];
-    
-    files.forEach(file => {
-      if (file.type === 'pdf' && numPages[file.path] && numPages[file.path] > 1) {
+
+    files.forEach((file) => {
+      if (
+        file.type === "pdf" &&
+        numPages[file.path] &&
+        numPages[file.path] > 1
+      ) {
         // For multi-page PDFs, create a slide for each page
         for (let i = 1; i <= numPages[file.path]; i++) {
           processed.push({
             ...file,
             key: `${file.key}-page-${i}`,
             pageNumber: i,
-            name: `${file.name} - Page ${i} of ${numPages[file.path]}`
+            name: `${file.name} - Page ${i} of ${numPages[file.path]}`,
           });
         }
       } else {
@@ -64,7 +69,7 @@ export function FileCarousel({
         processed.push(file);
       }
     });
-    
+
     return processed;
   }, [files, numPages]);
 
@@ -93,7 +98,7 @@ export function FileCarousel({
   ) => {
     // Store number of pages to handle multi-page PDFs if needed
     setNumPages((prev) => ({ ...prev, [path]: numPages }));
-    
+
     // Log page info for debugging
     console.log(`PDF ${path} has ${numPages} pages`);
   };
@@ -126,7 +131,7 @@ export function FileCarousel({
         scrollNext();
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [scrollPrev, scrollNext]);
@@ -141,7 +146,7 @@ export function FileCarousel({
       };
 
       emblaApi.on("select", onSelect);
-      
+
       // Initialize with current slide if not at initialIndex
       if (emblaApi.selectedScrollSnap() !== initialIndex) {
         emblaApi.scrollTo(initialIndex);

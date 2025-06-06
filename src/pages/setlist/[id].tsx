@@ -20,7 +20,15 @@ import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { SetlistSong } from "@/types";
+import {
+  SetlistSong,
+  Setlist,
+  getFilesForKey,
+  getAllKeyedFiles,
+  hasFilesForKey,
+  AVAILABLE_KEYS,
+  MusicalKey,
+} from "@/types";
 import { format } from "date-fns";
 import useEmblaCarousel from "embla-carousel-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -56,6 +64,7 @@ interface FileWithUrl {
   path: string;
   songTitle?: string;
   songArtist?: string;
+  keyInfo?: string; // Add key information for display
 }
 
 interface EditableSetlistSong extends Omit<SetlistSong, "song"> {
@@ -210,8 +219,11 @@ export default function SetlistPage() {
         const files: FileWithUrl[] = [];
         for (const setlistSong of setlist.songs) {
           const song = songs.find((s) => s.id === setlistSong.songId);
-          if (song?.files) {
-            for (const file of song.files) {
+          if (song) {
+            // 🎯 Get files for the specific key selected in the setlist, with fallback to default
+            const relevantFiles = getFilesForKey(song, setlistSong.key);
+
+            for (const file of relevantFiles) {
               try {
                 const { data, error } = await supabase.storage
                   .from("song-files")
@@ -227,8 +239,10 @@ export default function SetlistPage() {
                   songTitle: song.title,
                   songArtist: song.artist,
                   id: file.id || `temp-${file.path}`,
-                  created_at: file.created_at || new Date().toISOString(),
+                  created_at: file.createdAt || new Date().toISOString(),
                   song_id: song.id,
+                  // Add key information for display
+                  keyInfo: setlistSong.key || "default",
                 });
               } catch (error) {
                 console.error("Error loading file:", error);
@@ -836,6 +850,112 @@ export default function SetlistPage() {
                     </div>
                   </div>
 
+                  {/* Available Files Section */}
+                  {(() => {
+                    const song = songs.find((s) => s.id === editingSong.songId);
+                    if (!song) return null;
+
+                    const currentKey = editingSongs[editingSong.id]?.key || "";
+                    const filesForCurrentKey = getFilesForKey(song, currentKey);
+                    const allKeyedFiles = getAllKeyedFiles(song);
+                    const keysWithFiles = Object.entries(allKeyedFiles).filter(
+                      ([, files]) => files && files.length > 0
+                    );
+
+                    // Check if we're showing default files as fallback
+                    const hasKeySpecificFiles =
+                      currentKey &&
+                      currentKey !== "default" &&
+                      (allKeyedFiles as any)[currentKey] &&
+                      (allKeyedFiles as any)[currentKey].length > 0;
+                    const isUsingDefaultFallback =
+                      !hasKeySpecificFiles &&
+                      currentKey &&
+                      currentKey !== "default" &&
+                      filesForCurrentKey.length > 0;
+
+                    if (keysWithFiles.length === 0) return null;
+
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">
+                          Available Files
+                        </Label>
+                        <div className="rounded-lg border border-dashed p-3 space-y-3">
+                          {/* Current key files */}
+                          {filesForCurrentKey.length > 0 && (
+                            <div className="space-y-2">
+                              <p
+                                className={`text-xs font-medium ${
+                                  isUsingDefaultFallback
+                                    ? "text-amber-600"
+                                    : "text-green-600"
+                                }`}
+                              >
+                                {isUsingDefaultFallback ? "⚡" : "✓"} Files
+                                available for key {currentKey || "Default"}
+                                {isUsingDefaultFallback && (
+                                  <span className="text-amber-700">
+                                    {" "}
+                                    (using default files)
+                                  </span>
+                                )}{" "}
+                                ({filesForCurrentKey.length} file
+                                {filesForCurrentKey.length !== 1 ? "s" : ""})
+                              </p>
+                              <div className="space-y-1">
+                                {filesForCurrentKey
+                                  .slice(0, 3)
+                                  .map((file, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center gap-2 text-xs text-muted-foreground"
+                                    >
+                                      <FileIcon className="h-3 w-3" />
+                                      <span className="truncate">
+                                        {file.name}
+                                      </span>
+                                      {isUsingDefaultFallback && (
+                                        <span className="text-amber-600 text-xs">
+                                          (default)
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                {filesForCurrentKey.length > 3 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    ...and {filesForCurrentKey.length - 3} more
+                                    {isUsingDefaultFallback && (
+                                      <span className="text-amber-600">
+                                        {" "}
+                                        (default files)
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {filesForCurrentKey.length === 0 && (
+                            <div className="text-center py-2">
+                              <p className="text-xs text-muted-foreground">
+                                ⚠️ No files available for key{" "}
+                                {currentKey || "Default"}
+                              </p>
+                              {keysWithFiles.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Consider switching to a key with available
+                                  files
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Notes</Label>
                     <Textarea
@@ -985,6 +1105,58 @@ export default function SetlistPage() {
                     </div>
                   </div>
                 )}
+
+                {/* File availability preview */}
+                {addSongForm.songId &&
+                  addSongForm.key &&
+                  (() => {
+                    const selectedSong = songs.find(
+                      (s) => s.id === addSongForm.songId
+                    );
+                    if (!selectedSong) return null;
+
+                    const filesForSelectedKey = getFilesForKey(
+                      selectedSong,
+                      addSongForm.key
+                    );
+                    const hasKeySpecificFiles = hasFilesForKey(
+                      selectedSong,
+                      addSongForm.key
+                    );
+                    const hasDefaultFiles = hasFilesForKey(
+                      selectedSong,
+                      "default"
+                    );
+
+                    return (
+                      <div className="text-sm p-3 rounded-md border bg-muted/20 mt-4">
+                        <div className="flex items-center gap-2">
+                          <FilesIcon className="h-4 w-4" />
+                          <span className="font-medium">
+                            {filesForSelectedKey.length} chord sheet(s)
+                            available
+                          </span>
+                        </div>
+
+                        {filesForSelectedKey.length === 0 && (
+                          <div className="mt-2 text-amber-600 text-xs">
+                            ⚠️ No files for key {addSongForm.key}.
+                            {hasDefaultFiles && " Default files will be used."}
+                            {!hasDefaultFiles &&
+                              " No files available for this song."}
+                          </div>
+                        )}
+
+                        {filesForSelectedKey.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {hasKeySpecificFiles
+                              ? `Using ${addSongForm.key} specific files`
+                              : "Using default files"}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Notes</Label>
