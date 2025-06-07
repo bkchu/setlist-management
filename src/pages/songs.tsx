@@ -67,7 +67,7 @@ export default function Songs() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <>
       <Header title="Songs" searchBar={<SongSearchCombobox songs={songs} />} />
 
       <main className="flex-1 overflow-auto p-4 md:p-6">
@@ -96,6 +96,6 @@ export default function Songs() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { Home, ListMusic, Music } from "lucide-react";
+import { Home, ListMusic, Music, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
@@ -24,8 +24,13 @@ export function MobileNav() {
         href: "/setlists",
         icon: ListMusic,
       },
+      {
+        name: "Settings",
+        href: "/settings",
+        icon: Settings,
+      },
     ];
-    
+
     return navItems.map((item) => {
       let isActive;
       if (item.name === "Dashboard") {

@@ -674,7 +674,7 @@ export default function SetlistPage() {
                               alt={slide.name}
                               className="h-auto max-w-full rounded-lg object-contain"
                               style={{
-                                maxHeight: "calc(100vh - 109px)",
+                                maxHeight: "calc(100vh - 64px)",
                                 maxWidth: "100%",
                               }}
                             />

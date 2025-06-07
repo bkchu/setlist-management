@@ -2,7 +2,12 @@ import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FileWithUrl } from "@/components/files/file-carousel";
 import { Document, Page } from "react-pdf";
-import { Music2Icon, XIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import {
+  Music2Icon,
+  XIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 
@@ -33,7 +38,7 @@ export function FullscreenFileViewer({
     width: 0,
     height: 0,
   });
-  
+
   // Request fullscreen when dialog opens
   useEffect(() => {
     if (open) {
@@ -43,27 +48,33 @@ export function FullscreenFileViewer({
           dialogContentRef.current &&
           dialogContentRef.current.requestFullscreen
         ) {
-          dialogContentRef.current.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          dialogContentRef.current.requestFullscreen().catch((err) => {
+            console.error(
+              `Error attempting to enable fullscreen: ${err.message}`
+            );
           });
         }
       }, 100);
     }
   }, [open]);
-  
+
   // Process files to handle multi-page PDFs - expand them into multiple slides
   const processedFiles = useMemo(() => {
     const processed: FileWithUrl[] = [];
-    
-    files.forEach(file => {
-      if (file.type === 'pdf' && numPages[file.path] && numPages[file.path] > 1) {
+
+    files.forEach((file) => {
+      if (
+        file.type === "pdf" &&
+        numPages[file.path] &&
+        numPages[file.path] > 1
+      ) {
         // For multi-page PDFs, create a slide for each page
         for (let i = 1; i <= numPages[file.path]; i++) {
           processed.push({
             ...file,
             key: `${file.key}-page-${i}`,
             pageNumber: i,
-            name: `${file.name} - Page ${i} of ${numPages[file.path]}`
+            name: `${file.name} - Page ${i} of ${numPages[file.path]}`,
           });
         }
       } else {
@@ -71,7 +82,7 @@ export function FullscreenFileViewer({
         processed.push(file);
       }
     });
-    
+
     return processed;
   }, [files, numPages]);
 
@@ -96,23 +107,23 @@ export function FullscreenFileViewer({
 
     // Initial update
     updateDimensions();
-    
+
     // Set up a more robust update mechanism with multiple triggers
     window.addEventListener("resize", updateDimensions);
-    
+
     // Update dimensions when fullscreen changes
     document.addEventListener("fullscreenchange", updateDimensions);
-    
+
     // Use MutationObserver to detect DOM changes that might affect dimensions
     const observer = new MutationObserver(updateDimensions);
     if (carouselContainerRef.current) {
-      observer.observe(carouselContainerRef.current, { 
-        attributes: true, 
-        childList: true, 
-        subtree: true 
+      observer.observe(carouselContainerRef.current, {
+        attributes: true,
+        childList: true,
+        subtree: true,
       });
     }
-    
+
     // Also use a timeout to ensure dimensions are updated after rendering
     const timeoutId = setTimeout(updateDimensions, 300);
 
@@ -133,9 +144,10 @@ export function FullscreenFileViewer({
         onOpenChange(false);
       }
     };
-    
+
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [open, onOpenChange]);
 
   // Scroll to previous slide
@@ -167,11 +179,11 @@ export function FullscreenFileViewer({
         document.exitFullscreen();
       }
     };
-    
+
     if (open) {
       window.addEventListener("keydown", handleKeyDown);
     }
-    
+
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, scrollPrev, scrollNext, isFullscreen]);
 
@@ -185,7 +197,10 @@ export function FullscreenFileViewer({
   }, [emblaApi]);
 
   // Handler for PDF document load success
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }, path: string) => {
+  const onDocumentLoadSuccess = (
+    { numPages }: { numPages: number },
+    path: string
+  ) => {
     setNumPages((prev) => ({ ...prev, [path]: numPages }));
   };
 
@@ -198,11 +213,12 @@ export function FullscreenFileViewer({
         onOpenChange(false);
       }
     };
-    
+
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [onOpenChange]);
-  
+
   // When the component opens, auto-enter fullscreen
   useEffect(() => {
     if (open && dialogContentRef.current) {
@@ -254,7 +270,7 @@ export function FullscreenFileViewer({
                             alt={slide.name}
                             className="h-auto max-w-full rounded-lg object-contain"
                             style={{
-                              maxHeight: "calc(100vh - 109px)",
+                              maxHeight: "calc(100vh - 64px)",
                               maxWidth: "100%",
                             }}
                           />
@@ -291,7 +307,7 @@ export function FullscreenFileViewer({
               </div>
             </div>
 
-              {/* Navigation Controls */}
+            {/* Navigation Controls */}
             {isFullscreen && (
               <>
                 {/* Close button */}
@@ -336,7 +352,8 @@ export function FullscreenFileViewer({
                   {processedFiles[currentSlideIndex] && (
                     <div>
                       <h3 className="font-medium text-lg">
-                        {processedFiles[currentSlideIndex].songTitle || processedFiles[currentSlideIndex].name}
+                        {processedFiles[currentSlideIndex].songTitle ||
+                          processedFiles[currentSlideIndex].name}
                       </h3>
                       {processedFiles[currentSlideIndex].songArtist && (
                         <p className="text-sm opacity-80">

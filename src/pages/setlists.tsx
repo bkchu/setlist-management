@@ -63,7 +63,7 @@ export default function Setlists() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <>
       <Header
         title="Setlists"
         searchBar={<SetlistSearchCombobox setlists={setlists} />}
@@ -77,6 +77,6 @@ export default function Setlists() {
           onDeleteSetlist={handleDeleteSetlist}
         />
       </main>
-    </div>
+    </>
   );
 }
