@@ -192,7 +192,7 @@ export function FileCarousel({
                       alt={file.name}
                       className="h-auto max-w-full rounded-lg object-contain"
                       style={{
-                        maxHeight: "calc(100vh - 64px)",
+                        maxHeight: "calc(100vh - 109px)",
                         maxWidth: "100%",
                       }}
                     />

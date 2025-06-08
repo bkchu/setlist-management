@@ -674,7 +674,7 @@ export default function SetlistPage() {
                               alt={slide.name}
                               className="h-auto max-w-full rounded-lg object-contain"
                               style={{
-                                maxHeight: "calc(100vh - 64px)",
+                                maxHeight: "calc(100vh - 106px)",
                                 maxWidth: "100%",
                               }}
                             />
@@ -713,7 +713,7 @@ export default function SetlistPage() {
 
               {/* Quick Access Buttons */}
               {isFullscreen && (
-                <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                <div className="absolute bottom-0 right-0 flex flex-col gap-2">
                   {/* Notes Button */}
                   <Button
                     variant="outline"
