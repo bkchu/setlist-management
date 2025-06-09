@@ -37,7 +37,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative flex w-full">
+    <div className="relative flex w-full min-h-screen">
       <div className="hidden md:block">
         <Sidebar />
       </div>

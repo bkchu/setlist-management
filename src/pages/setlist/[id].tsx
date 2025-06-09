@@ -2,19 +2,19 @@ import { Header } from "@/components/layout/header";
 import { NotesWindow } from "@/components/setlists/notes-window";
 import { OneTouchSongs } from "@/components/setlists/one-touch-songs";
 import { SetlistForm } from "@/components/setlists/setlist-form";
+import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DataList,
+  DataListItem,
+  DataListLabel,
+  DataListValue,
+} from "@/components/ui/data-list";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+
 import { Textarea } from "@/components/ui/textarea";
 import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
@@ -26,8 +26,6 @@ import {
   getFilesForKey,
   getAllKeyedFiles,
   hasFilesForKey,
-  AVAILABLE_KEYS,
-  MusicalKey,
 } from "@/types";
 import { format } from "date-fns";
 import useEmblaCarousel from "embla-carousel-react";
@@ -46,12 +44,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useNavigate, useParams } from "react-router-dom";
-
-// Interface used in getKeyHistoryForSong
-interface KeyHistoryItem {
-  key: string;
-  usages: { date: string; setlistName: string }[];
-}
 
 interface FileWithUrl {
   id: string;
@@ -167,7 +159,7 @@ export default function SetlistPage() {
     loop: false,
     align: "center",
   });
-  const [currentSlide, setCurrentSlide] = useState(0);
+
   const [numPages, setNumPages] = useState<Record<string, number>>({});
   const [showCarousel, setShowCarousel] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -333,14 +325,6 @@ export default function SetlistPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showCarousel, scrollPrev, scrollNext]);
 
-  useEffect(() => {
-    if (emblaApi) {
-      emblaApi.on("select", () => {
-        setCurrentSlide(emblaApi.selectedScrollSnap());
-      });
-    }
-  }, [emblaApi]);
-
   const onDocumentLoadSuccess = (
     { numPages }: { numPages: number },
     path: string
@@ -396,11 +380,8 @@ export default function SetlistPage() {
     setEditingSongs((prev) => ({
       ...prev,
       [setlistSong.id]: {
-        songId: setlistSong.songId,
-        key: setlistSong.key,
-        notes: setlistSong.notes,
-        order: setlistSong.order,
-        song: setlistSong.song,
+        ...setlistSong,
+        isEditing: true,
       },
     }));
   }, []);
@@ -420,6 +401,7 @@ export default function SetlistPage() {
         );
         await updateSetlistSongs(setlist.id, updatedSongs);
         setEditingSongs((prev) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { [songId]: _, ...rest } = prev;
           return rest;
         });
@@ -497,6 +479,8 @@ export default function SetlistPage() {
         order: setlist.songs.length + 1,
         key: addSongForm.key,
         notes: addSongForm.notes,
+        title: song.title,
+        artist: song.artist,
         song,
       };
 
@@ -641,7 +625,6 @@ export default function SetlistPage() {
       <Dialog open={showCarousel} onOpenChange={setShowCarousel}>
         <DialogContent
           ref={dialogContentRef}
-          fullscreen
           className={
             isFullscreen
               ? "fixed inset-0 z-50 bg-background m-0 w-screen h-dvh max-w-none rounded-none flex flex-col"
@@ -772,10 +755,13 @@ export default function SetlistPage() {
                         title: "Notes saved",
                         description: "Your notes were updated.",
                       });
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                       toast({
                         title: "Failed to save notes",
-                        description: error?.message || "Unknown error",
+                        description:
+                          error instanceof Error
+                            ? error.message
+                            : "Unknown error",
                         variant: "destructive",
                       });
                     }
@@ -866,8 +852,12 @@ export default function SetlistPage() {
                     const hasKeySpecificFiles =
                       currentKey &&
                       currentKey !== "default" &&
-                      (allKeyedFiles as any)[currentKey] &&
-                      (allKeyedFiles as any)[currentKey].length > 0;
+                      allKeyedFiles[currentKey as keyof typeof allKeyedFiles] &&
+                      (
+                        allKeyedFiles[
+                          currentKey as keyof typeof allKeyedFiles
+                        ] || []
+                      ).length > 0;
                     const isUsingDefaultFallback =
                       !hasKeySpecificFiles &&
                       currentKey &&
@@ -1004,28 +994,18 @@ export default function SetlistPage() {
               Add Song to Setlist
             </DialogTitle>
             <div className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2 flex flex-col gap-2">
                 <Label className="text-sm font-medium">Select Song</Label>
-                <Select
-                  value={addSongForm.songId}
-                  onValueChange={(value) =>
+                <SongSearchCombobox
+                  songs={songsNotInSetlist}
+                  onSelect={(songId) =>
                     setAddSongForm((prev) => ({
                       ...prev,
-                      songId: value,
+                      songId,
                     }))
                   }
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select a song" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {songsNotInSetlist.map((song) => (
-                      <SelectItem key={song.id} value={song.id}>
-                        {song.title} - {song.artist}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Search for a song to add..."
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Key</Label>
@@ -1197,12 +1177,6 @@ export default function SetlistPage() {
               { href: `/setlist/${setlist.id}`, label: setlist.name },
             ]}
           />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
-              <EditIcon className="mr-2 h-4 w-4" />
-              Edit Setlist
-            </Button>
-          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -1211,15 +1185,6 @@ export default function SetlistPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Songs</h2>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowAddSongModal(true)}
-                    disabled={songsNotInSetlist.length === 0}
-                  >
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    Add Song
-                  </Button>
                 </div>
 
                 {setlist.songs.length === 0 ? (
@@ -1325,14 +1290,26 @@ export default function SetlistPage() {
           </Card>
 
           <div className="space-y-4">
-            <Button
-              size="xl"
-              className="w-full flex gap-2"
-              onClick={handleViewFiles}
-              disabled={allFiles.length === 0}
-            >
-              <FilesIcon /> View Files
-            </Button>
+            <div className="flex gap-2 flex-col">
+              <Button
+                size="xl"
+                className="flex-1 flex gap-2 border-none min-h-12"
+                onClick={handleViewFiles}
+                disabled={allFiles.length === 0}
+              >
+                <FilesIcon /> View Files
+              </Button>
+              <Button
+                size="xl"
+                variant="secondary"
+                className="flex-1 min-h-12"
+                onClick={() => setShowAddSongModal(true)}
+                disabled={songsNotInSetlist.length === 0}
+              >
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Add Song
+              </Button>
+            </div>
 
             {/* One-Touch Songs - Desktop */}
             <OneTouchSongs className="hidden md:block" />
@@ -1340,40 +1317,98 @@ export default function SetlistPage() {
             {/* Information Card */}
             <Card>
               <CardContent className="pt-6">
-                <h2 className="text-lg font-semibold">Information</h2>
-                <div className="mt-2 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Date</span>
-                    <span>
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <h2 className="text-lg font-semibold">Information</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <EditIcon className="mr-2 h-3 w-3" />
+                    Edit
+                  </Button>
+                </div>
+                <DataList orientation="vertical" className="gap-4" size="sm">
+                  <DataListItem>
+                    <DataListLabel className="font-bold text-xs tracking-wide uppercase w-32">
+                      Name
+                    </DataListLabel>
+                    <DataListValue className="font-medium  max-w-[200px] truncate">
+                      {setlist?.name}
+                    </DataListValue>
+                  </DataListItem>
+
+                  <DataListItem>
+                    <DataListLabel className="font-bold text-xs tracking-wide uppercase w-32">
+                      Date
+                    </DataListLabel>
+                    <DataListValue>
                       {setlist?.date
                         ? format(new Date(setlist.date), "MMMM d, yyyy")
                         : "Not scheduled"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Songs</span>
-                    <span>{setlist?.songs.length || 0}</span>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created</span>
-                    <span>
+                    </DataListValue>
+                  </DataListItem>
+
+                  <DataListItem>
+                    <DataListLabel className="font-bold text-xs tracking-wide uppercase w-32">
+                      Songs
+                    </DataListLabel>
+                    <DataListValue>{setlist?.songs.length || 0}</DataListValue>
+                  </DataListItem>
+
+                  <DataListItem>
+                    <DataListLabel className="font-bold text-xs tracking-wide uppercase w-32">
+                      Created
+                    </DataListLabel>
+                    <DataListValue>
                       {setlist?.createdAt
                         ? format(new Date(setlist.createdAt), "MMM d, yyyy")
                         : ""}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Last updated</span>
-                    <span>
+                    </DataListValue>
+                  </DataListItem>
+
+                  <DataListItem>
+                    <DataListLabel className="font-bold text-xs tracking-wide uppercase w-32">
+                      Last updated
+                    </DataListLabel>
+                    <DataListValue>
                       {setlist?.updatedAt
                         ? format(new Date(setlist.updatedAt), "MMM d, yyyy")
                         : ""}
-                    </span>
-                  </div>
-                </div>
+                    </DataListValue>
+                  </DataListItem>
+                </DataList>
               </CardContent>
             </Card>
+
+            {/* <DataList orientation="horizontal" className="gap-4">
+              <DataListItem>
+                <DataListLabel className="w-32">Status:</DataListLabel>
+                <DataListValue>
+                  <Badge className="py-0 px-1.5 bg-emerald-500/20 text-emerald-500 font-semibold">
+                    Authorized
+                  </Badge>
+                </DataListValue>
+              </DataListItem>
+
+              <DataListItem>
+                <DataListLabel className="w-32">ID:</DataListLabel>
+                <DataListValue className="flex items-center gap-2">
+                  #123456789
+                  <Copy className="w-3.5 h-3.5 opacity-70" />
+                </DataListValue>
+              </DataListItem>
+
+              <DataListItem>
+                <DataListLabel className="w-32">Name: </DataListLabel>
+                <DataListValue>Allipio Pereira</DataListValue>
+              </DataListItem>
+
+              <DataListItem>
+                <DataListLabel className="w-32">Company: </DataListLabel>
+                <DataListValue>allipiopereira</DataListValue>
+              </DataListItem>
+            </DataList> */}
           </div>
         </div>
       </div>
