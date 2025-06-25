@@ -57,6 +57,7 @@ export interface Song {
   duration?: number;
   genre?: string;
   year?: number;
+  default_key?: string;
   createdAt: string;
   updatedAt: string;
   files?: SongFile[]; // Keep for backward compatibility during migration
@@ -90,19 +91,25 @@ export interface FileWithUrl extends SongFile {
   keyInfo?: string; // Add key information for display
 }
 
-// Helper function to get files for a specific key with fallback
+// Helper function to get files for a specific key with NO fallback
 export function getFilesForKey(song: Song, key?: string): SongFile[] {
   if (!song.keyedFiles) {
     // Fallback to old files structure during migration
-    return song.files || [];
+    if (!key || key === "default") {
+      return song.files || [];
+    }
+    return [];
   }
 
-  if (key && key !== "default" && song.keyedFiles[key as MusicalKey]) {
+  if (key === "default") {
+    return song.keyedFiles.default || [];
+  }
+
+  if (key && song.keyedFiles[key as MusicalKey]) {
     return song.keyedFiles[key as MusicalKey] || [];
   }
 
-  // Fallback to default files if key-specific files don't exist
-  return song.keyedFiles.default || [];
+  return [];
 }
 
 // Helper function to get all files for a song, organized by key
@@ -118,4 +125,18 @@ export function getAllKeyedFiles(song: Song): KeyedSongFiles {
 export function hasFilesForKey(song: Song, key: string): boolean {
   const files = getFilesForKey(song, key);
   return files.length > 0;
+}
+
+// Helper function to check for files for a key *without* fallback logic
+export function hasFilesForSpecificKey(song: Song, key: string): boolean {
+  if (!song.keyedFiles) {
+    return key === "default" && !!song.files && song.files.length > 0;
+  }
+  if (key === "default") {
+    return !!song.keyedFiles.default && song.keyedFiles.default.length > 0;
+  }
+  return (
+    !!song.keyedFiles[key as MusicalKey] &&
+    song.keyedFiles[key as MusicalKey]!.length > 0
+  );
 }

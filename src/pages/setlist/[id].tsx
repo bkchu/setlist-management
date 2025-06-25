@@ -26,6 +26,10 @@ import {
   getFilesForKey,
   getAllKeyedFiles,
   hasFilesForKey,
+  hasFilesForSpecificKey,
+  Song,
+  SongFile,
+  MusicalKey,
 } from "@/types";
 import { format } from "date-fns";
 import useEmblaCarousel from "embla-carousel-react";
@@ -40,10 +44,12 @@ import {
   PlusIcon,
   StickyNoteIcon,
   XIcon,
+  Loader2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useNavigate, useParams } from "react-router-dom";
+import { SongFileUploader } from "@/components/songs/song-file-uploader";
 
 interface FileWithUrl {
   id: string;
@@ -143,6 +149,15 @@ export default function SetlistPage() {
     key: "",
     notes: "",
   });
+  const [selectedSongInModal, setSelectedSongInModal] = useState<Song | null>(
+    null
+  );
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [editPreviewFileUrl, setEditPreviewFileUrl] = useState<string | null>(
+    null
+  );
+  const [isEditPreviewLoading, setIsEditPreviewLoading] = useState(false);
   const [allFiles, setAllFiles] = useState<FileWithUrl[]>([]);
   interface SlideItem extends FileWithUrl {
     key: string;
@@ -166,6 +181,7 @@ export default function SetlistPage() {
   const [isNotesWindowOpen, setIsNotesWindowOpen] = useState(false);
   const [localNotes, setLocalNotes] = useState<string>("");
   const [notesDirty, setNotesDirty] = useState(false);
+  const [isAddingSong, setIsAddingSong] = useState(false);
 
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
@@ -429,6 +445,8 @@ export default function SetlistPage() {
   );
 
   const handleAddNewSong = async () => {
+    if (isAddingSong) return;
+
     if (!setlist) {
       toast({
         title: "No setlist selected",
@@ -447,19 +465,6 @@ export default function SetlistPage() {
       return;
     }
 
-    // Check if song is already in the setlist
-    const songAlreadyInSetlist = setlist.songs.some(
-      (song) => song.songId === addSongForm.songId
-    );
-    if (songAlreadyInSetlist) {
-      toast({
-        title: "Song already in setlist",
-        description: "This song is already in the setlist",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const song = songs.find((s) => s.id === addSongForm.songId);
     if (!song) {
       toast({
@@ -470,6 +475,31 @@ export default function SetlistPage() {
       return;
     }
 
+    const files = getFilesForKey(song, addSongForm.key || song.default_key);
+    if (files.length === 0) {
+      toast({
+        title: "No file for selected key",
+        description:
+          "Please upload a file for the selected key or choose a key with an existing file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if song is already in the setlist
+    const songAlreadyInSetlist = setlist.songs.some(
+      (s) => s.songId === addSongForm.songId
+    );
+    if (songAlreadyInSetlist) {
+      toast({
+        title: "Song already in setlist",
+        description: "This song is already in the setlist",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingSong(true);
     try {
       // Create the new song object with a temporary ID
       const tempId = crypto.randomUUID();
@@ -512,6 +542,8 @@ export default function SetlistPage() {
             : "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsAddingSong(false);
     }
   };
 
@@ -612,6 +644,78 @@ export default function SetlistPage() {
     // Use the notes from the song, ensuring all pages of the same song share notes
     setLocalNotes(song?.notes || "");
   }, [currentSlideIndex, setlist, flattenedSlides]);
+
+  useEffect(() => {
+    if (!editingSong || !editingSongs[editingSong.id]) {
+      setEditPreviewFileUrl(null);
+      return;
+    }
+    const songInDb = songs.find((s) => s.id === editingSong.songId);
+    if (!songInDb) return;
+    const selectedKey = editingSongs[editingSong.id]?.key;
+    if (!selectedKey) {
+      setEditPreviewFileUrl(null);
+      return;
+    }
+    const files = getFilesForKey(songInDb, selectedKey);
+    if (files.length > 0) {
+      const file = files[0];
+      setIsEditPreviewLoading(true);
+      supabase.storage
+        .from("song-files")
+        .createSignedUrl(file.path, 3600)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Error creating signed URL for edit", error);
+            setEditPreviewFileUrl(null);
+          } else if (data) {
+            setEditPreviewFileUrl(data.signedUrl);
+          }
+        })
+        .finally(() => {
+          setIsEditPreviewLoading(false);
+        });
+    } else {
+      setEditPreviewFileUrl(null);
+    }
+  }, [editingSong, editingSongs, songs]);
+
+  useEffect(() => {
+    if (!selectedSongInModal) {
+      setPreviewFileUrl(null);
+      return;
+    }
+
+    const files = getFilesForKey(
+      selectedSongInModal,
+      addSongForm.key || selectedSongInModal.default_key
+    );
+
+    if (files.length > 0) {
+      const file = files[0];
+      setIsPreviewLoading(true);
+      supabase.storage
+        .from("song-files")
+        .createSignedUrl(file.path, 3600)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Error creating signed URL", error);
+            toast({
+              title: "Error loading file preview",
+              variant: "destructive",
+            });
+            setPreviewFileUrl(null);
+          } else if (data) {
+            setPreviewFileUrl(data.signedUrl);
+          }
+        })
+        .finally(() => {
+          setIsPreviewLoading(false);
+        });
+    } else {
+      setPreviewFileUrl(null);
+    }
+  }, [selectedSongInModal, addSongForm.key, toast]);
 
   if (!setlist) {
     return null;
@@ -809,141 +913,185 @@ export default function SetlistPage() {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Key</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {KEY_OPTIONS.map((key) => (
-                        <Button
-                          key={key}
-                          variant={
-                            editingSongs[editingSong.id]?.key === key
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          className="h-10 w-12 font-mono"
-                          onClick={() =>
-                            setEditingSongs((prev) => ({
-                              ...prev,
-                              [editingSong.id]: {
-                                ...prev[editingSong.id],
-                                key,
-                              },
-                            }))
-                          }
-                        >
-                          {key}
-                        </Button>
-                      ))}
+                    <div className="space-y-3">
+                      <Button
+                        variant={
+                          editingSongs[editingSong.id]?.key === "default"
+                            ? "default"
+                            : "outline"
+                        }
+                        className="w-full relative"
+                        onClick={() =>
+                          setEditingSongs((prev) => ({
+                            ...prev,
+                            [editingSong.id]: {
+                              ...prev[editingSong.id],
+                              key: "default",
+                            },
+                          }))
+                        }
+                      >
+                        Default
+                        {(() => {
+                          const songInDb = songs.find(
+                            (s) => s.id === editingSong.songId
+                          );
+                          return (
+                            songInDb &&
+                            hasFilesForSpecificKey(songInDb, "default") && (
+                              <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
+                            )
+                          );
+                        })()}
+                      </Button>
+                      <div className="flex items-center">
+                        <div className="flex-grow border-t border-muted" />
+                        <span className="flex-shrink mx-2 text-xs text-muted-foreground">
+                          OR
+                        </span>
+                        <div className="flex-grow border-t border-muted" />
+                      </div>
+                      <div className="grid grid-cols-6 gap-2">
+                        {KEY_OPTIONS.map((key) => {
+                          const songInDb = songs.find(
+                            (s) => s.id === editingSong.songId
+                          );
+                          const hasFiles = songInDb
+                            ? hasFilesForSpecificKey(songInDb, key)
+                            : false;
+                          const isSelected =
+                            editingSongs[editingSong.id]?.key === key;
+
+                          return (
+                            <Button
+                              key={key}
+                              variant={isSelected ? "default" : "outline"}
+                              size="sm"
+                              className="h-10 relative"
+                              onClick={() =>
+                                setEditingSongs((prev) => ({
+                                  ...prev,
+                                  [editingSong.id]: {
+                                    ...prev[editingSong.id],
+                                    key,
+                                  },
+                                }))
+                              }
+                            >
+                              {key}
+                              {hasFiles && (
+                                <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
+                              )}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Available Files Section */}
+                  {/* File preview/uploader */}
                   {(() => {
-                    const song = songs.find((s) => s.id === editingSong.songId);
-                    if (!song) return null;
-
-                    const currentKey = editingSongs[editingSong.id]?.key || "";
-                    const filesForCurrentKey = getFilesForKey(song, currentKey);
-                    const allKeyedFiles = getAllKeyedFiles(song);
-                    const keysWithFiles = Object.entries(allKeyedFiles).filter(
-                      ([, files]) => files && files.length > 0
+                    const selectedKey = editingSongs[editingSong.id]?.key;
+                    const songInDb = songs.find(
+                      (s) => s.id === editingSong.songId
                     );
 
-                    // Check if we're showing default files as fallback
-                    const hasKeySpecificFiles =
-                      currentKey &&
-                      currentKey !== "default" &&
-                      allKeyedFiles[currentKey as keyof typeof allKeyedFiles] &&
-                      (
-                        allKeyedFiles[
-                          currentKey as keyof typeof allKeyedFiles
-                        ] || []
-                      ).length > 0;
-                    const isUsingDefaultFallback =
-                      !hasKeySpecificFiles &&
-                      currentKey &&
-                      currentKey !== "default" &&
-                      filesForCurrentKey.length > 0;
-
-                    if (keysWithFiles.length === 0) return null;
-
-                    return (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Available Files
-                        </Label>
-                        <div className="rounded-lg border border-dashed p-3 space-y-3">
-                          {/* Current key files */}
-                          {filesForCurrentKey.length > 0 && (
-                            <div className="space-y-2">
-                              <p
-                                className={`text-xs font-medium ${
-                                  isUsingDefaultFallback
-                                    ? "text-amber-600"
-                                    : "text-green-600"
-                                }`}
-                              >
-                                {isUsingDefaultFallback ? "⚡" : "✓"} Files
-                                available for key {currentKey || "Default"}
-                                {isUsingDefaultFallback && (
-                                  <span className="text-amber-700">
-                                    {" "}
-                                    (using default files)
-                                  </span>
-                                )}{" "}
-                                ({filesForCurrentKey.length} file
-                                {filesForCurrentKey.length !== 1 ? "s" : ""})
-                              </p>
-                              <div className="space-y-1">
-                                {filesForCurrentKey
-                                  .slice(0, 3)
-                                  .map((file, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-center gap-2 text-xs text-muted-foreground"
-                                    >
-                                      <FileIcon className="h-3 w-3" />
-                                      <span className="truncate">
-                                        {file.name}
-                                      </span>
-                                      {isUsingDefaultFallback && (
-                                        <span className="text-amber-600 text-xs">
-                                          (default)
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))}
-                                {filesForCurrentKey.length > 3 && (
-                                  <p className="text-xs text-muted-foreground">
-                                    ...and {filesForCurrentKey.length - 3} more
-                                    {isUsingDefaultFallback && (
-                                      <span className="text-amber-600">
-                                        {" "}
-                                        (default files)
-                                      </span>
-                                    )}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {filesForCurrentKey.length === 0 && (
-                            <div className="text-center py-2">
-                              <p className="text-xs text-muted-foreground">
-                                ⚠️ No files available for key{" "}
-                                {currentKey || "Default"}
-                              </p>
-                              {keysWithFiles.length > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Consider switching to a key with available
-                                  files
-                                </p>
-                              )}
-                            </div>
-                          )}
+                    if (!songInDb) {
+                      return (
+                        <p className="text-sm text-muted-foreground">
+                          Song data not found.
+                        </p>
+                      );
+                    }
+                    if (!selectedKey) {
+                      return (
+                        <div className="rounded-lg border-2 border-dashed border-muted-foreground/20 p-8 text-center mt-4">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Please select a key to see files.
+                          </p>
                         </div>
-                      </div>
+                      );
+                    }
+
+                    const filesForSelectedKey = getFilesForKey(
+                      songInDb,
+                      selectedKey
                     );
+                    if (isEditPreviewLoading) {
+                      return (
+                        <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading preview...
+                        </div>
+                      );
+                    }
+                    if (
+                      filesForSelectedKey.length > 0 &&
+                      editPreviewFileUrl
+                    ) {
+                      return (
+                        <div className="space-y-2 mt-4">
+                          <Label className="text-sm font-medium">
+                            File Preview
+                          </Label>
+                          <div className="rounded-md border bg-muted/20 p-2 flex justify-center items-center">
+                            {isImage(filesForSelectedKey[0].name) ? (
+                              <img
+                                src={editPreviewFileUrl}
+                                alt="preview"
+                                className="rounded-md max-h-60"
+                              />
+                            ) : isPDF(filesForSelectedKey[0].name) ? (
+                              <p className="text-sm text-muted-foreground p-4">
+                                PDF preview not available here.
+                              </p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground p-4">
+                                Preview not available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="space-y-2 mt-4">
+                          <Label className="text-sm font-medium">
+                            Upload File for{" "}
+                            {selectedKey === "default"
+                              ? "Default"
+                              : `Key ${selectedKey}`}
+                          </Label>
+                          <SongFileUploader
+                            songId={editingSong.songId}
+                            songKey={selectedKey}
+                            onUploadComplete={(newFile) => {
+                              // Optimistically update the local state for immediate UI feedback
+                              const updatedEditingSong = {
+                                ...editingSongs[editingSong.id],
+                              };
+                              const keyToUpdate = (selectedKey ||
+                                "default") as MusicalKey | "default";
+
+                              const newKeyedFiles = {
+                                ...(songInDb.keyedFiles || {}),
+                              };
+                              if (!newKeyedFiles[keyToUpdate]) {
+                                newKeyedFiles[keyToUpdate] = [];
+                              }
+                              newKeyedFiles[keyToUpdate].push(newFile);
+
+                              // We need to trigger a re-render of useSongs somehow
+                              // or update the songs context directly.
+                              // The uploader already calls `updateSong`, which will
+                              // eventually update the `songs` context.
+                              // For now, let's just rely on the uploader's success toast
+                              // and the eventual context update.
+                            }}
+                          />
+                        </div>
+                      );
+                    }
                   })()}
 
                   <div className="space-y-2">
@@ -998,34 +1146,76 @@ export default function SetlistPage() {
                 <Label className="text-sm font-medium">Select Song</Label>
                 <SongSearchCombobox
                   songs={songsNotInSetlist}
-                  onSelect={(songId) =>
+                  value={addSongForm.songId}
+                  onSelect={(songId) => {
+                    const selected = songs.find((s) => s.id === songId);
+                    setSelectedSongInModal(selected || null);
                     setAddSongForm((prev) => ({
                       ...prev,
                       songId,
-                    }))
-                  }
+                      key: selected?.default_key || "",
+                      notes: "", // reset notes too
+                    }));
+                  }}
                   placeholder="Search for a song to add..."
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Key</Label>
-                <div className="flex flex-wrap gap-2">
-                  {KEY_OPTIONS.map((key) => (
-                    <Button
-                      key={key}
-                      variant={addSongForm.key === key ? "default" : "outline"}
-                      size="sm"
-                      className="h-10 w-12 font-mono"
-                      onClick={() =>
-                        setAddSongForm((prev) => ({
-                          ...prev,
-                          key,
-                        }))
-                      }
-                    >
-                      {key}
-                    </Button>
-                  ))}
+
+                <div className="space-y-3">
+                  <Button
+                    variant={
+                      addSongForm.key === "default" ? "default" : "outline"
+                    }
+                    className="w-full relative"
+                    onClick={() =>
+                      setAddSongForm((prev) => ({ ...prev, key: "default" }))
+                    }
+                  >
+                    Default
+                    {selectedSongInModal &&
+                      hasFilesForSpecificKey(selectedSongInModal, "default") && (
+                        <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
+                      )}
+                  </Button>
+
+                  <div className="flex items-center">
+                    <div className="flex-grow border-t border-muted" />
+                    <span className="flex-shrink mx-2 text-xs text-muted-foreground">
+                      OR
+                    </span>
+                    <div className="flex-grow border-t border-muted" />
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-2">
+                    {KEY_OPTIONS.map((key) => {
+                      const hasFiles = selectedSongInModal
+                        ? hasFilesForSpecificKey(selectedSongInModal, key)
+                        : false;
+                      const isSelected = addSongForm.key === key;
+
+                      return (
+                        <Button
+                          key={key}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          className="h-10 relative"
+                          onClick={() =>
+                            setAddSongForm((prev) => ({
+                              ...prev,
+                              key,
+                            }))
+                          }
+                        >
+                          {key}
+                          {hasFiles && (
+                            <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
                 {/* Key History Section */}
                 {addSongForm.songId && (
@@ -1086,57 +1276,113 @@ export default function SetlistPage() {
                   </div>
                 )}
 
-                {/* File availability preview */}
-                {addSongForm.songId &&
-                  addSongForm.key &&
-                  (() => {
-                    const selectedSong = songs.find(
-                      (s) => s.id === addSongForm.songId
-                    );
-                    if (!selectedSong) return null;
+                {/* File preview/uploader */}
+                {selectedSongInModal && (
+                  <div className="mt-4">
+                    {(() => {
+                      const selectedKey = addSongForm.key;
 
-                    const filesForSelectedKey = getFilesForKey(
-                      selectedSong,
-                      addSongForm.key
-                    );
-                    const hasKeySpecificFiles = hasFilesForKey(
-                      selectedSong,
-                      addSongForm.key
-                    );
-                    const hasDefaultFiles = hasFilesForKey(
-                      selectedSong,
-                      "default"
-                    );
-
-                    return (
-                      <div className="text-sm p-3 rounded-md border bg-muted/20 mt-4">
-                        <div className="flex items-center gap-2">
-                          <FilesIcon className="h-4 w-4" />
-                          <span className="font-medium">
-                            {filesForSelectedKey.length} chord sheet(s)
-                            available
-                          </span>
-                        </div>
-
-                        {filesForSelectedKey.length === 0 && (
-                          <div className="mt-2 text-amber-600 text-xs">
-                            ⚠️ No files for key {addSongForm.key}.
-                            {hasDefaultFiles && " Default files will be used."}
-                            {!hasDefaultFiles &&
-                              " No files available for this song."}
+                      // Case 1: No key selected yet. Prompt user to select one.
+                      if (!selectedKey) {
+                        return (
+                          <div className="rounded-lg border-2 border-dashed border-muted-foreground/20 p-8 text-center">
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Please select a key for this song.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Keys with available files are marked with a dot.
+                            </p>
                           </div>
-                        )}
+                        );
+                      }
 
-                        {filesForSelectedKey.length > 0 && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            {hasKeySpecificFiles
-                              ? `Using ${addSongForm.key} specific files`
-                              : "Using default files"}
+                      const filesForSelectedKey = getFilesForKey(
+                        selectedSongInModal,
+                        selectedKey
+                      );
+
+                      if (isPreviewLoading) {
+                        return (
+                          <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading preview...
                           </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                        );
+                      }
+                      if (filesForSelectedKey.length > 0 && previewFileUrl) {
+                        return (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">
+                              File Preview (
+                              {selectedKey === "default"
+                                ? "Default"
+                                : `Key: ${selectedKey}`}
+                              )
+                            </Label>
+                            <div className="rounded-md border bg-muted/20 p-2 flex justify-center items-center">
+                              {isImage(filesForSelectedKey[0].name) ? (
+                                <img
+                                  src={previewFileUrl}
+                                  alt="preview"
+                                  className="rounded-md max-h-60"
+                                />
+                              ) : isPDF(filesForSelectedKey[0].name) ? (
+                                <p className="text-sm text-muted-foreground p-4">
+                                  PDF preview not available here, but file is
+                                  present.
+                                </p>
+                              ) : (
+                                <div className="p-4 text-center text-sm text-muted-foreground">
+                                  <FileIcon className="mx-auto h-8 w-8" />
+                                  <p>
+                                    {filesForSelectedKey[0].name}
+                                    <br />
+                                    (Preview not available)
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // A key is selected, but it has no file. Show uploader.
+                        return (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">
+                              Upload File for{" "}
+                              {selectedKey === "default"
+                                ? "Default"
+                                : `Key ${selectedKey}`}
+                            </Label>
+                            <SongFileUploader
+                              songId={selectedSongInModal.id}
+                              songKey={selectedKey}
+                              onUploadComplete={(newFile: SongFile) => {
+                                if (!selectedSongInModal) return;
+
+                                const newKeyedFiles = {
+                                  ...(selectedSongInModal.keyedFiles || {}),
+                                };
+                                const key =
+                                  selectedKey as MusicalKey | "default";
+
+                                if (!newKeyedFiles[key]) {
+                                  newKeyedFiles[key] = [];
+                                }
+                                newKeyedFiles[key].push(newFile);
+
+                                setSelectedSongInModal({
+                                  ...selectedSongInModal,
+                                  keyedFiles: newKeyedFiles,
+                                });
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Notes</Label>
@@ -1161,8 +1407,26 @@ export default function SetlistPage() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddNewSong} className="px-4">
-                Add Song
+              <Button
+                onClick={handleAddNewSong}
+                className="px-4"
+                disabled={
+                  isAddingSong ||
+                  !selectedSongInModal ||
+                  getFilesForKey(
+                    selectedSongInModal,
+                    addSongForm.key || selectedSongInModal.default_key
+                  ).length === 0
+                }
+              >
+                {isAddingSong ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Song"
+                )}
               </Button>
             </div>
           </div>

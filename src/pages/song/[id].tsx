@@ -25,7 +25,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { getAllKeyedFiles, SongFile } from "@/types";
+import { getAllKeyedFiles, SongFile, Song } from "@/types";
 import "./_[id].css";
 
 // Set worker URL for PDF.js
@@ -174,7 +174,7 @@ export default function SongPage() {
     setNumPages(numPages);
   };
 
-  const handleEditSong = async (songData: Partial<typeof song>) => {
+  const handleEditSong = async (songData: Partial<Song>) => {
     if (!song) return;
 
     try {

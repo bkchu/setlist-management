@@ -21,6 +21,7 @@ export {
   getFilesForKey,
   getAllKeyedFiles,
   hasFilesForKey,
+  hasFilesForSpecificKey,
 } from "./song";
 
 // Export setlist types
