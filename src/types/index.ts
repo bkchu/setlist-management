@@ -10,8 +10,6 @@ export type {
   Song,
   SongFile,
   SetlistSong,
-  EditableSetlistSong,
-  FileWithUrl,
   KeyedSongFiles,
   MusicalKey,
 } from "./song";
@@ -29,4 +27,7 @@ export type {
   Setlist,
   SetlistFormData,
   SetlistSongsUpdateData,
+  FileWithUrl,
+  EditableSetlistSong,
+  SlideItem,
 } from "./setlist";

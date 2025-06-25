@@ -80,17 +80,6 @@ export interface SetlistSong
   song: Pick<Song, "id" | "title" | "artist" | "files" | "keyedFiles">;
 }
 
-export interface EditableSetlistSong extends Partial<SetlistSong> {
-  isNew?: boolean;
-}
-
-export interface FileWithUrl extends SongFile {
-  url?: string;
-  songTitle: string;
-  songArtist: string;
-  keyInfo?: string; // Add key information for display
-}
-
 // Helper function to get files for a specific key with NO fallback
 export function getFilesForKey(song: Song, key?: string): SongFile[] {
   if (!song.keyedFiles) {
