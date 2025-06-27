@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, UploadCloudIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSongs } from "@/hooks/use-songs";
@@ -20,25 +20,20 @@ export function SongFileUploader({
   onUploadComplete,
 }: SongFileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
   const { songs, updateSong } = useSongs();
   const { user } = useAuth();
   const song = songs.find((s) => s.id === songId);
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (!song) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Song not found for upload.",
-        variant: "destructive",
       });
       return;
     }
     if (!user) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "You must be logged in to upload files.",
-        variant: "destructive",
       });
       return;
     }
@@ -51,7 +46,9 @@ export function SongFileUploader({
     setIsUploading(true);
 
     try {
-      const filePath = `${user.id}/${songId}/${songKey || "default"}/${file.name}`;
+      const filePath = `${user.id}/${songId}/${songKey || "default"}/${
+        file.name
+      }`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -114,19 +111,16 @@ export function SongFileUploader({
         updatedAt: new Date().toISOString(),
       };
 
-      toast({
-        title: "Upload successful",
+      toast.success("Upload successful", {
         description: `${file.name} has been uploaded.`,
       });
 
       onUploadComplete(uploadedFile);
     } catch (error) {
       console.error("Upload error:", error);
-      toast({
-        title: "Upload failed",
+      toast.error("Upload failed", {
         description:
           error instanceof Error ? error.message : "An unknown error occurred.",
-        variant: "destructive",
       });
     } finally {
       setIsUploading(false);

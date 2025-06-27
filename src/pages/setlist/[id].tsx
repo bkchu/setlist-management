@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import {
   SetlistSong,
@@ -17,10 +17,7 @@ import {
   FileWithUrl,
 } from "@/types";
 import { isImage, isPDF } from "@/lib/utils";
-import {
-  FilesIcon,
-  PlusIcon,
-} from "lucide-react";
+import { FilesIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
@@ -31,7 +28,6 @@ import { FileViewer } from "@/components/setlists/FileViewer";
 
 export default function SetlistPage() {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
   const { setlists, updateSetlist, updateSetlistSongs, isLoading } =
     useSetlists();
   const { songs } = useSongs();
@@ -44,10 +40,14 @@ export default function SetlistPage() {
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
 
   // Derived state
-  const setlist = useMemo(() => setlists.find((s) => s.id === id), [setlists, id]);
+  const setlist = useMemo(
+    () => setlists.find((s) => s.id === id),
+    [setlists, id]
+  );
 
-  const songsNotInSetlist = useMemo(() =>
-    songs.filter((song) => !setlist?.songs.some((s) => s.songId === song.id)),
+  const songsNotInSetlist = useMemo(
+    () =>
+      songs.filter((song) => !setlist?.songs.some((s) => s.songId === song.id)),
     [songs, setlist]
   );
 
@@ -57,12 +57,9 @@ export default function SetlistPage() {
   useEffect(() => {
     if (!setlist && !isLoading) {
       navigate("/setlists");
-      toast({
-        title: "Setlist not found",
-        variant: "destructive",
-      });
+      toast.error("Setlist not found");
     }
-  }, [setlist, navigate, isLoading, toast]);
+  }, [setlist, navigate, isLoading]);
 
   // File & Slide Preparation
   useEffect(() => {
@@ -98,7 +95,7 @@ export default function SetlistPage() {
             }
           }
         }
-        
+
         const slides: SlideItem[] = [];
         files.forEach((file) => {
           if (isImage(file.name)) {
@@ -134,23 +131,26 @@ export default function SetlistPage() {
         songs: setlist.songs,
       });
       setIsEditingMetadata(false);
-      toast({ title: "Setlist updated" });
+      toast.success("Setlist updated");
     } catch {
-      toast({ title: "Error updating setlist", variant: "destructive" });
+      toast.error("Error updating setlist");
     }
   };
 
-  const handleSaveSong = async (songId: string, updates: Partial<SetlistSong>) => {
+  const handleSaveSong = async (
+    songId: string,
+    updates: Partial<SetlistSong>
+  ) => {
     if (!setlist) return;
     try {
-        const updatedSongs = setlist.songs.map((s) =>
-            s.id === songId ? { ...s, ...updates } : s
-        );
-        await updateSetlistSongs(setlist.id, updatedSongs);
-        setEditingSong(null);
-        toast({ title: "Song updated" });
+      const updatedSongs = setlist.songs.map((s) =>
+        s.id === songId ? { ...s, ...updates } : s
+      );
+      await updateSetlistSongs(setlist.id, updatedSongs);
+      setEditingSong(null);
+      toast.success("Song updated");
     } catch {
-        toast({ title: "Error updating song", variant: "destructive" });
+      toast.error("Error updating song");
     }
   };
 
@@ -160,7 +160,7 @@ export default function SetlistPage() {
       const updatedSongs = [...setlist.songs, newSong];
       await updateSetlistSongs(setlist.id, updatedSongs);
     } catch (error) {
-        toast({ title: "Error adding song", variant: "destructive" });
+      toast.error("Error adding song");
     }
   };
 
@@ -171,9 +171,9 @@ export default function SetlistPage() {
         .filter((s) => s.id !== songId)
         .map((s, idx) => ({ ...s, order: idx + 1 }));
       await updateSetlistSongs(setlist.id, updatedSongs);
-      toast({ title: "Song removed" });
+      toast.success("Song removed");
     } catch {
-      toast({ title: "Error removing song", variant: "destructive" });
+      toast.error("Error removing song");
     }
   };
 
@@ -196,27 +196,27 @@ export default function SetlistPage() {
         order: idx + 1,
       }));
       await updateSetlistSongs(setlist.id, reorderedSongs);
-      toast({ title: "Order updated" });
+      toast.success("Order updated");
     } catch {
-      toast({ title: "Error updating song order", variant: "destructive" });
+      toast.error("Error updating song order");
     }
   };
 
   const handleSaveNotesInViewer = async (songId: string, notes: string) => {
     if (!setlist) return;
     const updatedSongs = setlist.songs.map((song) => {
-        if (song.songId === songId) {
-            return { ...song, notes };
-        }
-        return song;
+      if (song.songId === songId) {
+        return { ...song, notes };
+      }
+      return song;
     });
     try {
-        await updateSetlistSongs(setlist.id, updatedSongs);
-        toast({ title: "Notes saved" });
+      await updateSetlistSongs(setlist.id, updatedSongs);
+      toast.success("Notes saved");
     } catch (error: unknown) {
-        toast({ title: "Failed to save notes", variant: "destructive" });
+      toast.error("Failed to save notes");
     }
-  }
+  };
 
   if (!setlist) {
     return null; // Or a loading spinner
@@ -227,15 +227,15 @@ export default function SetlistPage() {
       <Header title={setlist.name} />
 
       {showCarousel && (
-        <FileViewer 
-            isOpen={showCarousel}
-            onOpenChange={setShowCarousel}
-            slides={flattenedSlides}
-            onSaveNotes={handleSaveNotesInViewer}
+        <FileViewer
+          isOpen={showCarousel}
+          onOpenChange={setShowCarousel}
+          slides={flattenedSlides}
+          onSaveNotes={handleSaveNotesInViewer}
         />
       )}
-      
-      <AddSongDialog 
+
+      <AddSongDialog
         isOpen={showAddSongModal}
         onOpenChange={setShowAddSongModal}
         setlist={setlist}
@@ -243,8 +243,8 @@ export default function SetlistPage() {
         onSongAdded={handleAddNewSong}
         setlists={setlists}
       />
-      
-      <EditSongDialog 
+
+      <EditSongDialog
         editingSong={editingSong}
         onOpenChange={(isOpen) => !isOpen && setEditingSong(null)}
         onSave={handleSaveSong}
@@ -310,8 +310,11 @@ export default function SetlistPage() {
             </div>
 
             <OneTouchSongs className="hidden md:block" />
-            
-            <SetlistInfoCard setlist={setlist} onEdit={() => setIsEditingMetadata(true)} />
+
+            <SetlistInfoCard
+              setlist={setlist}
+              onEdit={() => setIsEditingMetadata(true)}
+            />
           </div>
         </div>
       </div>

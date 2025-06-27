@@ -19,6 +19,7 @@ import SetlistPage from "@/pages/setlist/[id]";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
+import ResetPasswordPage from "@/pages/reset-password";
 
 // Protected route component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,10 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/reset-password"
+                    element={<ResetPasswordPage />}
+                  />
                   <Route
                     path="/"
                     element={
@@ -113,7 +118,7 @@ function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Router>
-              <Toaster position="bottom-right" />
+              <Toaster position="bottom-right" richColors />
             </SettingsProvider>
           </SetlistProvider>
         </SongProvider>

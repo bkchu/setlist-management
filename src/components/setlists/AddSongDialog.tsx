@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getKeyHistoryForSong, isImage, isPDF } from "@/lib/utils";
 import {
@@ -55,7 +55,6 @@ export function AddSongDialog({
   onSongAdded,
   setlists,
 }: AddSongDialogProps) {
-  const { toast } = useToast();
   const { songs } = useSongs();
   const [isAddingSong, setIsAddingSong] = useState(false);
   const [addSongForm, setAddSongForm] = useState({
@@ -73,40 +72,32 @@ export function AddSongDialog({
     if (isAddingSong) return;
 
     if (!setlist) {
-      toast({
-        title: "No setlist selected",
+      toast.error("No setlist selected", {
         description: "Unable to determine which setlist to add the song to",
-        variant: "destructive",
       });
       return;
     }
 
     if (!addSongForm.songId) {
-      toast({
-        title: "No song selected",
+      toast.error("No song selected", {
         description: "Please select a song to add",
-        variant: "destructive",
       });
       return;
     }
 
     const song = songs.find((s) => s.id === addSongForm.songId);
     if (!song) {
-      toast({
-        title: "Song not found",
+      toast.error("Song not found", {
         description: "The selected song could not be found",
-        variant: "destructive",
       });
       return;
     }
 
     const files = getFilesForKey(song, addSongForm.key || song.default_key);
     if (files.length === 0) {
-      toast({
-        title: "No file for selected key",
+      toast.error("No file for selected key", {
         description:
           "Please upload a file for the selected key or choose a key with an existing file.",
-        variant: "destructive",
       });
       return;
     }
@@ -115,10 +106,8 @@ export function AddSongDialog({
       (s) => s.songId === addSongForm.songId
     );
     if (songAlreadyInSetlist) {
-      toast({
-        title: "Song already in setlist",
+      toast.error("Song already in setlist", {
         description: "This song is already in the setlist",
-        variant: "destructive",
       });
       return;
     }
@@ -143,19 +132,16 @@ export function AddSongDialog({
       setSelectedSongInModal(null);
       onOpenChange(false);
 
-      toast({
-        title: "Song added",
+      toast.success("Song added", {
         description: `${song.title} has been added to the setlist`,
       });
     } catch (error) {
       console.error("Error adding song to setlist:", error);
-      toast({
-        title: "Error adding song",
+      toast.error("Error adding song", {
         description:
           error instanceof Error
             ? error.message
             : "An unexpected error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsAddingSong(false);
@@ -182,10 +168,7 @@ export function AddSongDialog({
         .then(({ data, error }) => {
           if (error) {
             console.error("Error creating signed URL", error);
-            toast({
-              title: "Error loading file preview",
-              variant: "destructive",
-            });
+            toast.error("Error loading file preview");
             setPreviewFileUrl(null);
           } else if (data) {
             setPreviewFileUrl(data.signedUrl);
@@ -197,7 +180,7 @@ export function AddSongDialog({
     } else {
       setPreviewFileUrl(null);
     }
-  }, [selectedSongInModal, addSongForm.key, toast]);
+  }, [selectedSongInModal, addSongForm.key]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

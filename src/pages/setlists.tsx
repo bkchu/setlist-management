@@ -2,7 +2,7 @@ import { SetlistSearchCombobox } from "@/components/setlists/setlist-search-comb
 import { Header } from "@/components/layout/header";
 import { SetlistList } from "@/components/setlists/setlist-list";
 import { useSetlists } from "@/hooks/use-setlists";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Setlist } from "@/types";
 
 export default function Setlists() {
@@ -11,16 +11,13 @@ export default function Setlists() {
   const handleAddSetlist = async (setlistData: Partial<Setlist>) => {
     try {
       await addSetlist(setlistData);
-      toast({
-        title: "Setlist created",
+      toast.success("Setlist created", {
         description: `"${setlistData.name}" has been created`,
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to create setlist",
-        variant: "destructive",
       });
     }
   };
@@ -31,16 +28,13 @@ export default function Setlists() {
   ) => {
     try {
       await updateSetlist(id, setlistData);
-      toast({
-        title: "Setlist updated",
+      toast.success("Setlist updated", {
         description: `"${setlistData.name}" has been updated`,
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to update setlist",
-        variant: "destructive",
       });
     }
   };
@@ -48,16 +42,13 @@ export default function Setlists() {
   const handleDeleteSetlist = async (id: string) => {
     try {
       await deleteSetlist(id);
-      toast({
-        title: "Setlist deleted",
+      toast.success("Setlist deleted", {
         description: "The setlist has been removed",
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to delete setlist",
-        variant: "destructive",
       });
     }
   };

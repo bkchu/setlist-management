@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Song } from "@/types";
 import {
   Card,
@@ -63,16 +63,13 @@ export default function Settings() {
       const newOrder = arrayMove(oneTouchSongs, oldIndex, newIndex);
       updateOneTouchSongs(newOrder.map((song) => song.id))
         .then(() => {
-          toast({
-            title: "Songs reordered",
+          toast.success("Songs reordered", {
             description: "Your One-Touch Songs have been reordered",
           });
         })
         .catch(() => {
-          toast({
-            title: "Error",
+          toast.error("Error", {
             description: "Failed to reorder songs",
-            variant: "destructive",
           });
         });
     }
@@ -83,10 +80,8 @@ export default function Settings() {
 
     // Check if song is already in the list
     if (settings.oneTouchSongs.songIds.includes(songId)) {
-      toast({
-        title: "Song already added",
+      toast.error("Song already added", {
         description: "This song is already in your One-Touch Songs",
-        variant: "destructive",
       });
       return;
     }
@@ -96,17 +91,14 @@ export default function Settings() {
 
     updateOneTouchSongs(newSongIds)
       .then(() => {
-        toast({
-          title: "Song added",
+        toast.success("Song added", {
           description: "Song added to your One-Touch Songs",
         });
         setIsAdding(false);
       })
       .catch(() => {
-        toast({
-          title: "Error",
+        toast.error("Error", {
           description: "Failed to add song",
-          variant: "destructive",
         });
       });
   };
@@ -118,16 +110,13 @@ export default function Settings() {
 
     updateOneTouchSongs(newSongIds)
       .then(() => {
-        toast({
-          title: "Song removed",
+        toast.success("Song removed", {
           description: "Song removed from your One-Touch Songs",
         });
       })
       .catch(() => {
-        toast({
-          title: "Error",
+        toast.error("Error", {
           description: "Failed to remove song",
-          variant: "destructive",
         });
       });
   };

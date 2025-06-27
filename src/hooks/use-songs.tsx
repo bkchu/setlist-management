@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { Song } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
-import { toast } from "./use-toast";
+import { toast } from "sonner";
 
 interface SongContextProps {
   songs: Song[];
@@ -85,10 +85,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       );
     } catch (err) {
       setError("Failed to load songs");
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to load songs",
-        variant: "destructive",
       });
       console.error(err);
     } finally {

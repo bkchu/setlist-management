@@ -3,7 +3,7 @@ import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { Header } from "@/components/layout/header";
 import { SongList } from "@/components/songs/song-list";
 import { useSongs } from "@/hooks/use-songs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Song } from "@/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SongForm } from "@/components/songs/song-form";
@@ -16,16 +16,13 @@ export default function Songs() {
   const handleAddSong = async (songData: Partial<Song>) => {
     try {
       await addSong(songData);
-      toast({
-        title: "Song added",
+      toast.success("Song added", {
         description: `"${songData.title}" has been added to your library`,
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to add song",
-        variant: "destructive",
       });
     }
   };
@@ -34,16 +31,13 @@ export default function Songs() {
     try {
       await updateSong(id, songData);
       setIsEditing(false);
-      toast({
-        title: "Song updated",
+      toast.success("Song updated", {
         description: `"${songData.title}" has been updated`,
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to update song",
-        variant: "destructive",
       });
     }
   };
@@ -52,16 +46,13 @@ export default function Songs() {
     try {
       await deleteSong(id);
       setSelectedSong(null);
-      toast({
-        title: "Song deleted",
+      toast.success("Song deleted", {
         description: "The song has been removed from your library",
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to delete song",
-        variant: "destructive",
       });
     }
   };

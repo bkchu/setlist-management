@@ -23,7 +23,7 @@ import { useState } from "react";
 import { Song } from "@/types";
 import { SongForm } from "./song-form";
 import { useSettings } from "@/hooks/use-settings";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface SongListProps {
   songs: Song[];
@@ -72,20 +72,20 @@ export function SongList({
 
           updateOneTouchSongs(newSongIds)
             .then(() => {
-              toast({
-                title: isOneTouch
+              toast(
+                isOneTouch
                   ? "Removed from One-Touch Songs"
                   : "Added to One-Touch Songs",
-                description: isOneTouch
-                  ? `"${song.title}" has been removed from your One-Touch Songs`
-                  : `"${song.title}" has been added to your One-Touch Songs`,
-              });
+                {
+                  description: isOneTouch
+                    ? `"${song.title}" has been removed from your One-Touch Songs`
+                    : `"${song.title}" has been added to your One-Touch Songs`,
+                }
+              );
             })
             .catch(() => {
-              toast({
-                title: "Error",
+              toast.error("Error", {
                 description: "Failed to update One-Touch Songs",
-                variant: "destructive",
               });
             });
         }}

@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { Song } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
-import { toast } from "./use-toast";
+import { toast } from "sonner";
 
 export interface UserSettings {
   oneTouchSongs: {
@@ -24,7 +23,9 @@ const defaultSettings: UserSettings = {
   },
 };
 
-const SettingsContext = createContext<SettingsContextProps | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextProps | undefined>(
+  undefined
+);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -42,42 +43,39 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const loadSettings = async () => {
     if (!user) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "no rows returned" error
         throw error;
       }
-      
+
       if (data) {
         setSettings({
           oneTouchSongs: data.one_touch_songs || { songIds: [] },
         });
       } else {
         // Create default settings if none exist
-        await supabase
-          .from('user_settings')
-          .insert({
-            user_id: user.id,
-            one_touch_songs: defaultSettings.oneTouchSongs,
-          });
-        
+        await supabase.from("user_settings").insert({
+          user_id: user.id,
+          one_touch_songs: defaultSettings.oneTouchSongs,
+        });
+
         setSettings(defaultSettings);
       }
     } catch (err) {
       setError("Failed to load settings");
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to load settings",
-        variant: "destructive",
       });
       console.error(err);
     } finally {
@@ -85,87 +83,93 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateSettings = async (newSettings: Partial<UserSettings>): Promise<UserSettings> => {
+  const updateSettings = async (
+    newSettings: Partial<UserSettings>
+  ): Promise<UserSettings> => {
     if (!user) throw new Error("User not authenticated");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const updatedSettings = { ...settings, ...newSettings };
-      
+
       // First check if a record exists
       const { data: existingData } = await supabase
-        .from('user_settings')
-        .select('id')
-        .eq('user_id', user.id)
+        .from("user_settings")
+        .select("id")
+        .eq("user_id", user.id)
         .single();
-      
+
       let error;
-      
+
       if (existingData) {
         // Update existing record
         const result = await supabase
-          .from('user_settings')
+          .from("user_settings")
           .update({
             one_touch_songs: updatedSettings.oneTouchSongs,
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', user.id);
-        
+          .eq("user_id", user.id);
+
         error = result.error;
       } else {
         // Insert new record
-        const result = await supabase
-          .from('user_settings')
-          .insert({
-            user_id: user.id,
-            one_touch_songs: updatedSettings.oneTouchSongs,
-            updated_at: new Date().toISOString(),
-          });
-        
+        const result = await supabase.from("user_settings").insert({
+          user_id: user.id,
+          one_touch_songs: updatedSettings.oneTouchSongs,
+          updated_at: new Date().toISOString(),
+        });
+
         error = result.error;
       }
-      
+
       if (error) throw error;
-      
+
       setSettings(updatedSettings);
       return updatedSettings;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update settings");
+      setError(
+        err instanceof Error ? err.message : "Failed to update settings"
+      );
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateOneTouchSongs = async (songIds: string[]): Promise<UserSettings> => {
+  const updateOneTouchSongs = async (
+    songIds: string[]
+  ): Promise<UserSettings> => {
     // Limit to 3 songs
     const limitedSongIds = songIds.slice(0, 3);
-    
+
     // Update local state immediately for better UX
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       oneTouchSongs: {
         songIds: limitedSongIds,
-      }
+      },
     }));
-    
+
     return updateSettings({
       oneTouchSongs: {
         songIds: limitedSongIds,
-      }
+      },
     });
   };
 
   return (
-    <SettingsContext.Provider value={{ 
-      settings, 
-      updateSettings, 
-      updateOneTouchSongs,
-      isLoading, 
-      error 
-    }}>
+    <SettingsContext.Provider
+      value={{
+        settings,
+        updateSettings,
+        updateOneTouchSongs,
+        isLoading,
+        error,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

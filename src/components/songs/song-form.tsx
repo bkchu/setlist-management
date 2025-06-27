@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Song,
   SongFile,
@@ -161,16 +161,15 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
         keyedFiles: updatedKeyedFiles,
       });
 
-      toast({
-        title: "Files uploaded",
-        description: `Successfully uploaded ${files.length} file(s) for ${selectedKey === "default" ? "default" : `key ${selectedKey}`}`,
+      toast.success("Files uploaded", {
+        description: `Successfully uploaded ${files.length} file(s) for ${
+          selectedKey === "default" ? "default" : `key ${selectedKey}`
+        }`,
       });
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Upload failed",
+      toast.error("Upload failed", {
         description: "Failed to upload files. Please try again.",
-        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
@@ -197,16 +196,13 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
         keyedFiles: updatedKeyedFiles,
       });
 
-      toast({
-        title: "File removed",
+      toast.success("File removed", {
         description: "The file has been removed",
       });
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to remove file",
-        variant: "destructive",
       });
     }
   };
@@ -215,10 +211,8 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
     e.preventDefault();
 
     if (!formData.title) {
-      toast({
-        title: "Missing title",
+      toast.error("Missing title", {
         description: "Please provide a song title",
-        variant: "destructive",
       });
       return;
     }
@@ -229,10 +223,8 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
       onSubmit(formData);
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to save the song",
-        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -325,7 +317,9 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
                     )}
                     {isUploading
                       ? "Uploading..."
-                      : `Upload for ${selectedKey === "default" ? "Default" : selectedKey}`}
+                      : `Upload for ${
+                          selectedKey === "default" ? "Default" : selectedKey
+                        }`}
                   </label>
                 </div>
               </div>

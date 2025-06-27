@@ -18,7 +18,7 @@ import {
   ArrowRightIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -74,10 +74,8 @@ export default function SongPage() {
 
     if (!song) {
       navigate("/songs");
-      toast({
-        title: "Song not found",
+      toast.error("Song not found", {
         description: "The requested song could not be found.",
-        variant: "destructive",
       });
     }
   }, [song, isSongsLoading, navigate]);
@@ -104,10 +102,8 @@ export default function SongPage() {
 
             if (error) {
               if (error.message.includes("Object not found")) {
-                toast({
-                  title: "File not found",
+                toast.error("File not found", {
                   description: `The file "${file.name}" is no longer available.`,
-                  variant: "destructive",
                 });
               } else {
                 throw error;
@@ -120,10 +116,8 @@ export default function SongPage() {
             }
           } catch (error) {
             console.error("Error getting file URL:", error);
-            toast({
-              title: "Error",
+            toast.error("Error", {
               description: "Failed to load file",
-              variant: "destructive",
             });
           } finally {
             setIsLoading((prev) => ({ ...prev, [file.path]: false }));
@@ -180,15 +174,12 @@ export default function SongPage() {
     try {
       await updateSong(song.id, songData);
       setIsEditing(false);
-      toast({
-        title: "Song updated",
+      toast.success("Song updated", {
         description: "The song has been updated successfully",
       });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to update song",
-        variant: "destructive",
       });
     }
   };
