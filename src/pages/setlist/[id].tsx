@@ -7,18 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
+import { useFileSlides } from "@/hooks/use-file-slides";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import {
-  SetlistSong,
-  Setlist,
-  getFilesForKey,
-  SlideItem,
-  FileWithUrl,
-} from "@/types";
-import { isImage, isPDF } from "@/lib/utils";
+import { SetlistSong, Setlist, Song } from "@/types";
 import { FilesIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
 import { EditSongDialog } from "@/components/setlists/EditSongDialog";
@@ -51,8 +44,47 @@ export default function SetlistPage() {
     [songs, setlist]
   );
 
-  const [flattenedSlides, setFlattenedSlides] = useState<SlideItem[]>([]);
-  const [numPages, setNumPages] = useState<Record<string, number>>({});
+  // Memoize the filter and resolver functions to prevent infinite loops
+  const songFilter = useCallback(
+    (song: Song) => !!setlist?.songs.some((s) => s.songId === song.id),
+    [setlist?.songs]
+  );
+
+  const keyResolver = useCallback(
+    (song: Song) => {
+      const setlistSong = setlist?.songs.find((s) => s.songId === song.id);
+      return setlistSong?.key || "default";
+    },
+    [setlist?.songs]
+  );
+
+  const songOrderer = useCallback(
+    (songs: Song[]) => {
+      if (!setlist) return songs;
+
+      // Create a map of song IDs to their order in the setlist
+      const orderMap = new Map<string, number>();
+      setlist.songs.forEach((setlistSong) => {
+        orderMap.set(setlistSong.songId, setlistSong.order);
+      });
+
+      // Sort songs by their order in the setlist
+      return [...songs].sort((a, b) => {
+        const orderA = orderMap.get(a.id) || 0;
+        const orderB = orderMap.get(b.id) || 0;
+        return orderA - orderB;
+      });
+    },
+    [setlist]
+  );
+
+  // Use the new hook for file slides
+  const { flattenedSlides } = useFileSlides({
+    songs,
+    songFilter: setlist ? songFilter : undefined,
+    keyResolver,
+    songOrderer,
+  });
 
   useEffect(() => {
     if (!setlist && !isLoading) {
@@ -60,68 +92,6 @@ export default function SetlistPage() {
       toast.error("Setlist not found");
     }
   }, [setlist, navigate, isLoading]);
-
-  // File & Slide Preparation
-  useEffect(() => {
-    if (setlist) {
-      const loadFiles = async () => {
-        const files: FileWithUrl[] = [];
-        for (const setlistSong of setlist.songs) {
-          const song = songs.find((s) => s.id === setlistSong.songId);
-          if (song) {
-            const relevantFiles = getFilesForKey(song, setlistSong.key);
-            for (const file of relevantFiles) {
-              try {
-                const { data, error } = await supabase.storage
-                  .from("song-files")
-                  .createSignedUrl(file.path, 3600);
-                if (error) {
-                  console.error("Error getting signed URL:", error);
-                  continue;
-                }
-                files.push({
-                  ...file,
-                  url: data.signedUrl,
-                  songTitle: song.title,
-                  songArtist: song.artist,
-                  id: file.id || `temp-${file.path}`,
-                  created_at: file.createdAt || new Date().toISOString(),
-                  song_id: song.id,
-                  keyInfo: setlistSong.key || "default",
-                });
-              } catch (error) {
-                console.error("Error loading file:", error);
-              }
-            }
-          }
-        }
-
-        const slides: SlideItem[] = [];
-        files.forEach((file) => {
-          if (isImage(file.name)) {
-            slides.push({ ...file, type: "image", key: file.path });
-          } else if (isPDF(file.name)) {
-            const num = numPages[file.path] || 1;
-            for (let i = 1; i <= num; i++) {
-              const isMultiPage = num > 1;
-              const songTitle = isMultiPage
-                ? `${file.name} - Page ${i} of ${num}`
-                : file.name;
-              slides.push({
-                ...file,
-                songTitle,
-                type: "pdf",
-                pageNumber: i,
-                key: `${file.path}__page_${i}`,
-              });
-            }
-          }
-        });
-        setFlattenedSlides(slides);
-      };
-      loadFiles();
-    }
-  }, [setlist, songs, numPages]);
 
   const handleEditSetlist = async (updatedSetlist: Partial<Setlist>) => {
     if (!setlist) return;
@@ -159,7 +129,7 @@ export default function SetlistPage() {
     try {
       const updatedSongs = [...setlist.songs, newSong];
       await updateSetlistSongs(setlist.id, updatedSongs);
-    } catch (error) {
+    } catch {
       toast.error("Error adding song");
     }
   };
@@ -213,7 +183,7 @@ export default function SetlistPage() {
     try {
       await updateSetlistSongs(setlist.id, updatedSongs);
       toast.success("Notes saved");
-    } catch (error: unknown) {
+    } catch {
       toast.error("Failed to save notes");
     }
   };
@@ -309,7 +279,10 @@ export default function SetlistPage() {
               </Button>
             </div>
 
-            <OneTouchSongs className="hidden md:block" />
+            <OneTouchSongs
+              className="hidden md:block"
+              onSaveNotes={handleSaveNotesInViewer}
+            />
 
             <SetlistInfoCard
               setlist={setlist}

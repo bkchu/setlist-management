@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SongProvider } from "@/hooks/use-songs";
 import { SetlistProvider } from "@/hooks/use-setlists";
 import { SettingsProvider } from "@/hooks/use-settings";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Songs from "@/pages/songs";
@@ -20,6 +22,18 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import ResetPasswordPage from "@/pages/reset-password";
+
+// Create a query client instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Protected route component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -56,73 +70,76 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <AuthProvider>
-        <SongProvider>
-          <SetlistProvider>
-            <SettingsProvider>
-              <Router>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/reset-password"
-                    element={<ResetPasswordPage />}
-                  />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/songs"
-                    element={
-                      <ProtectedRoute>
-                        <Songs />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/song/:id"
-                    element={
-                      <ProtectedRoute>
-                        <SongPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/setlists"
-                    element={
-                      <ProtectedRoute>
-                        <Setlists />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/setlist/:id"
-                    element={
-                      <ProtectedRoute>
-                        <SetlistPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Router>
-              <Toaster position="bottom-right" richColors />
-            </SettingsProvider>
-          </SetlistProvider>
-        </SongProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SongProvider>
+            <SetlistProvider>
+              <SettingsProvider>
+                <Router>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route
+                      path="/reset-password"
+                      element={<ResetPasswordPage />}
+                    />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/songs"
+                      element={
+                        <ProtectedRoute>
+                          <Songs />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/song/:id"
+                      element={
+                        <ProtectedRoute>
+                          <SongPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/setlists"
+                      element={
+                        <ProtectedRoute>
+                          <Setlists />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/setlist/:id"
+                      element={
+                        <ProtectedRoute>
+                          <SetlistPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <ProtectedRoute>
+                          <Settings />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Router>
+                <Toaster position="bottom-right" richColors />
+              </SettingsProvider>
+            </SetlistProvider>
+          </SongProvider>
+        </AuthProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
