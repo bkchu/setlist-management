@@ -9,9 +9,33 @@ import {
 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useDroppable } from "@dnd-kit/core";
+import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { SetlistSong } from "@/types";
+
+// Drop zone indicator component for the end of the list
+const EndDropZone = React.memo(function EndDropZone() {
+  const { setNodeRef, isOver } = useDroppable({
+    id: "end-drop-zone",
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative h-4 transition-all duration-200 ${
+        isOver ? "h-8" : ""
+      }`}
+    >
+      {isOver && (
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full h-0.5 bg-primary rounded-full" />
+        </div>
+      )}
+    </div>
+  );
+});
 
 interface SetlistSongRowProps {
   song: SetlistSong;
@@ -19,14 +43,16 @@ interface SetlistSongRowProps {
   onReorder: (songId: string, direction: "up" | "down") => void;
   onEdit: (song: SetlistSong) => void;
   onRemove: (songId: string) => void;
+  isOverlay?: boolean;
 }
 
-function SetlistSongRow({
+const SetlistSongRow = React.memo(function SetlistSongRow({
   song,
   index,
   onReorder,
   onEdit,
   onRemove,
+  isOverlay = false,
 }: SetlistSongRowProps) {
   const {
     attributes,
@@ -35,12 +61,36 @@ function SetlistSongRow({
     transform,
     transition,
     isDragging,
+    isOver,
   } = useSortable({ id: song.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  // Don't render drag handles and actions for overlay
+  if (isOverlay) {
+    return (
+      <div className="flex items-center gap-3 rounded-md border p-3 bg-background shadow-xl opacity-95 cursor-grabbing">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
+          {index + 1}
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-medium">{song.song.title}</p>
+          {song.song.artist && (
+            <p className="text-xs text-muted-foreground">{song.song.artist}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {song.key && `Key: ${song.key}`}
+            {song.key && song.notes && " • "}
+            {song.notes}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -55,10 +105,15 @@ function SetlistSongRow({
         stiffness: 500,
         damping: 30,
       }}
-      className={`flex items-center justify-between rounded-md border p-3 ${
+      className={`relative flex items-center justify-between rounded-md border p-3 ${
         isDragging ? "opacity-50 shadow-lg" : ""
-      }`}
+      } ${isOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
     >
+      {/* Drop indicator line at the top */}
+      {isOver && (
+        <div className="absolute -top-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
+      )}
+
       <div className="flex items-center gap-3">
         {/* Drag handle */}
         <div
@@ -68,16 +123,14 @@ function SetlistSongRow({
         >
           <GripVertical className="h-5 w-5" />
         </div>
-        
+
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
           {index + 1}
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium">{song.song.title}</p>
           {song.song.artist && (
-            <p className="text-xs text-muted-foreground">
-              {song.song.artist}
-            </p>
+            <p className="text-xs text-muted-foreground">{song.song.artist}</p>
           )}
           <p className="text-xs text-muted-foreground">
             {song.key && `Key: ${song.key}`}
@@ -125,7 +178,7 @@ function SetlistSongRow({
       </div>
     </motion.div>
   );
-}
+});
 
 interface SetlistSongListProps {
   songs: SetlistSong[];
@@ -134,7 +187,7 @@ interface SetlistSongListProps {
   onRemove: (songId: string) => void;
 }
 
-export function SetlistSongList({
+export const SetlistSongList = React.memo(function SetlistSongList({
   songs,
   onReorder,
   onEdit,
@@ -166,6 +219,7 @@ export function SetlistSongList({
           />
         ))}
       </AnimatePresence>
+      <EndDropZone />
     </div>
   );
-}
+});

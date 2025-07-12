@@ -4,8 +4,9 @@ import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
 import { toast } from "sonner";
 import { SetlistSong, Setlist, Song } from "@/types";
-import { FilesIcon, PlusIcon } from "lucide-react";
+import { FilesIcon, PlusIcon, GripVertical } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
+import React from "react";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
 import { EditSongDialog } from "@/components/setlists/EditSongDialog";
 import { SetlistSongList } from "@/components/setlists/SetlistSongList";
@@ -26,6 +27,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -33,6 +36,40 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+
+// Optimized drag preview component using the SetlistSongRow
+const DragPreview = React.memo(function DragPreview({
+  songId,
+  setlist,
+}: {
+  songId: string;
+  setlist: Setlist;
+}) {
+  const song = setlist.songs.find((s) => s.id === songId);
+  const songIndex = setlist.songs.findIndex((s) => s.id === songId);
+
+  if (!song) return null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-md border p-3 bg-background shadow-xl opacity-95 cursor-grabbing">
+      <GripVertical className="h-5 w-5 text-muted-foreground" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
+        {songIndex + 1}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium">{song.song.title}</p>
+        {song.song.artist && (
+          <p className="text-xs text-muted-foreground">{song.song.artist}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {song.key && `Key: ${song.key}`}
+          {song.key && song.notes && " • "}
+          {song.notes}
+        </p>
+      </div>
+    </div>
+  );
+});
 
 export default function SetlistPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +83,7 @@ export default function SetlistPage() {
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showCarousel, setShowCarousel] = useState(false);
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Derived state
   const setlist = useMemo(
@@ -130,89 +168,116 @@ export default function SetlistPage() {
     }
   };
 
-  const handleSaveSong = async (
-    songId: string,
-    updates: Partial<SetlistSong>
-  ) => {
-    if (!setlist) return;
-    try {
-      const updatedSongs = setlist.songs.map((s) =>
-        s.id === songId ? { ...s, ...updates } : s
-      );
-      await updateSetlistSongs(setlist.id, updatedSongs);
-      setEditingSong(null);
-      toast.success("Song updated");
-    } catch {
-      toast.error("Error updating song");
-    }
-  };
+  const handleSaveSong = useCallback(
+    async (songId: string, updates: Partial<SetlistSong>) => {
+      if (!setlist) return;
+      try {
+        const updatedSongs = setlist.songs.map((s) =>
+          s.id === songId ? { ...s, ...updates } : s
+        );
+        await updateSetlistSongs(setlist.id, updatedSongs);
+        setEditingSong(null);
+        toast.success("Song updated");
+      } catch {
+        toast.error("Error updating song");
+      }
+    },
+    [setlist, updateSetlistSongs]
+  );
 
-  const handleAddNewSong = async (newSong: SetlistSong) => {
-    if (!setlist) return;
-    try {
-      const updatedSongs = [...setlist.songs, newSong];
-      await updateSetlistSongs(setlist.id, updatedSongs);
-    } catch {
-      toast.error("Error adding song");
-    }
-  };
+  const handleAddNewSong = useCallback(
+    async (newSong: SetlistSong) => {
+      if (!setlist) return;
+      try {
+        const updatedSongs = [...setlist.songs, newSong];
+        await updateSetlistSongs(setlist.id, updatedSongs);
+      } catch {
+        toast.error("Error adding song");
+      }
+    },
+    [setlist, updateSetlistSongs]
+  );
 
-  const handleRemoveSong = async (songId: string) => {
-    if (!setlist) return;
-    try {
-      const updatedSongs = setlist.songs
-        .filter((s) => s.id !== songId)
-        .map((s, idx) => ({ ...s, order: idx + 1 }));
-      await updateSetlistSongs(setlist.id, updatedSongs);
-      toast.success("Song removed");
-    } catch {
-      toast.error("Error removing song");
-    }
-  };
+  const handleRemoveSong = useCallback(
+    async (songId: string) => {
+      if (!setlist) return;
+      try {
+        const updatedSongs = setlist.songs
+          .filter((s) => s.id !== songId)
+          .map((s, idx) => ({ ...s, order: idx + 1 }));
+        await updateSetlistSongs(setlist.id, updatedSongs);
+        toast.success("Song removed");
+      } catch {
+        toast.error("Error removing song");
+      }
+    },
+    [setlist, updateSetlistSongs]
+  );
 
-  const handleReorderSong = async (
-    songId: string,
-    direction: "up" | "down"
-  ) => {
-    if (!setlist) return;
-    const songIndex = setlist.songs.findIndex((s) => s.id === songId);
-    if (songIndex === -1) return;
-    const newIndex = direction === "up" ? songIndex - 1 : songIndex + 1;
-    if (newIndex < 0 || newIndex >= setlist.songs.length) return;
-
-    try {
-      const updatedSongs = arrayMove(setlist.songs, songIndex, newIndex);
-      const reorderedSongs = updatedSongs.map((s, idx) => ({
-        ...s,
-        order: idx + 1,
-      }));
-      await updateSetlistSongs(setlist.id, reorderedSongs);
-      toast.success("Order updated");
-    } catch {
-      toast.error("Error updating song order");
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id && setlist) {
-      const oldIndex = setlist.songs.findIndex((song) => song.id === active.id);
-      const newIndex = setlist.songs.findIndex((song) => song.id === over.id);
+  const handleReorderSong = useCallback(
+    async (songId: string, direction: "up" | "down") => {
+      if (!setlist) return;
+      const songIndex = setlist.songs.findIndex((s) => s.id === songId);
+      if (songIndex === -1) return;
+      const newIndex = direction === "up" ? songIndex - 1 : songIndex + 1;
+      if (newIndex < 0 || newIndex >= setlist.songs.length) return;
 
       try {
-        const updatedSongs = arrayMove(setlist.songs, oldIndex, newIndex);
+        const updatedSongs = arrayMove(setlist.songs, songIndex, newIndex);
         const reorderedSongs = updatedSongs.map((s, idx) => ({
           ...s,
           order: idx + 1,
         }));
         await updateSetlistSongs(setlist.id, reorderedSongs);
-        toast.success("Songs reordered");
+        toast.success("Order updated");
       } catch {
-        toast.error("Error reordering songs");
+        toast.error("Error updating song order");
       }
-    }
-  };
+    },
+    [setlist, updateSetlistSongs]
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id && setlist) {
+        const oldIndex = setlist.songs.findIndex(
+          (song) => song.id === active.id
+        );
+        let newIndex: number;
+
+        if (over.id === "end-drop-zone") {
+          // Drop at the end of the list
+          newIndex = setlist.songs.length - 1;
+        } else {
+          // Drop on another song
+          newIndex = setlist.songs.findIndex((song) => song.id === over.id);
+        }
+
+        // Only proceed if we're actually moving to a different position
+        if (oldIndex !== newIndex) {
+          try {
+            const updatedSongs = arrayMove(setlist.songs, oldIndex, newIndex);
+            const reorderedSongs = updatedSongs.map((s, idx) => ({
+              ...s,
+              order: idx + 1,
+            }));
+            await updateSetlistSongs(setlist.id, reorderedSongs);
+            toast.success("Songs reordered");
+          } catch {
+            toast.error("Error reordering songs");
+          }
+        }
+      }
+      setActiveId(null);
+    },
+    [setlist, updateSetlistSongs]
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
 
   const handleSaveNotesInViewer = async (songId: string, notes: string) => {
     if (!setlist) return;
@@ -293,9 +358,13 @@ export default function SetlistPage() {
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
+                  onDragStart={handleDragStart}
                 >
                   <SortableContext
-                    items={setlist.songs.map((song) => song.id)}
+                    items={[
+                      ...setlist.songs.map((song) => song.id),
+                      "end-drop-zone",
+                    ]}
                     strategy={verticalListSortingStrategy}
                   >
                     <SetlistSongList
@@ -305,6 +374,11 @@ export default function SetlistPage() {
                       onRemove={handleRemoveSong}
                     />
                   </SortableContext>
+                  <DragOverlay>
+                    {activeId ? (
+                      <DragPreview songId={activeId} setlist={setlist} />
+                    ) : null}
+                  </DragOverlay>
                 </DndContext>
               </div>
             </CardContent>
@@ -332,10 +406,7 @@ export default function SetlistPage() {
               </Button>
             </div>
 
-            <OneTouchSongs
-              className="hidden md:block"
-              onSaveNotes={handleSaveNotesInViewer}
-            />
+            <OneTouchSongs onSaveNotes={handleSaveNotesInViewer} />
 
             <SetlistInfoCard
               setlist={setlist}
