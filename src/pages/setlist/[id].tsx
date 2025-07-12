@@ -18,6 +18,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { dragPreviewStyles } from "@/components/ui/drag-overlay";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +27,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -46,6 +48,7 @@ export default function SetlistPage() {
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showCarousel, setShowCarousel] = useState(false);
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Derived state
   const setlist = useMemo(
@@ -103,11 +106,26 @@ export default function SetlistPage() {
 
   // DnD Kit sensors for touch and keyboard support
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Inject drag preview styles
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = dragPreviewStyles;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   useEffect(() => {
     if (!setlist && !isLoading) {
@@ -193,8 +211,13 @@ export default function SetlistPage() {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over && active.id !== over.id && setlist) {
       const oldIndex = setlist.songs.findIndex((song) => song.id === active.id);
@@ -292,6 +315,7 @@ export default function SetlistPage() {
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
@@ -299,7 +323,8 @@ export default function SetlistPage() {
                     strategy={verticalListSortingStrategy}
                   >
                     <SetlistSongList
-                      songs={setlist.songs}
+                      setlistSongs={setlist.songs}
+                      allSongs={songs}
                       onReorder={handleReorderSong}
                       onEdit={setEditingSong}
                       onRemove={handleRemoveSong}
