@@ -1,10 +1,4 @@
-import { Header } from "@/components/layout/header";
-import { OneTouchSongs } from "@/components/setlists/one-touch-songs";
-import { SetlistForm } from "@/components/setlists/setlist-form";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useParams, useNavigate } from "react-router-dom";
 import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
@@ -12,12 +6,33 @@ import { toast } from "sonner";
 import { SetlistSong, Setlist, Song } from "@/types";
 import { FilesIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
 import { EditSongDialog } from "@/components/setlists/EditSongDialog";
 import { SetlistSongList } from "@/components/setlists/SetlistSongList";
 import { SetlistInfoCard } from "@/components/setlists/SetlistInfoCard";
 import { FileViewer } from "@/components/setlists/FileViewer";
+import { Header } from "@/components/layout/header";
+import { OneTouchSongs } from "@/components/setlists/one-touch-songs";
+import { SetlistForm } from "@/components/setlists/setlist-form";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 export default function SetlistPage() {
   const { id } = useParams<{ id: string }>();
@@ -85,6 +100,14 @@ export default function SetlistPage() {
     keyResolver,
     songOrderer,
   });
+
+  // DnD Kit sensors for touch and keyboard support
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (!setlist && !isLoading) {
@@ -158,9 +181,7 @@ export default function SetlistPage() {
     if (newIndex < 0 || newIndex >= setlist.songs.length) return;
 
     try {
-      const updatedSongs = [...setlist.songs];
-      const [removed] = updatedSongs.splice(songIndex, 1);
-      updatedSongs.splice(newIndex, 0, removed);
+      const updatedSongs = arrayMove(setlist.songs, songIndex, newIndex);
       const reorderedSongs = updatedSongs.map((s, idx) => ({
         ...s,
         order: idx + 1,
@@ -169,6 +190,27 @@ export default function SetlistPage() {
       toast.success("Order updated");
     } catch {
       toast.error("Error updating song order");
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id && setlist) {
+      const oldIndex = setlist.songs.findIndex((song) => song.id === active.id);
+      const newIndex = setlist.songs.findIndex((song) => song.id === over.id);
+
+      try {
+        const updatedSongs = arrayMove(setlist.songs, oldIndex, newIndex);
+        const reorderedSongs = updatedSongs.map((s, idx) => ({
+          ...s,
+          order: idx + 1,
+        }));
+        await updateSetlistSongs(setlist.id, reorderedSongs);
+        toast.success("Songs reordered");
+      } catch {
+        toast.error("Error reordering songs");
+      }
     }
   };
 
@@ -247,12 +289,23 @@ export default function SetlistPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Songs</h2>
                 </div>
-                <SetlistSongList
-                  songs={setlist.songs}
-                  onReorder={handleReorderSong}
-                  onEdit={setEditingSong}
-                  onRemove={handleRemoveSong}
-                />
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={setlist.songs.map((song) => song.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <SetlistSongList
+                      songs={setlist.songs}
+                      onReorder={handleReorderSong}
+                      onEdit={setEditingSong}
+                      onRemove={handleRemoveSong}
+                    />
+                  </SortableContext>
+                </DndContext>
               </div>
             </CardContent>
           </Card>
