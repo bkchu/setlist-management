@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DragPreview, dragPreviewStyles } from "@/components/ui/drag-overlay";
 import {
   DndContext,
   closestCenter,
@@ -21,7 +20,6 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -29,10 +27,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { OneTouchSongItem, OneTouchSongItemDragPreview } from "@/components/settings/one-touch-song-item";
+import { OneTouchSongItem } from "@/components/settings/one-touch-song-item";
 import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { PlusIcon, StarIcon, XIcon } from "lucide-react";
-import { useEffect } from "react";
 
 export default function Settings() {
   const {
@@ -42,7 +39,6 @@ export default function Settings() {
   } = useSettings();
   const { songs } = useSongs();
   const [isAdding, setIsAdding] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Get the actual song objects for the one-touch songs
   const oneTouchSongs = settings.oneTouchSongs.songIds
@@ -51,34 +47,14 @@ export default function Settings() {
 
   // DnD setup for reordering
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Inject drag preview styles
-  useEffect(() => {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = dragPreviewStyles;
-    document.head.appendChild(styleElement);
-
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
 
     if (over && active.id !== over.id) {
       const oldIndex = oneTouchSongs.findIndex((song) => song.id === active.id);
@@ -145,10 +121,6 @@ export default function Settings() {
       });
   };
 
-  // Get the active item for drag preview
-  const activeItem = activeId ? oneTouchSongs.find(song => song.id === activeId) : null;
-  const activeIndex = activeItem ? oneTouchSongs.findIndex(song => song.id === activeId) : -1;
-
   return (
     <>
       <Header title="Settings" />
@@ -193,7 +165,6 @@ export default function Settings() {
                         <DndContext
                           sensors={sensors}
                           collisionDetection={closestCenter}
-                          onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
                         >
                           <SortableContext
@@ -211,16 +182,6 @@ export default function Settings() {
                               ))}
                             </div>
                           </SortableContext>
-
-                          {/* Drag Preview */}
-                          <DragPreview>
-                            {activeItem && (
-                              <OneTouchSongItemDragPreview
-                                song={activeItem}
-                                index={activeIndex}
-                              />
-                            )}
-                          </DragPreview>
                         </DndContext>
                       )}
 
