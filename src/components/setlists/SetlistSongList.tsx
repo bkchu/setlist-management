@@ -95,7 +95,10 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
   return (
     <motion.div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        touchAction: "manipulation",
+      }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
@@ -119,7 +122,8 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab hover:text-foreground text-muted-foreground touch-manipulation"
+          className="cursor-grab hover:text-foreground text-muted-foreground touch-manipulation p-1 -m-1 min-w-[32px] min-h-[32px] flex items-center justify-center"
+          style={{ touchAction: "none" }}
         >
           <GripVertical className="h-5 w-5" />
         </div>
@@ -206,7 +210,7 @@ export const SetlistSongList = React.memo(function SetlistSongList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" style={{ touchAction: "pan-y" }}>
       <AnimatePresence>
         {songs.map((song, index) => (
           <SetlistSongRow

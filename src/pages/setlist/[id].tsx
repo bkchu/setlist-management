@@ -24,6 +24,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -51,7 +52,14 @@ const DragPreview = React.memo(function DragPreview({
   if (!song) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-md border p-3 bg-background shadow-xl opacity-95 cursor-grabbing">
+    <div
+      className="flex items-center gap-3 rounded-md border p-3 bg-background shadow-2xl opacity-95 cursor-grabbing z-50"
+      style={{
+        transform: "rotate(5deg)",
+        boxShadow:
+          "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+      }}
+    >
       <GripVertical className="h-5 w-5 text-muted-foreground" />
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
         {songIndex + 1}
@@ -139,9 +147,19 @@ export default function SetlistPage() {
     songOrderer,
   });
 
-  // DnD Kit sensors for touch and keyboard support
+  // DnD Kit sensors for touch and keyboard support with mobile optimizations
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Minimum distance before drag starts
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms delay before drag starts on touch
+        tolerance: 5, // 5px tolerance for touch movement
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -153,6 +171,13 @@ export default function SetlistPage() {
       toast.error("Setlist not found");
     }
   }, [setlist, navigate, isLoading]);
+
+  // Cleanup effect to re-enable scrolling if component unmounts during drag
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   const handleEditSetlist = async (updatedSetlist: Partial<Setlist>) => {
     if (!setlist) return;
@@ -237,6 +262,12 @@ export default function SetlistPage() {
     [setlist, updateSetlistSongs]
   );
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    // Prevent body scrolling during drag on mobile
+    document.body.style.overflow = "hidden";
+  }, []);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
@@ -271,12 +302,16 @@ export default function SetlistPage() {
         }
       }
       setActiveId(null);
+      // Re-enable body scrolling after drag
+      document.body.style.overflow = "";
     },
     [setlist, updateSetlistSongs]
   );
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+    // Re-enable body scrolling if drag is cancelled
+    document.body.style.overflow = "";
   }, []);
 
   const handleSaveNotesInViewer = async (songId: string, notes: string) => {
@@ -359,6 +394,7 @@ export default function SetlistPage() {
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                   onDragStart={handleDragStart}
+                  onDragCancel={handleDragCancel}
                 >
                   <SortableContext
                     items={[
