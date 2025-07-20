@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ export default function Login() {
     isLoading,
     signInWithProvider,
     sendPasswordResetEmail,
+    user,
   } = useAuth();
   const navigate = useNavigate();
 
@@ -33,6 +34,17 @@ export default function Login() {
     email: "",
     password: "",
   });
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (user.organizationId) {
+        navigate("/", { replace: true });
+      } else {
+        navigate("/onboarding", { replace: true });
+      }
+    }
+  }, [user, isLoading, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,7 +57,7 @@ export default function Login() {
     try {
       if (mode === "login") {
         await login(formData.email, formData.password);
-        navigate("/");
+        // Navigation will be handled automatically by the auth state change
       } else if (mode === "register") {
         await register(formData.name, formData.email, formData.password);
         toast.success("Account Created", {

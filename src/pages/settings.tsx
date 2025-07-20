@@ -29,6 +29,7 @@ import {
 } from "@dnd-kit/sortable";
 import { OneTouchSongItem } from "@/components/settings/one-touch-song-item";
 import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
+import { JoinCodeManager } from "@/components/organization/join-code-manager";
 import { PlusIcon, StarIcon, XIcon } from "lucide-react";
 
 export default function Settings() {
@@ -127,6 +128,8 @@ export default function Settings() {
 
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <div className="grid gap-6">
+          <JoinCodeManager />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

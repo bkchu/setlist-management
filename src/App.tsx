@@ -19,6 +19,7 @@ import Settings from "@/pages/settings";
 import SongPage from "@/pages/song/[id]";
 import SetlistPage from "@/pages/setlist/[id]";
 import Onboarding from "@/pages/onboarding";
+import JoinOrganization from "@/pages/join-organization";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -89,6 +90,7 @@ function App() {
                       element={<ResetPasswordPage />}
                     />
                     <Route path="/onboarding" element={<Onboarding />} />
+                    <Route path="/join" element={<JoinOrganization />} />
                     <Route
                       path="/"
                       element={

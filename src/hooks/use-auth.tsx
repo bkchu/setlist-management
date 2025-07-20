@@ -68,36 +68,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let organizations: any[] = [];
 
       try {
-        // Check if user belongs to any organizations via user_organizations table
+        // Check if user belongs to any organizations using the new view
         const { data: userOrgs, error } = await supabase
-          .from("user_organizations")
-          .select("id, organization_id, role, created_at")
-          .eq("user_id", session.user.id);
+          .from("user_accessible_organizations")
+          .select("*");
 
         if (error) {
           console.error("Error fetching user organizations:", error);
         } else if (userOrgs && userOrgs.length > 0) {
-          // Fetch organization details separately
-          const orgIds = userOrgs.map(
-            (membership) => membership.organization_id
-          );
-          const { data: orgsData } = await supabase
-            .from("organizations")
-            .select("id, name")
-            .in("id", orgIds);
+          console.log("User organizations data:", userOrgs);
 
-          console.log("Org data", orgsData);
+          // Get user_organization membership details for each org
+          const { data: membershipData } = await supabase
+            .from("user_organizations")
+            .select("id, organization_id, role, created_at")
+            .eq("user_id", session.user.id);
 
-          organizations = userOrgs.map((membership) => {
-            const org = orgsData?.find(
-              (o) => o.id === membership.organization_id
+          organizations = userOrgs.map((org) => {
+            const membership = membershipData?.find(
+              (m) => m.organization_id === org.id
             );
             return {
-              id: membership.id,
-              organizationId: membership.organization_id,
-              organizationName: org?.name || "Unknown Organization",
-              role: membership.role,
-              createdAt: membership.created_at,
+              id: membership?.id || `owner-${org.id}`, // fallback for owners
+              organizationId: org.id,
+              organizationName: org.name,
+              role: org.user_role,
+              createdAt: membership?.created_at || org.created_at,
             };
           });
 
@@ -110,11 +106,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             organizationId
           );
         } else {
-          // User doesn't belong to any organization yet - will be handled by onboarding
+          // User doesn't belong to any organization yet
           console.log(
-            "User has no organizations, will need to go through onboarding:",
+            "User has no organizations, checking for pending join code:",
             session.user.id
           );
+
+          // Check if there's a pending join code from localStorage
+          const pendingJoinCode = localStorage.getItem("pendingJoinCode");
+          if (pendingJoinCode) {
+            console.log("Found pending join code, will redirect to join flow");
+            localStorage.removeItem("pendingJoinCode");
+
+            // Use setTimeout to ensure the user state is set before navigation
+            setTimeout(() => {
+              window.location.href = `/join?code=${pendingJoinCode}`;
+            }, 100);
+          }
+
           organizationId = undefined;
           organizations = [];
         }
