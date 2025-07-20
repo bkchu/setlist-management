@@ -22,21 +22,26 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user?.organizationId) {
       loadSongs();
     } else {
       setSongs([]);
     }
-  }, [user]);
+  }, [user?.organizationId]);
 
   const loadSongs = async () => {
-    if (!user) return;
+    if (!user?.organizationId) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
+    console.log("Loading songs", user.organizationId);
+
     try {
-      // Fetch songs with their key history
+      // Fetch songs with their key history, filtered by organization
       const { data: songsData, error: songsError } = await supabase
         .from("songs")
         .select(
@@ -53,6 +58,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
           )
         `
         )
+        .eq("organization_id", user.organizationId)
         .order("created_at", { ascending: false });
 
       if (songsError) throw songsError;
@@ -95,7 +101,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addSong = async (songData: Partial<Song>): Promise<Song> => {
-    if (!user) throw new Error("User not authenticated");
+    if (!user?.organizationId)
+      throw new Error("User not authenticated or no organization");
 
     setIsLoading(true);
     setError(null);
@@ -114,7 +121,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
             notes: songData.notes || "",
             files: songData.files || [],
             keyed_files: songData.keyedFiles || {},
-            user_id: user.id,
+            organization_id: user.organizationId,
           },
         ])
         .select(
@@ -169,7 +176,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     id: string,
     songData: Partial<Song>
   ): Promise<Song> => {
-    if (!user) throw new Error("User not authenticated");
+    if (!user?.organizationId)
+      throw new Error("User not authenticated or no organization");
 
     setIsLoading(true);
     setError(null);
@@ -247,7 +255,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteSong = async (id: string): Promise<void> => {
-    if (!user) throw new Error("User not authenticated");
+    if (!user?.organizationId)
+      throw new Error("User not authenticated or no organization");
 
     setIsLoading(true);
     setError(null);

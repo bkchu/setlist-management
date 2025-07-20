@@ -9,7 +9,6 @@ export interface Setlist {
   createdAt: string;
   updatedAt: string;
   songs: SetlistSong[];
-  userId: string;
 }
 
 export interface SetlistFormData {

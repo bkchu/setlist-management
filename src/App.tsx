@@ -18,6 +18,7 @@ import Setlists from "@/pages/setlists";
 import Settings from "@/pages/settings";
 import SongPage from "@/pages/song/[id]";
 import SetlistPage from "@/pages/setlist/[id]";
+import Onboarding from "@/pages/onboarding";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -51,6 +52,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  // If user doesn't have an organization, redirect to onboarding
+  if (!user.organizationId) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return (
     <div className="relative flex w-full min-h-screen">
       <div className="hidden md:block">
@@ -82,6 +88,7 @@ function App() {
                       path="/reset-password"
                       element={<ResetPasswordPage />}
                     />
+                    <Route path="/onboarding" element={<Onboarding />} />
                     <Route
                       path="/"
                       element={

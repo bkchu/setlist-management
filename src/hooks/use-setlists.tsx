@@ -109,7 +109,10 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
 
   // Memoize the setlist loading function
   const loadSetlistsData = useCallback(async () => {
-    if (!user) return;
+    if (!user?.organizationId) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -123,7 +126,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           setlist_songs(*, songs(*))
         `
         )
-        .eq("user_id", user.id)
+        .eq("organization_id", user.organizationId)
         .order("date", { ascending: false });
 
       if (setlistsError) throw setlistsError;
@@ -138,19 +141,20 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  // Load setlists when user changes
+  // Load setlists when user's organization changes
   useEffect(() => {
-    if (user) {
+    if (user?.organizationId) {
       loadSetlistsData();
     } else {
       setSetlists([]);
     }
-  }, [user, loadSetlistsData]);
+  }, [user?.organizationId, loadSetlistsData]);
 
   // Memoized function to add a new setlist
   const addSetlist = useCallback(
     async (setlistData: Partial<Setlist>): Promise<Setlist> => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
 
       setIsLoading(true);
       setError(null);
@@ -170,7 +174,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
             {
               name: setlistData.name,
               date: setlistData.date,
-              user_id: user.id,
+              organization_id: user.organizationId,
             },
           ])
           .select()
@@ -203,7 +207,8 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
   // Memoized function to update a setlist
   const updateSetlist = useCallback(
     async (id: string, setlistData: Partial<Setlist>): Promise<Setlist> => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
 
       setIsLoading(true);
       setError(null);
@@ -269,7 +274,8 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
   // Memoized function to update setlist songs with smooth animations
   const updateSetlistSongs = useCallback(
     async (setlistId: string, newSongs: SetlistSong[]): Promise<Setlist> => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
 
       setIsLoading(true);
       setError(null);
@@ -421,7 +427,8 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
   // Memoized function to delete a setlist
   const deleteSetlist = useCallback(
     async (id: string): Promise<void> => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
 
       setIsLoading(true);
       setError(null);
