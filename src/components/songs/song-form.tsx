@@ -122,6 +122,13 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || !user) return;
+    if (!user.organizationId) {
+      toast.error("Missing organization", {
+        description:
+          "You must select or belong to an organization to upload files.",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
@@ -132,7 +139,7 @@ export function SongForm({ song, onSubmit, onCancel }: SongFormProps) {
         const timestamp = Date.now();
         const sanitizedName = sanitizeFileName(file.name);
         const fileName = `${timestamp}-${sanitizedName}`;
-        const filePath = `${user.id}/${fileName}`;
+        const filePath = `${user.organizationId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("song-files")

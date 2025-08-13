@@ -69,30 +69,33 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       console.log("Songs data", songsData);
 
       setSongs(
-        songsData.map((song) => ({
-          id: song.id,
-          title: song.title,
-          artist: song.artist,
-          notes: song.notes || "",
-          files: song.files || [],
-          keyedFiles: song.keyed_files || {},
-          keyHistory:
-            song.song_keys
-              ?.map((key) => ({
-                id: key.id,
-                key: key.key,
-                playedAt: key.played_at,
-                setlistId: key.setlist_id,
-                setlistName: key.setlists?.name,
-              }))
-              .sort(
-                (a, b) =>
-                  new Date(b.playedAt).getTime() -
-                  new Date(a.playedAt).getTime()
-              ) || [],
-          createdAt: song.created_at,
-          updatedAt: song.updated_at,
-        }))
+        songsData.map((song) => {
+          console.log(song);
+          return {
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            notes: song.notes || "",
+            files: song.files || [],
+            keyedFiles: song.keyed_files || {},
+            keyHistory:
+              song.song_keys
+                ?.map((key) => ({
+                  id: key.id,
+                  key: key.key,
+                  playedAt: key.played_at,
+                  setlistId: key.setlist_id,
+                  setlistName: key.setlists?.name,
+                }))
+                .sort(
+                  (a, b) =>
+                    new Date(b.playedAt).getTime() -
+                    new Date(a.playedAt).getTime()
+                ) || [],
+            createdAt: song.created_at,
+            updatedAt: song.updated_at,
+          };
+        })
       );
     } catch (err) {
       setError("Failed to load songs");

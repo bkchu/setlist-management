@@ -46,6 +46,7 @@ export default function JoinOrganization() {
       setIsValidating(true);
       try {
         const result = await validateJoinCode(code);
+        console.log("Result", result);
 
         if (!result.isValid) {
           setValidation({

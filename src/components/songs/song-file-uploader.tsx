@@ -37,6 +37,13 @@ export function SongFileUploader({
       });
       return;
     }
+    if (!user.organizationId) {
+      toast.error("Error", {
+        description:
+          "You must select or belong to an organization to upload files.",
+      });
+      return;
+    }
 
     if (acceptedFiles.length === 0) {
       return;
@@ -46,9 +53,9 @@ export function SongFileUploader({
     setIsUploading(true);
 
     try {
-      const filePath = `${user.id}/${songId}/${songKey || "default"}/${
-        file.name
-      }`;
+      const filePath = `${user.organizationId}/${songId}/${
+        songKey || "default"
+      }/${file.name}`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
