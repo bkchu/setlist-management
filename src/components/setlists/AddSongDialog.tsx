@@ -7,6 +7,7 @@ import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { signSongFilePath } from "@/lib/storage";
 import { getKeyHistoryForSong, isImage, isPDF } from "@/lib/utils";
 import {
   Song,
@@ -162,21 +163,14 @@ export function AddSongDialog({
     if (files.length > 0) {
       const file = files[0];
       setIsPreviewLoading(true);
-      supabase.storage
-        .from("song-files")
-        .createSignedUrl(file.path, 3600)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("Error creating signed URL", error);
-            toast.error("Error loading file preview");
-            setPreviewFileUrl(null);
-          } else if (data) {
-            setPreviewFileUrl(data.signedUrl);
-          }
+      signSongFilePath(file.path, 3600)
+        .then((url) => setPreviewFileUrl(url))
+        .catch((err) => {
+          console.error("Error creating signed URL", err);
+          toast.error("Error loading file preview");
+          setPreviewFileUrl(null);
         })
-        .finally(() => {
-          setIsPreviewLoading(false);
-        });
+        .finally(() => setIsPreviewLoading(false));
     } else {
       setPreviewFileUrl(null);
     }

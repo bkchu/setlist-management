@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ValidateJoinCodeResult } from "@/lib/rpc-types";
 
 export interface JoinCode {
   id: string;
@@ -99,6 +100,18 @@ export function useJoinCodes(): UseJoinCodesResult {
     );
     if (!userOrg || userOrg.role !== "owner") {
       throw new Error("Only organization owners can generate join codes");
+    }
+
+    // Additional server-side validation using our safe function
+    const { data: hasAccess, error: accessError } = await supabase.rpc(
+      "user_can_access_organization",
+      { org_id: data.organizationId }
+    );
+
+    if (accessError || !hasAccess) {
+      throw new Error(
+        "Access denied: Cannot generate join codes for this organization"
+      );
     }
 
     setIsLoading(true);
@@ -203,26 +216,31 @@ export function useJoinCodes(): UseJoinCodesResult {
     organizationId?: string;
   }> => {
     try {
+      // Properly typed RPC call - TypeScript knows the args and return types
       const { data, error } = await supabase.rpc("validate_join_code_info", {
-        join_code_param: code,
+        join_code_param: code, // Type: ValidateJoinCodeRPC['args']['join_code_param']
       });
 
-      console.log(data);
+      console.log("validateJoinCode", { data, error });
 
       if (error) {
         console.error("Error validating join code:", error);
         return { isValid: false };
       }
 
-      // The function returns a JSON object with validation results
+      // The function returns a JSON object, so we need to cast it to our expected type
       if (!data) {
         return { isValid: false };
       }
 
+      // Type assertion based on what our database function actually returns
+      // First cast to unknown, then to our expected type for safety
+      const result = data as unknown as ValidateJoinCodeResult;
+
       return {
-        isValid: true,
-        organizationName: data.organization_name as string,
-        organizationId: data.organization_id,
+        isValid: result.isValid,
+        organizationName: result.organizationName,
+        organizationId: result.organizationId,
       };
     } catch (err) {
       console.error("Error validating join code:", err);
@@ -233,9 +251,12 @@ export function useJoinCodes(): UseJoinCodesResult {
   const useJoinCode = async (code: string): Promise<void> => {
     if (!user) throw new Error("User not authenticated");
 
+    console.log("Using join code", code);
     try {
       // First validate the code and get organization info
       const validation = await validateJoinCode(code);
+
+      console.log("validation", validation);
       if (!validation.isValid || !validation.organizationId) {
         throw new Error("Invalid or expired join code");
       }

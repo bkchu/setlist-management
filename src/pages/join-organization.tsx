@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useJoinCodes } from "@/hooks/use-join-codes";
+import { useOrganizationAccess } from "@/hooks/use-organization-access";
 import { toast } from "sonner";
 import {
   Card,
@@ -31,6 +32,7 @@ interface JoinCodeValidation {
 export default function JoinOrganization() {
   const { user, isLoading: authLoading } = useAuth();
   const { validateJoinCode, useJoinCode: joinWithCode } = useJoinCodes();
+  const { hasLocalOrganizationAccess } = useOrganizationAccess();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [validation, setValidation] = useState<JoinCodeValidation | null>(null);
@@ -52,10 +54,10 @@ export default function JoinOrganization() {
               "This join code is invalid, expired, or has already been used.",
           });
         } else {
-          // Check if user is already in this organization
-          const isAlreadyMember = user?.organizations.some(
-            (org) => org.organizationId === result.organizationId
-          );
+          // Check if user is already in this organization using the new utility
+          const isAlreadyMember = result.organizationId
+            ? hasLocalOrganizationAccess(result.organizationId)
+            : false;
 
           if (isAlreadyMember) {
             setValidation({

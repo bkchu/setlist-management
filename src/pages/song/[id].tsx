@@ -14,16 +14,16 @@ import {
   FileIcon,
   ExternalLinkIcon,
   Loader2Icon,
-  MusicIcon,
   ArrowRightIcon,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+// import { supabase } from "@/lib/supabase";
+import { signSongFilePath } from "@/lib/storage";
 import { toast } from "sonner";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { getAllKeyedFiles, SongFile, Song } from "@/types";
 import "./_[id].css";
@@ -96,24 +96,8 @@ export default function SongPage() {
         if (!fileUrls[file.path]) {
           try {
             setIsLoading((prev) => ({ ...prev, [file.path]: true }));
-            const { data, error } = await supabase.storage
-              .from("song-files")
-              .createSignedUrl(file.path, 3600); // 1 hour expiry
-
-            if (error) {
-              if (error.message.includes("Object not found")) {
-                toast.error("File not found", {
-                  description: `The file "${file.name}" is no longer available.`,
-                });
-              } else {
-                throw error;
-              }
-              return;
-            }
-
-            if (data?.signedUrl) {
-              setFileUrls((prev) => ({ ...prev, [file.path]: data.signedUrl }));
-            }
+            const signedUrl = await signSongFilePath(file.path, 3600);
+            setFileUrls((prev) => ({ ...prev, [file.path]: signedUrl }));
           } catch (error) {
             console.error("Error getting file URL:", error);
             toast.error("Error", {
@@ -177,7 +161,7 @@ export default function SongPage() {
       toast.success("Song updated", {
         description: "The song has been updated successfully",
       });
-    } catch (error) {
+    } catch (err) {
       toast.error("Error", {
         description: "Failed to update song",
       });

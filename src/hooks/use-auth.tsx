@@ -68,34 +68,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let organizations: any[] = [];
 
       try {
-        // Check if user belongs to any organizations using the new view
-        const { data: userOrgs, error } = await supabase
+        // Use the new user_accessible_organizations view for better performance
+        // This avoids the complex join and uses our RLS-safe view.
+        // It now includes the role and creation date, so only one query is needed.
+        const { data: userAccessibleOrgs, error: orgsError } = await supabase
           .from("user_accessible_organizations")
-          .select("*");
+          .select("id, name, owner_id, role, created_at");
 
-        if (error) {
-          console.error("Error fetching user organizations:", error);
-        } else if (userOrgs && userOrgs.length > 0) {
-          console.log("User organizations data:", userOrgs);
+        if (orgsError) {
+          console.error("Error fetching organizations:", orgsError);
+        } else if (userAccessibleOrgs && userAccessibleOrgs.length > 0) {
+          console.log("User accessible organizations:", userAccessibleOrgs);
 
-          // Get user_organization membership details for each org
-          const { data: membershipData } = await supabase
-            .from("user_organizations")
-            .select("id, organization_id, role, created_at")
-            .eq("user_id", session.user.id);
-
-          organizations = userOrgs.map((org) => {
-            const membership = membershipData?.find(
-              (m) => m.organization_id === org.id
-            );
-            return {
-              id: membership?.id || `owner-${org.id}`, // fallback for owners
-              organizationId: org.id,
-              organizationName: org.name,
-              role: org.user_role,
-              createdAt: membership?.created_at || org.created_at,
-            };
-          });
+          // Map organizations directly from the view's result
+          organizations = userAccessibleOrgs.map((org) => ({
+            id: org.id, // This should be the membership ID if available, but org ID is fallback
+            organizationId: org.id,
+            organizationName: org.name,
+            role: org.role,
+            createdAt: org.created_at || new Date().toISOString(),
+          }));
 
           // Set the first organization as active (could be stored preference later)
           organizationId = organizations[0].organizationId;

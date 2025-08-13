@@ -334,31 +334,31 @@ export type Database = {
           id: string | null
           name: string | null
           owner_id: string | null
-          updated_at: string | null
-          user_role: string | null
+          role: string | null
         }
         Relationships: []
       }
-      valid_join_codes_with_org: {
+      user_organizations_with_details: {
         Row: {
-          code: string | null
           created_at: string | null
-          expires_at: string | null
           id: string | null
+          organization_created_at: string | null
           organization_id: string | null
           organization_name: string | null
-          used_at: string | null
+          organization_owner_id: string | null
+          role: string | null
+          user_id: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "join_codes_organization_id_fkey"
+            foreignKeyName: "user_organizations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "join_codes_organization_id_fkey"
+            foreignKeyName: "user_organizations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "user_accessible_organizations"
@@ -368,6 +368,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_organization: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
       cleanup_expired_join_codes: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -375,6 +379,18 @@ export type Database = {
       generate_join_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      is_member_of_organization: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_organization_owner: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_can_access_organization: {
+        Args: { org_id: string; user_id?: string }
+        Returns: boolean
       }
       validate_join_code_info: {
         Args: { join_code_param: string }

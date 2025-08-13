@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
 import { supabase } from "@/lib/supabase";
+import { signSongFilePath } from "@/lib/storage";
 import { isImage, isPDF } from "@/lib/utils";
 import { getFilesForKey, hasFilesForSpecificKey, SetlistSong } from "@/types";
 import { Loader2 } from "lucide-react";
@@ -71,20 +72,13 @@ export function EditSongDialog({
     if (files.length > 0) {
       const file = files[0];
       setIsEditPreviewLoading(true);
-      supabase.storage
-        .from("song-files")
-        .createSignedUrl(file.path, 3600)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("Error creating signed URL for edit", error);
-            setEditPreviewFileUrl(null);
-          } else if (data) {
-            setEditPreviewFileUrl(data.signedUrl);
-          }
+      signSongFilePath(file.path, 3600)
+        .then((url) => setEditPreviewFileUrl(url))
+        .catch((err) => {
+          console.error("Error creating signed URL for edit", err);
+          setEditPreviewFileUrl(null);
         })
-        .finally(() => {
-          setIsEditPreviewLoading(false);
-        });
+        .finally(() => setIsEditPreviewLoading(false));
     } else {
       setEditPreviewFileUrl(null);
     }

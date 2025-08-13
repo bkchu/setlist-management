@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { signSongFilePath } from "@/lib/storage";
 import {
   Song,
   getFilesForKey,
@@ -17,24 +17,9 @@ interface UseFileSlidesOptions {
   songOrderer?: (songs: Song[]) => Song[];
 }
 
-// Query function for getting signed URLs
-const getSignedUrl = async (filePath: string): Promise<string> => {
-  const { data, error } = await supabase.storage
-    .from("song-files")
-    .createSignedUrl(filePath, 3600);
-
-  if (error) {
-    throw new Error(
-      `Failed to get signed URL for ${filePath}: ${error.message}`
-    );
-  }
-
-  if (!data?.signedUrl) {
-    throw new Error(`No signed URL returned for ${filePath}`);
-  }
-
-  return data.signedUrl;
-};
+// Safer signing that properly handles special characters in path segments (e.g., "#")
+const getSignedUrl = async (filePath: string): Promise<string> =>
+  signSongFilePath(filePath, 3600);
 
 export function useFileSlides({
   songs,
@@ -46,7 +31,9 @@ export function useFileSlides({
 
   // Process songs to get file list
   const processedFiles = useMemo(() => {
-    let filteredSongs = songFilter ? songs.filter(songFilter) : songs;
+    // If no filter is provided, do not process any songs to avoid eager fetching
+    // of signed URLs for every song on initial render.
+    let filteredSongs = songFilter ? songs.filter(songFilter) : [];
 
     // Apply custom ordering if provided
     if (songOrderer) {

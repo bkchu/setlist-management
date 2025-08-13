@@ -17,14 +17,17 @@ const SongContext = createContext<SongContextProps | undefined>(undefined);
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  console.log("USER", user);
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.organizationId) {
+      console.log("Loading songs", user.organizationId);
       loadSongs();
     } else {
+      console.log("No organization ID");
       setSongs([]);
     }
   }, [user?.organizationId]);
@@ -62,6 +65,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         .order("created_at", { ascending: false });
 
       if (songsError) throw songsError;
+
+      console.log("Songs data", songsData);
 
       setSongs(
         songsData.map((song) => ({
