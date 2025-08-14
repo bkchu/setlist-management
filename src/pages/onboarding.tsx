@@ -14,15 +14,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Building2Icon, UsersIcon, Loader2Icon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 type OnboardingChoice = "create" | "join" | null;
 
 export default function Onboarding() {
   const { createOrganization, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [choice, setChoice] = useState<OnboardingChoice>(null);
   const [organizationName, setOrganizationName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const code = searchParams.get("code");
 
   // If user already has an organization, redirect to dashboard
   if (user?.organizationId) {
@@ -161,6 +164,16 @@ export default function Onboarding() {
                 <p className="text-xs text-muted-foreground text-center">
                   The join link will look like: setlify.app/join?code=ABC123
                 </p>
+                <div className="flex justify-center">
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      navigate(code ? `/join?code=${code}` : "/join")
+                    }
+                  >
+                    I already have a code
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

@@ -22,6 +22,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
+  DataList,
+  DataListItem,
+  DataListLabel,
+  DataListValue,
+} from "@/components/ui/data-list";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -83,7 +89,9 @@ export function JoinCodeManager() {
             Join Codes
           </CardTitle>
           <CardDescription>
-            Only organization owners can manage join codes.
+            Only organization owners can manage join codes. If you need to
+            invite someone, please ask an owner to generate a code and share the
+            link with them.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -228,6 +236,10 @@ export function JoinCodeManager() {
                 </Button>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Share the generated link with invitees. Codes are single-use and
+              expire after the selected time.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -260,123 +272,351 @@ export function JoinCodeManager() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>Used By</TableHead>
-                    <TableHead>Used At</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {joinCodes.map((code) => {
-                    const { status, variant } = getCodeStatus(code);
-                    return (
-                      <TableRow key={code.id}>
-                        <TableCell className="font-mono font-medium">
+            <>
+              {/* Mobile stacked list */}
+              <div className="md:hidden space-y-3">
+                {joinCodes.map((code) => {
+                  const { status, variant } = getCodeStatus(code);
+                  const now = new Date();
+                  const expiresAt = new Date(code.expiresAt);
+                  const msRemaining = expiresAt.getTime() - now.getTime();
+                  const hoursRemaining = Math.max(
+                    0,
+                    Math.floor(msRemaining / (1000 * 60 * 60))
+                  );
+                  const minutesRemaining = Math.max(
+                    0,
+                    Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60))
+                  );
+                  return (
+                    <div
+                      key={code.id}
+                      className="rounded-lg border p-4 space-y-3"
+                      aria-label={`Join code ${code.code}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-mono font-semibold text-base">
                           {code.code}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={variant} className="capitalize">
-                            {status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {format(
-                            new Date(code.createdAt),
-                            "MMM d, yyyy 'at' h:mm a"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {format(
-                            new Date(code.expiresAt),
-                            "MMM d, yyyy 'at' h:mm a"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {code.usedBy ? (
-                            <div className="flex items-center gap-1">
-                              <UsersIcon className="h-3 w-3" />
-                              <span className="text-sm">User</span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {code.usedAt ? (
-                            format(new Date(code.usedAt), "MMM d, yyyy")
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleCopyUrl(code.code)}
-                                className="gap-2"
+                        </div>
+                        <Badge variant={variant} className="capitalize">
+                          {status}
+                        </Badge>
+                      </div>
+                      <DataList className="space-y-2" size="sm">
+                        <DataListItem className="justify-between">
+                          <DataListLabel>Time Remaining</DataListLabel>
+                          <DataListValue>
+                            {status === "active" ? (
+                              <span>
+                                {hoursRemaining}h {minutesRemaining}m
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </DataListValue>
+                        </DataListItem>
+                        <DataListItem className="justify-between">
+                          <DataListLabel>Expires</DataListLabel>
+                          <DataListValue>
+                            {format(
+                              new Date(code.expiresAt),
+                              "MMM d, yyyy 'at' h:mm a"
+                            )}
+                          </DataListValue>
+                        </DataListItem>
+                        <DataListItem className="justify-between">
+                          <DataListLabel>Used By</DataListLabel>
+                          <DataListValue>
+                            {code.usedBy ? (
+                              <span className="inline-flex items-center gap-1">
+                                <UsersIcon className="h-3 w-3" />
+                                {code.usedBy}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </DataListValue>
+                        </DataListItem>
+                        <DataListItem className="justify-between">
+                          <DataListLabel>Used At</DataListLabel>
+                          <DataListValue>
+                            {code.usedAt ? (
+                              format(new Date(code.usedAt), "MMM d, yyyy")
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </DataListValue>
+                        </DataListItem>
+                      </DataList>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyUrl(code.code)}
+                        >
+                          Copy URL
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(code.code);
+                              toast.success("Code copied!");
+                            } catch {
+                              toast.error("Failed to copy code");
+                            }
+                          }}
+                        >
+                          Copy Code
+                        </Button>
+                        {status === "active" && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={(e) => e.preventDefault()}
                               >
-                                <CopyIcon className="h-4 w-4" />
-                                Copy Join URL
-                              </DropdownMenuItem>
-                              {status === "active" && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem
-                                      onSelect={(e) => e.preventDefault()}
-                                      className="gap-2 text-destructive focus:text-destructive"
-                                    >
-                                      <TrashIcon className="h-4 w-4" />
-                                      Revoke Code
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Revoke Join Code
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to revoke this
-                                        join code? This action cannot be undone
-                                        and the code will no longer work.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleRevokeCode(code.id)
-                                        }
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                Revoke
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Revoke Join Code
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to revoke this join
+                                  code? This action cannot be undone and the
+                                  code will no longer work.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleRevokeCode(code.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Revoke Code
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Time Remaining</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead>Used By</TableHead>
+                      <TableHead>Used At</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {joinCodes.map((code) => {
+                      const { status, variant } = getCodeStatus(code);
+                      const now = new Date();
+                      const expiresAt = new Date(code.expiresAt);
+                      const msRemaining = expiresAt.getTime() - now.getTime();
+                      const hoursRemaining = Math.max(
+                        0,
+                        Math.floor(msRemaining / (1000 * 60 * 60))
+                      );
+                      const minutesRemaining = Math.max(
+                        0,
+                        Math.floor(
+                          (msRemaining % (1000 * 60 * 60)) / (1000 * 60)
+                        )
+                      );
+                      return (
+                        <TableRow key={code.id}>
+                          <TableCell className="font-mono font-medium">
+                            {code.code}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={variant} className="capitalize">
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {status === "active" ? (
+                              <span className="text-sm">
+                                {hoursRemaining}h {minutesRemaining}m
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {format(
+                              new Date(code.createdAt),
+                              "MMM d, yyyy 'at' h:mm a"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {format(
+                              new Date(code.expiresAt),
+                              "MMM d, yyyy 'at' h:mm a"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {code.usedBy ? (
+                              <div className="flex items-center gap-1">
+                                <UsersIcon className="h-3 w-3" />
+                                <span className="text-sm">{code.usedBy}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {code.usedAt ? (
+                              format(new Date(code.usedAt), "MMM d, yyyy")
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleCopyUrl(code.code)}
+                                  className="gap-2"
+                                >
+                                  <CopyIcon className="h-4 w-4" />
+                                  Copy Join URL
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      const joinUrl = getJoinUrl(code.code);
+                                      const subject = encodeURIComponent(
+                                        `Join our Setlify organization`
+                                      );
+                                      const body = encodeURIComponent(
+                                        `Hi!\n\nUse this link to join our organization on Setlify:\n${joinUrl}\n\nThe link is single-use and expires at ${format(
+                                          new Date(code.expiresAt),
+                                          "MMM d, yyyy 'at' h:mm a"
+                                        )}.\n\nThanks!`
+                                      );
+                                      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                                    } catch {
+                                      toast.error(
+                                        "Failed to open email composer"
+                                      );
+                                    }
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <LinkIcon className="h-4 w-4" />
+                                  Compose Email Invite
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(
+                                        code.code
+                                      );
+                                      toast.success(
+                                        "Code copied to clipboard!"
+                                      );
+                                    } catch {
+                                      toast.error("Failed to copy code");
+                                    }
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <CopyIcon className="h-4 w-4" />
+                                  Copy Code Only
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      const joinUrl = getJoinUrl(code.code);
+                                      const message = `Join our Setlify organization: ${joinUrl} (single-use, expires at ${format(
+                                        new Date(code.expiresAt),
+                                        "MMM d, yyyy 'at' h:mm a"
+                                      )})`;
+                                      await navigator.clipboard.writeText(
+                                        message
+                                      );
+                                      toast.success("Invite message copied!");
+                                    } catch {
+                                      toast.error("Failed to copy message");
+                                    }
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <CopyIcon className="h-4 w-4" />
+                                  Copy Invite Message
+                                </DropdownMenuItem>
+                                {status === "active" && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="gap-2 text-destructive focus:text-destructive"
                                       >
+                                        <TrashIcon className="h-4 w-4" />
                                         Revoke Code
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Revoke Join Code
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to revoke this
+                                          join code? This action cannot be
+                                          undone and the code will no longer
+                                          work.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleRevokeCode(code.id)
+                                          }
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Revoke Code
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

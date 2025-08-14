@@ -30,6 +30,11 @@ export interface UseJoinCodesResult {
     isValid: boolean;
     organizationName?: string;
     organizationId?: string;
+    isExpired?: boolean;
+    isUsed?: boolean;
+    expiresAt?: string;
+    usedAt?: string;
+    usedBy?: string;
   }>;
   useJoinCode: (code: string) => Promise<void>;
   refreshJoinCodes: () => Promise<void>;
@@ -59,7 +64,9 @@ export function useJoinCodes(): UseJoinCodesResult {
           created_at,
           expires_at,
           used_at,
-          used_by
+          used_by,
+          used_by_name,
+          used_by_email
         `
         )
         .eq("organization_id", user.organizationId)
@@ -75,7 +82,8 @@ export function useJoinCodes(): UseJoinCodesResult {
         createdAt: code.created_at || new Date().toISOString(),
         expiresAt: code.expires_at,
         usedAt: code.used_at || undefined,
-        usedBy: code.used_by || undefined,
+        usedBy:
+          code.used_by_name || code.used_by_email || code.used_by || undefined,
       }));
 
       setJoinCodes(formattedCodes);
@@ -148,7 +156,9 @@ export function useJoinCodes(): UseJoinCodesResult {
           created_at,
           expires_at,
           used_at,
-          used_by
+          used_by,
+          used_by_name,
+          used_by_email
         `
         )
         .single();
@@ -163,7 +173,7 @@ export function useJoinCodes(): UseJoinCodesResult {
         createdAt: joinCode.created_at || new Date().toISOString(),
         expiresAt: joinCode.expires_at,
         usedAt: joinCode.used_at || undefined,
-        usedBy: joinCode.used_by || undefined,
+        usedBy: joinCode.used_by_name || joinCode.used_by || undefined,
       };
 
       // Add to local state
@@ -214,11 +224,17 @@ export function useJoinCodes(): UseJoinCodesResult {
     isValid: boolean;
     organizationName?: string;
     organizationId?: string;
+    isExpired?: boolean;
+    isUsed?: boolean;
+    expiresAt?: string;
+    usedAt?: string;
+    usedBy?: string;
   }> => {
     try {
+      const normalized = code.trim().toUpperCase();
       // Properly typed RPC call - TypeScript knows the args and return types
       const { data, error } = await supabase.rpc("validate_join_code_info", {
-        join_code_param: code, // Type: ValidateJoinCodeRPC['args']['join_code_param']
+        join_code_param: normalized, // Type: ValidateJoinCodeRPC['args']['join_code_param']
       });
 
       console.log("validateJoinCode", { data, error });
@@ -241,6 +257,11 @@ export function useJoinCodes(): UseJoinCodesResult {
         isValid: result.isValid,
         organizationName: result.organizationName,
         organizationId: result.organizationId,
+        isExpired: result.isExpired,
+        isUsed: result.isUsed,
+        expiresAt: result.expiresAt,
+        usedAt: result.usedAt,
+        usedBy: result.usedBy,
       };
     } catch (err) {
       console.error("Error validating join code:", err);
@@ -251,10 +272,11 @@ export function useJoinCodes(): UseJoinCodesResult {
   const useJoinCode = async (code: string): Promise<void> => {
     if (!user) throw new Error("User not authenticated");
 
-    console.log("Using join code", code);
+    const normalized = code.trim().toUpperCase();
+    console.log("Using join code", normalized);
     try {
       // First validate the code and get organization info
-      const validation = await validateJoinCode(code);
+      const validation = await validateJoinCode(normalized);
 
       console.log("validation", validation);
       if (!validation.isValid || !validation.organizationId) {
@@ -282,24 +304,34 @@ export function useJoinCodes(): UseJoinCodesResult {
       if (memberError) throw memberError;
 
       // Mark the join code as used
-      const { error: updateError } = await supabase
+      const { data: updatedRow, error: updateError } = await supabase
         .from("join_codes")
         .update({
           used_at: new Date().toISOString(),
           used_by: user.id,
+          used_by_name: user.name,
+          used_by_email: user.email,
         })
-        .eq("code", code.toUpperCase());
+        .eq("code", normalized)
+        .is("used_at", null)
+        .select("id")
+        .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        // Friendly message for potential race condition / already used
+        throw new Error(
+          "This join code may have just been used. Please request a new code from the admin."
+        );
+      }
 
-      // Trigger a page reload to refresh the user's auth state
-      // This ensures the user gets the updated organization data
+      if (!updatedRow) {
+        throw new Error(
+          "This join code has already been used. Please request a new one."
+        );
+      }
+
       toast.success(`Successfully joined ${validation.organizationName}!`);
-
-      // Use a small delay to let the toast show, then reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Do not reload here; caller will refresh auth and navigate
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to use join code";
@@ -316,6 +348,7 @@ export function useJoinCodes(): UseJoinCodesResult {
     if (user?.organizationId) {
       fetchJoinCodes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.organizationId]);
 
   return {

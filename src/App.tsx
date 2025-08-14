@@ -3,8 +3,11 @@ import {
   Route,
   Routes,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SongProvider } from "@/hooks/use-songs";
 import { SetlistProvider } from "@/hooks/use-setlists";
@@ -74,6 +77,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ToastOnJoin() {
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const joined = params.get("joined");
+    if (joined === "1") {
+      const org = localStorage.getItem("joinSuccessOrgName");
+      toast.success("Joined organization", {
+        description: org ? `You are now a member of ${org}.` : undefined,
+      });
+      localStorage.removeItem("joinSuccessOrgName");
+    }
+  }, [location.search]);
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -83,6 +102,7 @@ function App() {
             <SetlistProvider>
               <SettingsProvider>
                 <Router>
+                  <ToastOnJoin />
                   <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route

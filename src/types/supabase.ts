@@ -49,6 +49,8 @@ export type Database = {
           organization_id: string;
           used_at: string | null;
           used_by: string | null;
+          used_by_name: string | null;
+          used_by_email: string | null;
         };
         Insert: {
           code: string;
@@ -59,6 +61,8 @@ export type Database = {
           organization_id: string;
           used_at?: string | null;
           used_by?: string | null;
+          used_by_name?: string | null;
+          used_by_email?: string | null;
         };
         Update: {
           code?: string;
@@ -69,6 +73,8 @@ export type Database = {
           organization_id?: string;
           used_at?: string | null;
           used_by?: string | null;
+          used_by_name?: string | null;
+          used_by_email?: string | null;
         };
         Relationships: [
           {

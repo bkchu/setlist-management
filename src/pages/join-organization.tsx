@@ -21,16 +21,21 @@ import {
   AlertTriangleIcon,
   ArrowRightIcon,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface JoinCodeValidation {
   isValid: boolean;
   organizationName?: string;
   organizationId?: string;
   error?: string;
+  isExpired?: boolean;
+  isUsed?: boolean;
+  expiresAt?: string;
+  usedAt?: string;
 }
 
 export default function JoinOrganization() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, refreshUser } = useAuth();
   const { validateJoinCode, useJoinCode: joinWithCode } = useJoinCodes();
   const { hasLocalOrganizationAccess } = useOrganizationAccess();
   const navigate = useNavigate();
@@ -38,12 +43,25 @@ export default function JoinOrganization() {
   const [validation, setValidation] = useState<JoinCodeValidation | null>(null);
   const [isValidating, setIsValidating] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
-
+  const [manualCode, setManualCode] = useState("");
   const joinCode = searchParams.get("code");
+  const [currentCode, setCurrentCode] = useState<string | null>(joinCode);
+  // Accept either a raw code or a full join URL
+  const extractCode = (value: string): string => {
+    const trimmed = value.trim();
+    try {
+      const url = new URL(trimmed);
+      const param = url.searchParams.get("code");
+      return (param || trimmed).trim();
+    } catch {
+      return trimmed;
+    }
+  };
 
   const validateCode = useCallback(
     async (code: string) => {
       setIsValidating(true);
+      setCurrentCode(code);
       try {
         const result = await validateJoinCode(code);
         console.log("Result", result);
@@ -51,8 +69,25 @@ export default function JoinOrganization() {
         if (!result.isValid) {
           setValidation({
             isValid: false,
-            error:
-              "This join code is invalid, expired, or has already been used.",
+            error: result.isExpired
+              ? `This join code has expired${
+                  result.expiresAt
+                    ? ` (expired ${new Date(
+                        result.expiresAt
+                      ).toLocaleString()})`
+                    : "."
+                }`
+              : result.isUsed
+              ? `This join code has already been used${
+                  result.usedAt
+                    ? ` (used ${new Date(result.usedAt).toLocaleString()})`
+                    : "."
+                }`
+              : "This join code was not found.",
+            isExpired: result.isExpired,
+            isUsed: result.isUsed,
+            expiresAt: result.expiresAt,
+            usedAt: result.usedAt,
           });
         } else {
           // Check if user is already in this organization using the new utility
@@ -70,6 +105,7 @@ export default function JoinOrganization() {
               isValid: true,
               organizationName: result.organizationName,
               organizationId: result.organizationId,
+              expiresAt: result.expiresAt,
             });
           }
         }
@@ -83,16 +119,27 @@ export default function JoinOrganization() {
         setIsValidating(false);
       }
     },
-    [user]
+    [hasLocalOrganizationAccess, validateJoinCode]
   );
 
   const handleJoinOrganization = async () => {
-    if (!joinCode || !validation?.isValid) return;
+    if (!currentCode || !validation?.isValid) return;
 
     setIsJoining(true);
     try {
-      await joinWithCode(joinCode);
-      // The hook handles the success toast and page reload
+      await joinWithCode(currentCode);
+      if (validation.organizationName) {
+        try {
+          localStorage.setItem(
+            "joinSuccessOrgName",
+            validation.organizationName
+          );
+        } catch (e) {
+          console.warn("Could not persist success org name", e);
+        }
+      }
+      await refreshUser();
+      navigate("/?joined=1", { replace: true });
     } catch (error) {
       console.error("Error joining organization:", error);
       toast.error(
@@ -118,16 +165,10 @@ export default function JoinOrganization() {
     if (joinCode) {
       localStorage.setItem("pendingJoinCode", joinCode);
     }
-    navigate("/login");
+    navigate("/login?mode=register");
   };
 
   useEffect(() => {
-    // If no join code in URL, redirect to onboarding
-    if (!joinCode) {
-      navigate("/onboarding");
-      return;
-    }
-
     // If user is already authenticated and has an organization, redirect to dashboard
     if (user?.organizationId && !authLoading) {
       navigate("/");
@@ -135,10 +176,12 @@ export default function JoinOrganization() {
     }
 
     // If user is authenticated but has no organization, validate the code
-    if (user && !authLoading) {
+    if (user && !authLoading && joinCode) {
       validateCode(joinCode);
+    } else if (!joinCode && isValidating) {
+      setIsValidating(false);
     }
-  }, [joinCode, user, authLoading, navigate]);
+  }, [joinCode, user, authLoading, navigate, validateCode, isValidating]);
 
   // Show loading while auth is initializing
   if (authLoading) {
@@ -198,8 +241,8 @@ export default function JoinOrganization() {
     );
   }
 
-  // Show validation loading
-  if (isValidating) {
+  // Show validation loading only if we have a code to validate
+  if (joinCode && isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -222,96 +265,179 @@ export default function JoinOrganization() {
           <h1 className="text-3xl font-bold">Join Organization</h1>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        {(joinCode || validation !== null) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {validation?.isValid ? (
+                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                ) : (
+                  <XCircleIcon className="h-5 w-5 text-red-600" />
+                )}
+                {validation?.isValid
+                  ? "Valid Invitation"
+                  : "Invalid Invitation"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {validation?.isValid ? (
-                <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                <>
+                  <div className="text-center space-y-2">
+                    <p className="text-muted-foreground">
+                      You've been invited to join:
+                    </p>
+                    <h2 className="text-2xl font-bold">
+                      {validation.organizationName}
+                    </h2>
+                    <Badge variant="secondary">Organization</Badge>
+                    {validation.expiresAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Expires{" "}
+                        {new Date(validation.expiresAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">What happens next?</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• You'll become a member of this organization</li>
+                      <li>• You'll have access to shared songs and setlists</li>
+                      <li>• You can collaborate with other team members</li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={handleJoinOrganization}
+                    disabled={isJoining}
+                    className="w-full gap-2"
+                  >
+                    {isJoining ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                        Joining Organization...
+                      </>
+                    ) : (
+                      <>
+                        Join {validation.organizationName}
+                        <ArrowRightIcon className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </>
               ) : (
-                <XCircleIcon className="h-5 w-5 text-red-600" />
+                <>
+                  <div className="text-center space-y-4">
+                    <AlertTriangleIcon className="h-8 w-8 mx-auto text-yellow-600" />
+                    <div>
+                      <h3 className="font-medium text-red-600 mb-2">
+                        Cannot Join Organization
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {validation?.error}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        If you believe this is a mistake, contact the
+                        organization owner to request a new code or a fresh
+                        link.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter another code"
+                        value={manualCode}
+                        onChange={(e) => setManualCode(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!manualCode.trim()) return;
+                          setValidation(null);
+                          setIsValidating(true);
+                          validateCode(manualCode.trim());
+                        }}
+                      >
+                        Try Code
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={() => navigate("/onboarding")}
+                      className="w-full"
+                    >
+                      Go to Onboarding
+                    </Button>
+                    <Button
+                      onClick={() => navigate("/")}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  </div>
+                </>
               )}
-              {validation?.isValid ? "Valid Invitation" : "Invalid Invitation"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {validation?.isValid ? (
-              <>
-                <div className="text-center space-y-2">
-                  <p className="text-muted-foreground">
-                    You've been invited to join:
-                  </p>
-                  <h2 className="text-2xl font-bold">
-                    {validation.organizationName}
-                  </h2>
-                  <Badge variant="secondary">Organization</Badge>
-                </div>
+            </CardContent>
+          </Card>
+        )}
 
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  <p className="text-sm font-medium">What happens next?</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• You'll become a member of this organization</li>
-                    <li>• You'll have access to shared songs and setlists</li>
-                    <li>• You can collaborate with other team members</li>
-                  </ul>
-                </div>
+        {joinCode && (
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Join code:{" "}
+              <span className="font-mono font-medium">{joinCode}</span>
+            </p>
+          </div>
+        )}
 
+        {!joinCode && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Have a join code?</CardTitle>
+              <CardDescription>Paste it below to validate.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Paste code or link"
+                  autoFocus
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const parsed = extractCode(manualCode);
+                      if (!parsed) return;
+                      setValidation(null);
+                      setIsValidating(true);
+                      validateCode(parsed);
+                    }
+                  }}
+                />
                 <Button
-                  onClick={handleJoinOrganization}
-                  disabled={isJoining}
-                  className="w-full gap-2"
+                  type="button"
+                  onClick={() => {
+                    const parsed = extractCode(manualCode);
+                    if (!parsed) return;
+                    setValidation(null);
+                    setIsValidating(true);
+                    validateCode(parsed);
+                  }}
                 >
-                  {isJoining ? (
-                    <>
+                  {isValidating ? (
+                    <span className="inline-flex items-center gap-2">
                       <Loader2Icon className="h-4 w-4 animate-spin" />
-                      Joining Organization...
-                    </>
+                      Validating
+                    </span>
                   ) : (
-                    <>
-                      Join {validation.organizationName}
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </>
+                    "Validate"
                   )}
                 </Button>
-              </>
-            ) : (
-              <>
-                <div className="text-center space-y-4">
-                  <AlertTriangleIcon className="h-8 w-8 mx-auto text-yellow-600" />
-                  <div>
-                    <h3 className="font-medium text-red-600 mb-2">
-                      Cannot Join Organization
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {validation?.error}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Button
-                    onClick={() => navigate("/onboarding")}
-                    className="w-full"
-                  >
-                    Go to Onboarding
-                  </Button>
-                  <Button
-                    onClick={() => navigate("/")}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Go to Dashboard
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Join code: <span className="font-mono font-medium">{joinCode}</span>
-          </p>
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

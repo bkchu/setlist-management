@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,8 +27,14 @@ export default function Login() {
     user,
   } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [mode, setMode] = useState<Mode>("login");
+  useEffect(() => {
+    const qpMode = searchParams.get("mode");
+    if (qpMode === "register") setMode("register");
+    if (qpMode === "forgotPassword") setMode("forgotPassword");
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",

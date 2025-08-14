@@ -13,6 +13,7 @@ interface AuthContextProps {
   updatePassword: (password: string) => Promise<void>;
   switchOrganization: (organizationId: string) => void;
   createOrganization: (name: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -134,6 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setUser(null);
     }
+  };
+
+  const refreshUser = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    await handleSession(session);
   };
 
   const login = async (email: string, password: string) => {
@@ -348,6 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatePassword,
         switchOrganization,
         createOrganization,
+        refreshUser,
         isLoading,
         error,
       }}
