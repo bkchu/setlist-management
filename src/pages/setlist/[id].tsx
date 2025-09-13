@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useSetlists } from "@/hooks/use-setlists";
+import { useGetSetlist } from "@/api/setlists/get";
+import { useUpdateSetlist } from "@/api/setlists/put";
 import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
 import { toast } from "sonner";
@@ -81,8 +82,8 @@ const DragPreview = React.memo(function DragPreview({
 
 export default function SetlistPage() {
   const { id } = useParams<{ id: string }>();
-  const { setlists, updateSetlist, updateSetlistSongs, isLoading } =
-    useSetlists();
+  const { data: setlist, isLoading } = useGetSetlist({ setlistId: id });
+  const updateSetlistMutation = useUpdateSetlist(id || "");
   const { songs } = useSongs();
   const navigate = useNavigate();
 
@@ -92,12 +93,6 @@ export default function SetlistPage() {
   const [showCarousel, setShowCarousel] = useState(false);
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-
-  // Derived state
-  const setlist = useMemo(
-    () => setlists.find((s) => s.id === id),
-    [setlists, id]
-  );
 
   const songsNotInSetlist = useMemo(
     () =>
@@ -180,10 +175,11 @@ export default function SetlistPage() {
   }, []);
 
   const handleEditSetlist = async (updatedSetlist: Partial<Setlist>) => {
-    if (!setlist) return;
+    if (!setlist || !updateSetlistMutation) return;
     try {
-      await updateSetlist(setlist.id, {
-        ...updatedSetlist,
+      await updateSetlistMutation.mutateAsync({
+        name: updatedSetlist.name,
+        date: updatedSetlist.date,
         songs: setlist.songs,
       });
       setIsEditingMetadata(false);
@@ -195,54 +191,53 @@ export default function SetlistPage() {
 
   const handleSaveSong = useCallback(
     async (songId: string, updates: Partial<SetlistSong>) => {
-      if (!setlist) return;
+      if (!setlist || !updateSetlistMutation) return;
       try {
         const updatedSongs = setlist.songs.map((s) =>
           s.id === songId ? { ...s, ...updates } : s
         );
-        await updateSetlistSongs(setlist.id, updatedSongs);
+        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
         setEditingSong(null);
         toast.success("Song updated");
       } catch {
         toast.error("Error updating song");
       }
     },
-    [setlist, updateSetlistSongs]
+    [setlist, updateSetlistMutation]
   );
 
   const handleAddNewSong = useCallback(
     async (newSong: SetlistSong) => {
-      if (!setlist) return;
+      if (!setlist || !updateSetlistMutation) return;
       try {
         const updatedSongs = [...setlist.songs, newSong];
-        console.log(updatedSongs);
-        await updateSetlistSongs(setlist.id, updatedSongs);
+        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
       } catch {
         toast.error("Error adding song");
       }
     },
-    [setlist, updateSetlistSongs]
+    [setlist, updateSetlistMutation]
   );
 
   const handleRemoveSong = useCallback(
     async (songId: string) => {
-      if (!setlist) return;
+      if (!setlist || !updateSetlistMutation) return;
       try {
         const updatedSongs = setlist.songs
           .filter((s) => s.id !== songId)
           .map((s, idx) => ({ ...s, order: idx + 1 }));
-        await updateSetlistSongs(setlist.id, updatedSongs);
+        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
         toast.success("Song removed");
       } catch {
         toast.error("Error removing song");
       }
     },
-    [setlist, updateSetlistSongs]
+    [setlist, updateSetlistMutation]
   );
 
   const handleReorderSong = useCallback(
     async (songId: string, direction: "up" | "down") => {
-      if (!setlist) return;
+      if (!setlist || !updateSetlistMutation) return;
       const songIndex = setlist.songs.findIndex((s) => s.id === songId);
       if (songIndex === -1) return;
       const newIndex = direction === "up" ? songIndex - 1 : songIndex + 1;
@@ -254,13 +249,13 @@ export default function SetlistPage() {
           ...s,
           order: idx + 1,
         }));
-        await updateSetlistSongs(setlist.id, reorderedSongs);
+        await updateSetlistMutation.mutateAsync({ songs: reorderedSongs });
         toast.success("Order updated");
       } catch {
         toast.error("Error updating song order");
       }
     },
-    [setlist, updateSetlistSongs]
+    [setlist, updateSetlistMutation]
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -295,7 +290,7 @@ export default function SetlistPage() {
               ...s,
               order: idx + 1,
             }));
-            await updateSetlistSongs(setlist.id, reorderedSongs);
+            await updateSetlistMutation.mutateAsync({ songs: reorderedSongs });
             toast.success("Songs reordered");
           } catch {
             toast.error("Error reordering songs");
@@ -306,7 +301,7 @@ export default function SetlistPage() {
       // Re-enable body scrolling after drag
       document.body.style.overflow = "";
     },
-    [setlist, updateSetlistSongs]
+    [setlist, updateSetlistMutation]
   );
 
   const handleDragCancel = useCallback(() => {
@@ -316,7 +311,7 @@ export default function SetlistPage() {
   }, []);
 
   const handleSaveNotesInViewer = async (songId: string, notes: string) => {
-    if (!setlist) return;
+    if (!setlist || !updateSetlistMutation) return;
     const updatedSongs = setlist.songs.map((song) => {
       if (song.songId === songId) {
         return { ...song, notes };
@@ -324,7 +319,7 @@ export default function SetlistPage() {
       return song;
     });
     try {
-      await updateSetlistSongs(setlist.id, updatedSongs);
+      await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
       toast.success("Notes saved");
     } catch {
       toast.error("Failed to save notes");
@@ -354,7 +349,7 @@ export default function SetlistPage() {
         setlist={setlist}
         songsNotInSetlist={songsNotInSetlist}
         onSongAdded={handleAddNewSong}
-        setlists={setlists}
+        setlists={setlist ? [setlist] : []}
       />
 
       <EditSongDialog
