@@ -150,9 +150,12 @@ export function useUpdateSetlist(id: string) {
       updateSetlistServer(id, payload),
     onSuccess: (updated) => {
       queryClient.setQueryData(setlistKeys.detail(id), updated);
-      queryClient.invalidateQueries({ queryKey: setlistKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: setlistKeys.songs(id) });
-      queryClient.invalidateQueries({ queryKey: setlistKeys.all });
+      // Only invalidate list collections so list pages refresh.
+      // Avoid broad invalidations that also match the detail key and trigger duplicate refetches.
+      queryClient.invalidateQueries({
+        queryKey: setlistKeys.lists(),
+        exact: true,
+      });
     },
   });
 }

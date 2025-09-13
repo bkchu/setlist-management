@@ -120,3 +120,4 @@ export function useUpdateSetlist(id: string) {
 - `QueryClientProvider` is configured in `src/App.tsx`. Do not duplicate providers.
 
 
+
