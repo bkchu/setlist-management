@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CalendarIcon, MoreHorizontal, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { SetlistForm } from "./setlist-form";
 import { format } from "date-fns";
@@ -38,14 +37,14 @@ export function SetlistList({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
 
-  const handleAddSubmit = (setlistData: Partial<Setlist>) => {
-    onAddSetlist(setlistData);
+  const handleAddSubmit = async (setlistData: Partial<Setlist>) => {
+    await Promise.resolve(onAddSetlist(setlistData));
     setShowAddForm(false);
   };
 
-  const handleEditSubmit = (setlistData: Partial<Setlist>) => {
+  const handleEditSubmit = async (setlistData: Partial<Setlist>) => {
     if (editingSetlist) {
-      onEditSetlist(editingSetlist.id, setlistData);
+      await Promise.resolve(onEditSetlist(editingSetlist.id, setlistData));
       setEditingSetlist(null);
     }
   };
@@ -54,20 +53,10 @@ export function SetlistList({
     <div className="space-y-4">
       <div className="flex justify-between">
         <h2 className="text-lg font-semibold">All Setlists</h2>
-        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Setlist
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <SetlistForm
-              onSubmit={handleAddSubmit}
-              onCancel={() => setShowAddForm(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={() => setShowAddForm(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Setlist
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -116,45 +105,29 @@ export function SetlistList({
                       {setlist.songs.length === 1 ? "song" : "songs"}
                     </TableCell>
                     <TableCell>
-                      <Dialog
-                        open={editingSetlist?.id === setlist.id}
-                        onOpenChange={(open) => {
-                          if (!open) setEditingSetlist(null);
-                        }}
-                      >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            asChild
-                            onClick={(e) => e.preventDefault()}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setEditingSetlist(setlist)}
                           >
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DialogTrigger asChild>
-                              <DropdownMenuItem
-                                onClick={() => setEditingSetlist(setlist)}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                            </DialogTrigger>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => onDeleteSetlist(setlist.id)}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <DialogContent className="sm:max-w-md">
-                          <SetlistForm
-                            setlist={setlist}
-                            onSubmit={handleEditSubmit}
-                            onCancel={() => setEditingSetlist(null)}
-                          />
-                        </DialogContent>
-                      </Dialog>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onDeleteSetlist(setlist.id)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </motion.tr>
                 ))
@@ -163,6 +136,21 @@ export function SetlistList({
           </TableBody>
         </Table>
       </div>
+
+      {/* Self-contained dialogs */}
+      <SetlistForm
+        open={showAddForm}
+        onOpenChange={setShowAddForm}
+        onSubmit={handleAddSubmit}
+      />
+      <SetlistForm
+        open={Boolean(editingSetlist)}
+        onOpenChange={(open) => {
+          if (!open) setEditingSetlist(null);
+        }}
+        setlist={editingSetlist ?? undefined}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   );
 }

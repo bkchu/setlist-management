@@ -14,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { MoreHorizontal, MusicIcon, PlusIcon, StarIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -42,14 +41,14 @@ export function SongList({
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const { settings, updateOneTouchSongs } = useSettings();
 
-  const handleAddSubmit = (songData: Partial<Song>) => {
-    onAddSong(songData);
+  const handleAddSubmit = async (songData: Partial<Song>) => {
+    await Promise.resolve(onAddSong(songData));
     setShowAddForm(false);
   };
 
-  const handleEditSubmit = (songData: Partial<Song>) => {
+  const handleEditSubmit = async (songData: Partial<Song>) => {
     if (editingSong) {
-      onEditSong(editingSong.id, songData);
+      await Promise.resolve(onEditSong(editingSong.id, songData));
       setEditingSong(null);
     }
   };
@@ -93,40 +92,24 @@ export function SongList({
         <StarIcon className="h-4 w-4" />
         <span className="sr-only">Toggle One-Touch</span>
       </Button>
-      <Dialog
-        open={editingSong?.id === song.id}
-        onOpenChange={(open) => {
-          if (!open) setEditingSong(null);
-        }}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DialogTrigger asChild>
-              <DropdownMenuItem onClick={() => setEditingSong(song)}>
-                Edit
-              </DropdownMenuItem>
-            </DialogTrigger>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onDeleteSong(song.id)}
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DialogContent className="sm:max-w-md">
-          <SongForm
-            song={song}
-            onSubmit={handleEditSubmit}
-            onCancel={() => setEditingSong(null)}
-          />
-        </DialogContent>
-      </Dialog>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setEditingSong(song)}>
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onDeleteSong(song.id)}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 
@@ -134,20 +117,10 @@ export function SongList({
     <div className="space-y-4">
       <div className="flex justify-between">
         <h2 className="text-lg font-semibold">All Songs</h2>
-        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Add Song
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <SongForm
-              onSubmit={handleAddSubmit}
-              onCancel={() => setShowAddForm(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={() => setShowAddForm(true)}>
+          <PlusIcon className="mr-2 h-4 w-4" />
+          Add Song
+        </Button>
       </div>
 
       {songs.length === 0 ? (
@@ -287,6 +260,21 @@ export function SongList({
           </div>
         </AnimatePresence>
       )}
+
+      {/* Self-contained dialogs */}
+      <SongForm
+        open={showAddForm}
+        onOpenChange={setShowAddForm}
+        onSubmit={handleAddSubmit}
+      />
+      <SongForm
+        open={Boolean(editingSong)}
+        onOpenChange={(open) => {
+          if (!open) setEditingSong(null);
+        }}
+        song={editingSong ?? undefined}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   );
 }

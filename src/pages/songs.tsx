@@ -5,7 +5,6 @@ import { SongList } from "@/components/songs/song-list";
 import { useSongs } from "@/hooks/use-songs";
 import { toast } from "sonner";
 import { Song } from "@/types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SongForm } from "@/components/songs/song-form";
 
 export default function Songs() {
@@ -65,27 +64,23 @@ export default function Songs() {
         <SongList
           songs={songs}
           onAddSong={handleAddSong}
-          onEditSong={handleEditSong}
+          onEditSong={(id, data) => {
+            setSelectedSong(songs.find((s) => s.id === id) || null);
+            setIsEditing(true);
+            return handleEditSong(id, data);
+          }}
           onDeleteSong={handleDeleteSong}
         />
       </main>
 
       {/* Edit Song Dialog */}
-      {selectedSong && isEditing && (
-        <Dialog
+      {selectedSong && (
+        <SongForm
           open={isEditing}
-          onOpenChange={(open) => {
-            if (!open) setIsEditing(false);
-          }}
-        >
-          <DialogContent className="sm:max-w-md">
-            <SongForm
-              song={selectedSong}
-              onSubmit={(songData) => handleEditSong(selectedSong.id, songData)}
-              onCancel={() => setIsEditing(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          onOpenChange={setIsEditing}
+          song={selectedSong}
+          onSubmit={(songData) => handleEditSong(selectedSong.id, songData)}
+        />
       )}
     </>
   );

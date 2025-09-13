@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,187 +213,182 @@ export function AddSongDialog({
       }}
     >
       <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh] p-4">
-        <div className="space-y-6">
+        <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             Add Song to Setlist
           </DialogTitle>
-          <div className="space-y-4">
-            <div className="space-y-2 flex flex-col gap-2">
-              <Label className="text-sm font-medium">Select Song</Label>
-              <SongSearchCombobox
-                songs={songsNotInSetlist}
-                value={addSongForm.songId}
-                onSelect={(songId) => {
-                  const selected = songs.find((s) => s.id === songId);
-                  setSelectedSongInModal(selected || null);
-                  setAddSongForm((prev) => ({
-                    ...prev,
-                    songId,
-                    key: selected?.default_key || "",
-                    notes: "",
-                  }));
-                  setShowNotes(false);
-                }}
-                placeholder="Search for a song to add..."
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2 flex flex-col gap-2">
+            <Label className="text-sm font-medium">Select Song</Label>
+            <SongSearchCombobox
+              songs={songsNotInSetlist}
+              value={addSongForm.songId}
+              onSelect={(songId) => {
+                const selected = songs.find((s) => s.id === songId);
+                setSelectedSongInModal(selected || null);
+                setAddSongForm((prev) => ({
+                  ...prev,
+                  songId,
+                  key: selected?.default_key || "",
+                  notes: "",
+                }));
+                setShowNotes(false);
+              }}
+              placeholder="Search for a song to add..."
+            />
+          </div>
+          {addSongForm.songId && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Key</Label>
+
+              <div className="space-y-3">
+                <Button
+                  variant={
+                    addSongForm.key === "default" ? "default" : "outline"
+                  }
+                  className="w-full relative"
+                  onClick={() => {
+                    setAddSongForm((prev) => ({ ...prev, key: "default" }));
+                  }}
+                >
+                  {selectedSongInModal?.default_key
+                    ? `Default (${selectedSongInModal.default_key})`
+                    : "Default"}
+                  {selectedSongInModal &&
+                    hasFilesForSpecificKey(selectedSongInModal, "default") && (
+                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
+                    )}
+                </Button>
+                <div className="flex items-center">
+                  <div className="flex-grow border-t border-muted" />
+                  <span className="flex-shrink mx-2 text-xs text-muted-foreground">
+                    OR
+                  </span>
+                  <div className="flex-grow border-t border-muted" />
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {KEY_OPTIONS.map((key) => {
+                    const hasFiles = selectedSongInModal
+                      ? hasFilesForSpecificKey(selectedSongInModal, key)
+                      : false;
+                    const isSelected = addSongForm.key === key;
+                    return (
+                      <Button
+                        key={key}
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        className="h-10 relative"
+                        onClick={() => {
+                          setAddSongForm((prev) => ({ ...prev, key }));
+                        }}
+                      >
+                        {key}
+                        {hasFiles && (
+                          <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+          {addSongForm.songId && (
+            <div className="mt-4 border-t pt-3">
+              <div className="mb-2 text-xs text-muted-foreground font-medium">
+                Suggested keys
+              </div>
+              <SuggestedKeys
+                songId={addSongForm.songId}
+                setlists={setlists}
+                selectedKey={addSongForm.key}
+                onSelectKey={(k) =>
+                  setAddSongForm((prev) => ({ ...prev, key: k }))
+                }
               />
             </div>
-            {addSongForm.songId && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Key</Label>
-
-                <div className="space-y-3">
-                  <Button
-                    variant={
-                      addSongForm.key === "default" ? "default" : "outline"
-                    }
-                    className="w-full relative"
-                    onClick={() => {
-                      setAddSongForm((prev) => ({ ...prev, key: "default" }));
-                    }}
-                  >
-                    {selectedSongInModal?.default_key
-                      ? `Default (${selectedSongInModal.default_key})`
-                      : "Default"}
-                    {selectedSongInModal &&
-                      hasFilesForSpecificKey(
-                        selectedSongInModal,
-                        "default"
-                      ) && (
-                        <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
-                      )}
-                  </Button>
-                  <div className="flex items-center">
-                    <div className="flex-grow border-t border-muted" />
-                    <span className="flex-shrink mx-2 text-xs text-muted-foreground">
-                      OR
-                    </span>
-                    <div className="flex-grow border-t border-muted" />
-                  </div>
-                  <div className="grid grid-cols-6 gap-2">
-                    {KEY_OPTIONS.map((key) => {
-                      const hasFiles = selectedSongInModal
-                        ? hasFilesForSpecificKey(selectedSongInModal, key)
-                        : false;
-                      const isSelected = addSongForm.key === key;
-                      return (
-                        <Button
-                          key={key}
-                          variant={isSelected ? "default" : "outline"}
-                          size="sm"
-                          className="h-10 relative"
-                          onClick={() => {
-                            setAddSongForm((prev) => ({ ...prev, key }));
-                          }}
-                        >
-                          {key}
-                          {hasFiles && (
-                            <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-            {addSongForm.songId && (
-              <div className="mt-4 border-t pt-3">
-                <div className="mb-2 text-xs text-muted-foreground font-medium">
-                  Suggested keys
-                </div>
-                <SuggestedKeys
-                  songId={addSongForm.songId}
-                  setlists={setlists}
-                  selectedKey={addSongForm.key}
-                  onSelectKey={(k) =>
-                    setAddSongForm((prev) => ({ ...prev, key: k }))
+          )}
+          {selectedSongInModal && (
+            <div className="mt-4">
+              <FileSection
+                selectedSong={selectedSongInModal}
+                selectedKey={addSongForm.key}
+                previewFileUrl={previewFileUrl}
+                isPreviewLoading={isPreviewLoading}
+                onFileAdded={(newFile) => {
+                  if (!selectedSongInModal) return;
+                  const newKeyedFiles = {
+                    ...(selectedSongInModal.keyedFiles || {}),
+                  };
+                  const key = (addSongForm.key || "default") as
+                    | MusicalKey
+                    | "default";
+                  if (!newKeyedFiles[key]) {
+                    newKeyedFiles[key] = [];
                   }
-                />
-              </div>
-            )}
-            {selectedSongInModal && (
-              <div className="mt-4">
-                <FileSection
-                  selectedSong={selectedSongInModal}
-                  selectedKey={addSongForm.key}
-                  previewFileUrl={previewFileUrl}
-                  isPreviewLoading={isPreviewLoading}
-                  onFileAdded={(newFile) => {
-                    if (!selectedSongInModal) return;
-                    const newKeyedFiles = {
-                      ...(selectedSongInModal.keyedFiles || {}),
-                    };
-                    const key = (addSongForm.key || "default") as
-                      | MusicalKey
-                      | "default";
-                    if (!newKeyedFiles[key]) {
-                      newKeyedFiles[key] = [];
-                    }
-                    newKeyedFiles[key].push(newFile);
-                    setSelectedSongInModal({
-                      ...selectedSongInModal,
-                      keyedFiles: newKeyedFiles,
-                    });
-                  }}
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Notes</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs"
-                  onClick={() => setShowNotes((v) => !v)}
-                >
-                  {showNotes ? "Hide" : "Add notes"}
-                </Button>
-              </div>
-              {showNotes && (
-                <Textarea
-                  value={addSongForm.notes || ""}
-                  onChange={(e) =>
-                    setAddSongForm((prev) => ({
-                      ...prev,
-                      notes: e.target.value,
-                    }))
-                  }
-                  placeholder="Add performance notes, cues, or other details"
-                  className="min-h-[120px] text-sm"
-                />
-              )}
+                  newKeyedFiles[key].push(newFile);
+                  setSelectedSongInModal({
+                    ...selectedSongInModal,
+                    keyedFiles: newKeyedFiles,
+                  });
+                }}
+              />
             </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                resetState();
-                onOpenChange(false);
-              }}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddNewSong}
-              className="px-4"
-              disabled={
-                isAddingSong || !selectedSongInModal || !addSongForm.key
-              }
-            >
-              {isAddingSong ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                "Add Song"
-              )}
-            </Button>
+          )}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Notes</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => setShowNotes((v) => !v)}
+              >
+                {showNotes ? "Hide" : "Add notes"}
+              </Button>
+            </div>
+            {showNotes && (
+              <Textarea
+                value={addSongForm.notes || ""}
+                onChange={(e) =>
+                  setAddSongForm((prev) => ({
+                    ...prev,
+                    notes: e.target.value,
+                  }))
+                }
+                placeholder="Add performance notes, cues, or other details"
+                className="min-h-[120px] text-sm"
+              />
+            )}
           </div>
         </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetState();
+              onOpenChange(false);
+            }}
+            className="px-4"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddNewSong}
+            className="px-4"
+            disabled={isAddingSong || !selectedSongInModal || !addSongForm.key}
+          >
+            {isAddingSong ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              "Add Song"
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -6,7 +6,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Header } from "@/components/layout/header";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SongForm } from "@/components/songs/song-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +22,7 @@ import { toast } from "sonner";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+// import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 // import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { getAllKeyedFiles, SongFile, Song } from "@/types";
@@ -479,18 +478,12 @@ export default function SongPage() {
         </div>
       </div>
 
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>
-            <VisuallyHidden>Edit Song</VisuallyHidden>
-          </DialogTitle>
-          <SongForm
-            song={song}
-            onSubmit={handleEditSong}
-            onCancel={() => setIsEditing(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <SongForm
+        open={isEditing}
+        onOpenChange={setIsEditing}
+        song={song}
+        onSubmit={handleEditSong}
+      />
     </div>
   );
 }

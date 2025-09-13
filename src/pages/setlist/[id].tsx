@@ -19,7 +19,7 @@ import { SetlistForm } from "@/components/setlists/setlist-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {} from "@/components/ui/dialog";
 import {
   DndContext,
   closestCenter,
@@ -358,15 +358,12 @@ export default function SetlistPage() {
         onSave={handleSaveSong}
       />
 
-      <Dialog open={isEditingMetadata} onOpenChange={setIsEditingMetadata}>
-        <DialogContent className="sm:max-w-md">
-          <SetlistForm
-            setlist={setlist}
-            onSubmit={handleEditSetlist}
-            onCancel={() => setIsEditingMetadata(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <SetlistForm
+        open={isEditingMetadata}
+        onOpenChange={setIsEditingMetadata}
+        setlist={setlist}
+        onSubmit={handleEditSetlist}
+      />
 
       <div className="flex-1 space-y-8 overflow-auto p-4 md:p-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">

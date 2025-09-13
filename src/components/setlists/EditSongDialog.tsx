@@ -1,10 +1,15 @@
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
-import { supabase } from "@/lib/supabase";
 import { signSongFilePath } from "@/lib/storage";
 import { isImage, isPDF } from "@/lib/utils";
 import { getFilesForKey, hasFilesForSpecificKey, SetlistSong } from "@/types";
@@ -109,9 +114,11 @@ export function EditSongDialog({
     <Dialog open={!!editingSong} onOpenChange={(open) => onOpenChange(open)}>
       <DialogContent className="sm:max-w-md w-[95vw] sm:w-full overflow-y-auto max-h-[90vh]">
         <div className="p-4">
-          <DialogTitle className="text-xl font-semibold mb-4">
-            Edit Song
-          </DialogTitle>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              Edit Song
+            </DialogTitle>
+          </DialogHeader>
           {editingSong && editableSong && (
             <div className="space-y-6">
               <div className="space-y-1">
@@ -272,7 +279,7 @@ export function EditSongDialog({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <DialogFooter>
                 <Button
                   variant="outline"
                   onClick={() => onOpenChange(false)}
@@ -283,7 +290,7 @@ export function EditSongDialog({
                 <Button onClick={handleSave} className="px-4">
                   Save Changes
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
         </div>
