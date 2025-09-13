@@ -76,17 +76,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="relative flex w-full min-h-screen">
+    <div className="relative flex w-full min-h-dvh">
       <div className="hidden md:block">
         <Sidebar />
       </div>
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-auto pb-[56px] md:pb-0">
+        <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
           {renderContent()}
         </div>
       </div>
       {/* Global Mobile Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden pb-[env(safe-area-inset-bottom)]">
         <MobileNav />
       </div>
     </div>
