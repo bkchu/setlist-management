@@ -1,0 +1,122 @@
+# React Query usage rules (TanStack Query)
+
+These rules define how to add and use React Query in this codebase.
+
+## Scope
+- Applies to: `src/api/**`, `src/pages/**`, `src/components/**`, `src/hooks/**`
+
+## Core rules
+- Do NOT call `useQuery` or `useMutation` directly in components.
+- Always wrap React Query calls in a hook colocated with the resource under `src/api/<resource>/`.
+- Each resource folder should include:
+  - `keys.ts`: central query keys
+  - `get.ts`, `post.ts`, `put.ts`, `delete.ts`: one operation per file
+  - Optional: `types.ts`, `index.ts`
+- Hooks must return the query/mutation object from React Query.
+- Export a plain async fetcher/mutator and a hook that wraps it.
+- Use the shared `supabase` client from `@/lib/supabase`.
+- Transform database rows to domain types in the fetcher, not in components.
+
+## Query keys
+- Centralize all keys per resource in `<resource>/keys.ts`.
+- Prefer a stable, hierarchical shape:
+  - `all: ['<resource>']`
+  - `lists: () => ['<resource>', 'list']`
+  - `list: (filters) => ['<resource>', 'list', { filters }]`
+  - `details: () => ['<resource>', 'detail']`
+  - `detail: (id) => ['<resource>', 'detail', id]`
+  - Add nested keys as needed (e.g., `songs(id)` for setlists)
+
+## Hook options & conventions
+- Naming: `useGetX`, `useCreateX`, `useUpdateX`, `useDeleteX`.
+- Type all inputs/outputs; avoid `any`.
+- Guard parameterized queries: use `enabled: Boolean(id)` (or equivalent) for optional params.
+- Defaults (unless a specific use-case requires otherwise):
+  - `staleTime: 5 * 60 * 1000`
+  - `gcTime: 30 * 60 * 1000`
+  - `refetchOnWindowFocus: false`
+  - `retry: 2`
+
+## Mutations
+- Invalidate only the affected keys after success (targeted invalidation), e.g.:
+  - `queryClient.invalidateQueries({ queryKey: setlistKeys.detail(id) })`
+  - `queryClient.invalidateQueries({ queryKey: setlistKeys.all })`
+- Optionally perform optimistic updates with rollback on error when it improves UX.
+
+## Example: Setlists (pattern to follow)
+
+`src/api/setlists/keys.ts`
+```ts
+export const setlistKeys = {
+  all: ["setlists"] as const,
+  lists: () => ["setlists", "list"] as const,
+  list: (filters: unknown) => ["setlists", "list", { filters }] as const,
+  details: () => ["setlists", "detail"] as const,
+  detail: (id: string) => ["setlists", "detail", id] as const,
+  songs: (id: string) => ["setlists", "detail", id, "songs"] as const,
+};
+```
+
+`src/api/setlists/get.ts`
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { setlistKeys } from './keys';
+import { Setlist } from '@/types';
+
+async function fetchSetlistById(id: string): Promise<Setlist> {
+  const { data, error } = await supabase
+    .from('setlists')
+    .select(`*, setlist_songs(*, songs(*))`)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  // transform to domain type here ...
+  return {/* ...conform to Setlist ... */} as Setlist;
+}
+
+export function useGetSetlist({ setlistId }: { setlistId?: string }) {
+  return useQuery({
+    queryKey: setlistId ? setlistKeys.detail(setlistId) : setlistKeys.all,
+    queryFn: () => fetchSetlistById(setlistId as string),
+    enabled: Boolean(setlistId),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+```
+
+`src/api/setlists/put.ts`
+```ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { setlistKeys } from './keys';
+
+export async function updateSetlistServer(id: string, payload: any) {
+  // perform supabase updates
+  // return fresh entity
+}
+
+export function useUpdateSetlist(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: any) => updateSetlistServer(id, payload),
+    onSuccess: (updated) => {
+      qc.setQueryData(setlistKeys.detail(id), updated);
+      qc.invalidateQueries({ queryKey: setlistKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: setlistKeys.all });
+    },
+  });
+}
+```
+
+## Components
+- Components should only consume the exported hooks.
+- Do not transform Supabase rows in components; rely on the hook fetcher.
+- No inline `useQuery`/`useMutation` calls in components.
+
+## Provider
+- `QueryClientProvider` is configured in `src/App.tsx`. Do not duplicate providers.
+
+

@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useSongs } from "@/hooks/use-songs";
+import { useGetSong } from "@/api/songs/get";
+import { useUpdateSong } from "@/api/songs/put";
+import { useGetSignedSongFileUrls } from "@/api/songs/files";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Header } from "@/components/layout/header";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -17,7 +19,6 @@ import {
   ArrowRightIcon,
 } from "lucide-react";
 // import { supabase } from "@/lib/supabase";
-import { signSongFilePath } from "@/lib/storage";
 import { toast } from "sonner";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -34,17 +35,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 export default function SongPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { songs, updateSong, isLoading: isSongsLoading } = useSongs();
+  const { data: song, isLoading: isSongLoading } = useGetSong({ songId: id });
+  const updateSongMutation = useUpdateSong(id || "");
   const [isEditing, setIsEditing] = useState(false);
-  const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedKey, setSelectedKey] = useState<string>("default");
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-
-  const song = songs.find((s) => s.id === id);
 
   // Handle container resize
   const handleResize = useCallback(() => {
@@ -70,7 +68,7 @@ export default function SongPage() {
   }, [handleResize]);
 
   useEffect(() => {
-    if (isSongsLoading) return;
+    if (isSongLoading) return;
 
     if (!song) {
       navigate("/songs");
@@ -78,38 +76,44 @@ export default function SongPage() {
         description: "The requested song could not be found.",
       });
     }
-  }, [song, isSongsLoading, navigate]);
+  }, [song, isSongLoading, navigate]);
 
-  useEffect(() => {
-    if (song) {
-      const allKeyedFiles = getAllKeyedFiles(song);
-      const allFiles: SongFile[] = [];
-
-      // Collect all files from all keys
-      Object.values(allKeyedFiles).forEach((files) => {
-        if (files) {
-          allFiles.push(...files);
-        }
-      });
-
-      allFiles.forEach(async (file) => {
-        if (!fileUrls[file.path]) {
-          try {
-            setIsLoading((prev) => ({ ...prev, [file.path]: true }));
-            const signedUrl = await signSongFilePath(file.path, 3600);
-            setFileUrls((prev) => ({ ...prev, [file.path]: signedUrl }));
-          } catch (error) {
-            console.error("Error getting file URL:", error);
-            toast.error("Error", {
-              description: "Failed to load file",
-            });
-          } finally {
-            setIsLoading((prev) => ({ ...prev, [file.path]: false }));
-          }
-        }
-      });
-    }
+  const filePaths = useMemo(() => {
+    if (!song) return [] as string[];
+    const allKeyedFiles = getAllKeyedFiles(song);
+    const allFiles: SongFile[] = [];
+    Object.values(allKeyedFiles).forEach((files) => {
+      if (files) allFiles.push(...files);
+    });
+    return Array.from(new Set(allFiles.map((f) => f.path)));
   }, [song]);
+
+  const versions = useMemo(() => {
+    if (!song) return [] as (string | number | undefined)[];
+    const allKeyedFiles = getAllKeyedFiles(song);
+    const allFiles: SongFile[] = [];
+    Object.values(allKeyedFiles).forEach((files) => {
+      if (files) allFiles.push(...files);
+    });
+    const versionMap = new Map<string, string | number | undefined>();
+    allFiles.forEach((f) => versionMap.set(f.path, f.updatedAt));
+    return filePaths.map((p) => versionMap.get(p));
+  }, [song, filePaths]);
+
+  const { urlsByPath, results } = useGetSignedSongFileUrls({
+    paths: filePaths,
+    expiresIn: 3600,
+    versions,
+  });
+
+  const isPathLoading = useCallback(
+    (path: string) => {
+      const index = filePaths.indexOf(path);
+      if (index === -1) return false;
+      return results[index]?.isLoading ?? false;
+    },
+    [filePaths, results]
+  );
 
   // Initialize selected key when song changes
   useEffect(() => {
@@ -127,7 +131,7 @@ export default function SongPage() {
   }, [song]);
 
   const handleFileOpen = (path: string) => {
-    const url = fileUrls[path];
+    const url = urlsByPath[path];
     if (url) {
       window.open(url, "_blank");
     }
@@ -156,12 +160,12 @@ export default function SongPage() {
     if (!song) return;
 
     try {
-      await updateSong(song.id, songData);
+      await updateSongMutation.mutateAsync(songData);
       setIsEditing(false);
       toast.success("Song updated", {
         description: "The song has been updated successfully",
       });
-    } catch (err) {
+    } catch {
       toast.error("Error", {
         description: "Failed to update song",
       });
@@ -383,19 +387,19 @@ export default function SongPage() {
                                       </Button>
                                     </div>
 
-                                    {isLoading[currentFile.path] ? (
+                                    {isPathLoading(currentFile.path) ? (
                                       <div className="flex items-center justify-center p-8">
                                         <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
                                       </div>
                                     ) : (
-                                      fileUrls[currentFile.path] && (
+                                      urlsByPath[currentFile.path] && (
                                         <div
                                           className="p-4 w-full"
                                           ref={containerRef}
                                         >
                                           {isImage(currentFile.name) ? (
                                             <img
-                                              src={fileUrls[currentFile.path]}
+                                              src={urlsByPath[currentFile.path]}
                                               alt={currentFile.name}
                                               className="mx-auto max-h-[600px] rounded-md object-contain"
                                               loading="lazy"
@@ -405,7 +409,7 @@ export default function SongPage() {
                                               <Document
                                                 className="w-full"
                                                 file={
-                                                  fileUrls[currentFile.path]
+                                                  urlsByPath[currentFile.path]
                                                 }
                                                 onLoadSuccess={
                                                   onDocumentLoadSuccess

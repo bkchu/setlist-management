@@ -27,6 +27,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import ResetPasswordPage from "@/pages/reset-password";
+import { useUserOrganizations } from "@/api/organizations/get";
 
 // Create a query client instance
 const queryClient = new QueryClient({
@@ -42,7 +43,9 @@ const queryClient = new QueryClient({
 
 // Protected route component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, orgsLoading } = useAuth();
+  const { isLoading: orgsQueryLoading, data: orgsData } =
+    useUserOrganizations();
 
   if (isLoading) {
     return (
@@ -56,10 +59,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user doesn't have an organization, redirect to onboarding
-  if (!user.organizationId) {
-    return <Navigate to="/onboarding" replace />;
-  }
+  // While organizations are being resolved, render the app frame with a placeholder
+  const renderContent = () => {
+    if (orgsLoading || orgsQueryLoading) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          Loading...
+        </div>
+      );
+    }
+    // If user doesn't have an organization after loading, redirect to onboarding
+    if (!user.organizationId && !(orgsData && orgsData.length > 0)) {
+      return <Navigate to="/onboarding" replace />;
+    }
+    return children;
+  };
 
   return (
     <div className="relative flex w-full min-h-screen">
@@ -67,7 +81,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </div>
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-auto pb-[56px] md:pb-0">{children}</div>
+        <div className="flex-1 overflow-auto pb-[56px] md:pb-0">
+          {renderContent()}
+        </div>
       </div>
       {/* Global Mobile Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">

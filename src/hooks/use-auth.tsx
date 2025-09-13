@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { organizationKeys } from "@/api/organizations/keys";
 
 interface AuthContextProps {
   user: User | null;
@@ -16,6 +18,7 @@ interface AuthContextProps {
   refreshUser: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  orgsLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -24,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [orgsLoading, setOrgsLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const bootstrapSession = async () => {
@@ -31,8 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: { session },
       } = await supabase.auth.getSession();
       console.log("Initial session check:", session?.user?.id || "no user");
-      await handleSession(session);
-      setIsLoading(false); // This now waits for handleSession to complete
+
+      // Set minimal user immediately and clear the global auth loading state
+      await setBasicUser(session);
+      setIsLoading(false);
+
+      // Fetch organizations in the background without blocking auth loading
+      void fetchAndSetOrganizations(session);
     };
 
     bootstrapSession();
@@ -43,97 +53,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state change:", event, session?.user?.id || "no user");
 
-      // Set loading to true only for sign-in/sign-out events
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+      if (event === "SIGNED_IN") {
         setIsLoading(true);
-      }
-
-      // Use setTimeout to defer async operations as recommended by Supabase
-      // This prevents deadlocks when making Supabase calls in the callback
-      setTimeout(async () => {
-        await handleSession(session);
-        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        // Clear any user-scoped cache to avoid leaking previous state
+        queryClient.clear();
+        setTimeout(async () => {
+          await setBasicUser(session);
           setIsLoading(false);
-        }
-      }, 0);
+          void fetchAndSetOrganizations(session);
+        }, 0);
+      } else if (event === "SIGNED_OUT") {
+        setIsLoading(true);
+        setTimeout(async () => {
+          setUser(null);
+          setOrgsLoading(false);
+          queryClient.clear();
+          setIsLoading(false);
+        }, 0);
+      } else {
+        // Other events (TOKEN_REFRESHED, USER_UPDATED)
+        setTimeout(async () => {
+          await setBasicUser(session);
+          void fetchAndSetOrganizations(session);
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSession = async (session: Session | null) => {
+  const setBasicUser = async (session: Session | null) => {
     if (session?.user) {
-      // Fetch user's organizations
-      let organizationId: string | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let organizations: any[] = [];
-
-      try {
-        // Use the new user_accessible_organizations view for better performance
-        // This avoids the complex join and uses our RLS-safe view.
-        // It now includes the role and creation date, so only one query is needed.
-        const { data: userAccessibleOrgs, error: orgsError } = await supabase
-          .from("user_accessible_organizations")
-          .select("id, name, owner_id, role, created_at");
-
-        if (orgsError) {
-          console.error("Error fetching organizations:", orgsError);
-        } else if (userAccessibleOrgs && userAccessibleOrgs.length > 0) {
-          console.log("User accessible organizations:", userAccessibleOrgs);
-
-          // Map organizations directly from the view's result
-          organizations = userAccessibleOrgs.map((org) => ({
-            id: org.id, // This should be the membership ID if available, but org ID is fallback
-            organizationId: org.id,
-            organizationName: org.name,
-            role: org.role,
-            createdAt: org.created_at || new Date().toISOString(),
-          }));
-
-          // Set the first organization as active (could be stored preference later)
-          organizationId = organizations[0].organizationId;
-          console.log(
-            "Found organizations:",
-            organizations.length,
-            "Active:",
-            organizationId
-          );
-        } else {
-          // User doesn't belong to any organization yet
-          console.log(
-            "User has no organizations, checking for pending join code:",
-            session.user.id
-          );
-
-          // Check if there's a pending join code from localStorage
-          const pendingJoinCode = localStorage.getItem("pendingJoinCode");
-          if (pendingJoinCode) {
-            console.log("Found pending join code, will redirect to join flow");
-            localStorage.removeItem("pendingJoinCode");
-
-            // Use setTimeout to ensure the user state is set before navigation
-            setTimeout(() => {
-              window.location.href = `/join?code=${pendingJoinCode}`;
-            }, 100);
-          }
-
-          organizationId = undefined;
-          organizations = [];
-        }
-      } catch (err) {
-        console.error("Error fetching/creating user organization:", err);
-      }
-
-      setUser({
+      setUser((prev) => ({
         id: session.user.id,
         email: session.user.email!,
         name:
           session.user.user_metadata.name || session.user.email!.split("@")[0],
-        organizationId,
-        organizations,
-      });
+        organizationId: prev?.organizationId,
+        organizations: prev?.organizations ?? [],
+      }));
     } else {
       setUser(null);
+    }
+  };
+
+  const fetchAndSetOrganizations = async (session: Session | null) => {
+    if (!session?.user) return;
+    setOrgsLoading(true);
+    try {
+      const { data: userAccessibleOrgs, error: orgsError } = await supabase
+        .from("user_accessible_organizations")
+        .select("id, name, owner_id, role, created_at");
+
+      if (orgsError) {
+        console.error("Error fetching organizations:", orgsError);
+        // Populate React Query cache with empty list
+        queryClient.setQueryData(organizationKeys.list(session.user.id), []);
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                organizationId: undefined,
+                organizations: [],
+              }
+            : prev
+        );
+      } else if (userAccessibleOrgs && userAccessibleOrgs.length > 0) {
+        const organizations = userAccessibleOrgs.map((org) => ({
+          id: org.id,
+          organizationId: org.id,
+          organizationName: org.name,
+          role: org.role,
+          createdAt: org.created_at || new Date().toISOString(),
+        }));
+
+        const organizationId = organizations[0].organizationId;
+        // Seed React Query cache so consumers don't refetch
+        queryClient.setQueryData(
+          organizationKeys.list(session.user.id),
+          userAccessibleOrgs
+        );
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                organizationId,
+                organizations,
+              }
+            : prev
+        );
+      } else {
+        // No organizations yet
+        const pendingJoinCode = localStorage.getItem("pendingJoinCode");
+        if (pendingJoinCode) {
+          console.log("Found pending join code, will redirect to join flow");
+          localStorage.removeItem("pendingJoinCode");
+          setTimeout(() => {
+            window.location.href = `/join?code=${pendingJoinCode}`;
+          }, 100);
+        }
+        // Populate React Query cache with empty list
+        queryClient.setQueryData(organizationKeys.list(session.user.id), []);
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                organizationId: undefined,
+                organizations: [],
+              }
+            : prev
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching/creating user organization:", err);
+    } finally {
+      setOrgsLoading(false);
     }
   };
 
@@ -141,7 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    await handleSession(session);
+    await setBasicUser(session);
+    await fetchAndSetOrganizations(session);
   };
 
   const login = async (email: string, password: string) => {
@@ -264,18 +299,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const switchOrganization = (organizationId: string) => {
-    if (
-      user &&
-      user.organizations.some((org) => org.organizationId === organizationId)
-    ) {
-      setUser({
-        ...user,
-        organizationId,
-      });
-      console.log("Switched to organization:", organizationId);
-    } else {
-      console.error("User does not belong to organization:", organizationId);
-    }
+    if (!user) return;
+    // Allow switching optimistically; membership is enforced by RLS on data queries
+    setUser({
+      ...user,
+      organizationId,
+    });
+    console.log("Switched to organization:", organizationId);
   };
 
   const createOrganization = async (name: string) => {
@@ -359,6 +389,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshUser,
         isLoading,
         error,
+        orgsLoading,
       }}
     >
       {children}
