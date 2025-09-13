@@ -45,6 +45,7 @@ export function SongSearchCombobox({
   const [internalValue, setInternalValue] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [isMobile, setIsMobile] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -59,6 +60,16 @@ export function SongSearchCombobox({
     mql.addEventListener?.("change", listener);
     return () => mql.removeEventListener?.("change", listener);
   }, []);
+
+  React.useEffect(() => {
+    if (!isMobile) return;
+    if (open) {
+      const id = window.setTimeout(() => inputRef.current?.focus(), 50);
+      return () => window.clearTimeout(id);
+    } else {
+      inputRef.current?.blur();
+    }
+  }, [isMobile, open]);
 
   const value = controlledValue !== undefined ? controlledValue : internalValue;
 
@@ -116,8 +127,12 @@ export function SongSearchCombobox({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
+              ref={inputRef}
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
             />
-            <div className="max-h-[60vh] overflow-y-auto -mx-1 pr-1">
+            <div className="max-h-[60dvh] overflow-y-auto -mx-1 pr-1">
               {mobileResults.length === 0 ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   No results found.
@@ -127,7 +142,10 @@ export function SongSearchCombobox({
                   {mobileResults.map((song) => (
                     <button
                       key={song.id}
-                      onClick={() => handleSelect(song.id)}
+                      onClick={() => {
+                        inputRef.current?.blur();
+                        handleSelect(song.id);
+                      }}
                       className="w-full text-left rounded-md px-3 py-2 outline-none transition hover:bg-accent focus:bg-accent"
                     >
                       <div className="flex flex-col">

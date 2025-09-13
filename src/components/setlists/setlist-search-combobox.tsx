@@ -39,6 +39,7 @@ export function SetlistSearchCombobox({
   const [value, setValue] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [isMobile, setIsMobile] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -53,6 +54,16 @@ export function SetlistSearchCombobox({
     mql.addEventListener?.("change", listener);
     return () => mql.removeEventListener?.("change", listener);
   }, []);
+
+  React.useEffect(() => {
+    if (!isMobile) return;
+    if (open) {
+      const id = window.setTimeout(() => inputRef.current?.focus(), 50);
+      return () => window.clearTimeout(id);
+    } else {
+      inputRef.current?.blur();
+    }
+  }, [isMobile, open]);
 
   // Mobile fuzzy search results
   const mobileResults: Setlist[] = React.useMemo(() => {
@@ -99,8 +110,12 @@ export function SetlistSearchCombobox({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
+              ref={inputRef}
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
             />
-            <div className="max-h-[60vh] overflow-y-auto -mx-1 pr-1">
+            <div className="max-h-[60dvh] overflow-y-auto -mx-1 pr-1">
               {mobileResults.length === 0 ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   No results found.
@@ -111,6 +126,7 @@ export function SetlistSearchCombobox({
                     <button
                       key={setlist.id}
                       onClick={() => {
+                        inputRef.current?.blur();
                         setValue(setlist.id);
                         setOpen(false);
                         setQuery("");
