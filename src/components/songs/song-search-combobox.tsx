@@ -132,7 +132,7 @@ export function SongSearchCombobox({
               inputMode="search"
               enterKeyHint="search"
             />
-            <div className="max-h-[60dvh] overflow-y-auto -mx-1 pr-1">
+            <div className="h-[60dvh] overflow-y-auto -mx-1 pr-1">
               {mobileResults.length === 0 ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   No results found.
