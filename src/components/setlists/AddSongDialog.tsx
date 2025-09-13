@@ -115,6 +115,8 @@ export function AddSongDialog({
 
     setIsAddingSong(true);
     try {
+      console.log(addSongForm.key);
+
       const tempId = crypto.randomUUID();
       const newSong: SetlistSong = {
         id: tempId,

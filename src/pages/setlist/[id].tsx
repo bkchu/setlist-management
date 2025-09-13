@@ -215,6 +215,7 @@ export default function SetlistPage() {
       if (!setlist) return;
       try {
         const updatedSongs = [...setlist.songs, newSong];
+        console.log(updatedSongs);
         await updateSetlistSongs(setlist.id, updatedSongs);
       } catch {
         toast.error("Error adding song");
