@@ -1,8 +1,12 @@
-
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MusicIcon, ListMusic, HomeIcon, LogOutIcon, SettingsIcon } from "lucide-react";
+import {
+  MusicIcon,
+  ListMusic,
+  HomeIcon,
+  LogOutIcon,
+  SettingsIcon,
+} from "lucide-react";
 import { SidebarNav } from "./sidebar-nav";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -13,7 +17,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
-import SetlifyLogoIcon from "../SetlifyLogoIcon";
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -45,9 +48,6 @@ export function Sidebar() {
     <div className="flex h-full w-32 flex-col border-r">
       <Link to="/" className="">
         <div className="flex h-14 items-center px-4 py-2 gap-2">
-          <div className="flex items-center justify-center rounded-full bg-primary h-8 w-8">
-            <SetlifyLogoIcon className="h-6 w-6 text-primary-foreground" />
-          </div>
           <h2 className="text-lg font-semibold tracking-tight">Setlify</h2>
         </div>
       </Link>

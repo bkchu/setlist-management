@@ -1,6 +1,5 @@
 // Button import removed (unused)
 import { Separator } from "@/components/ui/separator";
-import SetlifyLogoIcon from "../SetlifyLogoIcon";
 import { Link } from "react-router-dom";
 
 interface HeaderProps {
@@ -17,11 +16,8 @@ export function Header({ title, subtitle, children, searchBar }: HeaderProps) {
         <div className="flex items-center gap-2 h-full">
           <div className="items-center gap-2 border-r border-border pr-4 h-full hidden sm:flex md:hidden">
             <Link to="/" className="">
-              <div className="flex items-center justify-center rounded-full bg-primary h-8 w-8">
-                <SetlifyLogoIcon className="h-6 w-6 text-primary-foreground" />
-              </div>
+              <h2 className="text-lg font-semibold tracking-tight">Setlify</h2>
             </Link>
-            <h2 className="text-lg font-semibold tracking-tight">Setlify</h2>
           </div>
           <h1 className="text-lg font-semibold">{title}</h1>
           {subtitle && (
