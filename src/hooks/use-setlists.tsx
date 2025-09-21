@@ -9,6 +9,7 @@ import {
 import { Setlist, SetlistSong } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
+import { useGetSetlistsByOrganization } from "@/api/setlists/list";
 
 // TypeScript interfaces for Supabase response types
 interface SupabaseSetlistSong {
@@ -30,16 +31,6 @@ interface SupabaseSong {
   updated_at: string;
 }
 
-interface SupabaseSetlist {
-  id: string;
-  name: string;
-  date: string;
-  notes?: string | null;
-  created_at: string;
-  updated_at: string;
-  setlist_songs: SupabaseSetlistSong[];
-}
-
 interface SetlistContextProps {
   setlists: Setlist[];
   addSetlist: (setlist: Partial<Setlist>) => Promise<Setlist>;
@@ -57,32 +48,7 @@ const SetlistContext = createContext<SetlistContextProps | undefined>(
   undefined
 );
 
-// Helper function to transform Supabase setlist data
-const transformSetlist = (setlist: SupabaseSetlist): Setlist => ({
-  id: setlist.id,
-  name: setlist.name,
-  date: setlist.date,
-  songs:
-    setlist.setlist_songs
-      ?.map((item: SupabaseSetlistSong) => ({
-        id: item.id,
-        songId: item.song_id,
-        key: item.key || "",
-        notes: item.notes || "",
-        order: item.order,
-        song: {
-          id: item.songs.id,
-          title: item.songs.title,
-          artist: item.songs.artist,
-          notes: item.songs.notes || "",
-          createdAt: item.songs.created_at,
-          updatedAt: item.songs.updated_at,
-        },
-      }))
-      .sort((a, b) => a.order - b.order) || [],
-  createdAt: setlist.created_at,
-  updatedAt: setlist.updated_at,
-});
+// transformSetlist no longer needed; list data comes from API hook
 
 // Helper function to transform setlist song data
 const transformSetlistSong = (ss: SupabaseSetlistSong): SetlistSong => ({
@@ -91,13 +57,16 @@ const transformSetlistSong = (ss: SupabaseSetlistSong): SetlistSong => ({
   order: ss.order,
   key: ss.key || undefined,
   notes: ss.notes || undefined,
+  title: ss.songs.title,
+  artist: ss.songs.artist,
+  files: [],
+  keyedFiles: {},
   song: {
     id: ss.songs.id,
     title: ss.songs.title,
     artist: ss.songs.artist,
-    notes: ss.songs.notes || "",
-    createdAt: ss.songs.created_at,
-    updatedAt: ss.songs.updated_at,
+    files: [],
+    keyedFiles: {},
   },
 });
 
@@ -107,48 +76,30 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize the setlist loading function
-  const loadSetlistsData = useCallback(async () => {
+  const {
+    data: setlistsData,
+    isLoading: setlistsLoading,
+    error: setlistsError,
+  } = useGetSetlistsByOrganization(user?.organizationId);
+
+  useEffect(() => {
     if (!user?.organizationId) {
+      setSetlists([]);
       setIsLoading(false);
       return;
     }
+    if (setlistsLoading !== isLoading) setIsLoading(setlistsLoading);
+  }, [user?.organizationId, setlistsLoading, isLoading]);
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data: setlistsData, error: setlistsError } = await supabase
-        .from("setlists")
-        .select(
-          `
-          *,
-          setlist_songs(*, songs(*))
-        `
-        )
-        .eq("organization_id", user.organizationId)
-        .order("date", { ascending: false });
-
-      if (setlistsError) throw setlistsError;
-
-      const transformedSetlists = setlistsData.map(transformSetlist);
-      setSetlists(transformedSetlists);
-    } catch (error) {
-      console.error("Error loading setlists:", error);
-      setError("Failed to load setlists");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  // Load setlists when user's organization changes
   useEffect(() => {
-    if (user?.organizationId) {
-      loadSetlistsData();
-    } else {
-      setSetlists([]);
+    if ((setlistsError as unknown as Error | null)?.message && !error) {
+      setError((setlistsError as unknown as Error).message);
     }
-  }, [user?.organizationId, loadSetlistsData]);
+  }, [setlistsError, error]);
+
+  useEffect(() => {
+    if (setlistsData && setlists !== setlistsData) setSetlists(setlistsData);
+  }, [setlistsData, setlists]);
 
   // Memoized function to add a new setlist
   const addSetlist = useCallback(

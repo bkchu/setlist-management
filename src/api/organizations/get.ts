@@ -18,6 +18,11 @@ export function useUserOrganizations() {
     queryKey: organizationKeys.list(user?.id),
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    retry: 2,
     queryFn: async (): Promise<UserAccessibleOrganizationRow[]> => {
       const { data, error } = await supabase
         .from("user_accessible_organizations")

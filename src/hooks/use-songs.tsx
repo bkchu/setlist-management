@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import { Song } from "@/types";
+import type { SongFile } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useGetSongsByOrganization } from "@/api/songs/list";
 
 interface SongContextProps {
   songs: Song[];
@@ -17,96 +18,20 @@ const SongContext = createContext<SongContextProps | undefined>(undefined);
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  console.log("USER", user);
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {
+    data: songsData,
+    isLoading: songsLoading,
+    error: songsError,
+  } = useGetSongsByOrganization(user?.organizationId);
 
-  useEffect(() => {
-    if (user?.organizationId) {
-      console.log("Loading songs", user.organizationId);
-      loadSongs();
-    } else {
-      console.log("No organization ID");
-      setSongs([]);
-    }
-  }, [user?.organizationId]);
-
-  const loadSongs = async () => {
-    if (!user?.organizationId) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    console.log("Loading songs", user.organizationId);
-
-    try {
-      // Fetch songs with their key history, filtered by organization
-      const { data: songsData, error: songsError } = await supabase
-        .from("songs")
-        .select(
-          `
-          *,
-          song_keys (
-            id,
-            key,
-            played_at,
-            setlist_id,
-            setlists (
-              name
-            )
-          )
-        `
-        )
-        .eq("organization_id", user.organizationId)
-        .order("created_at", { ascending: false });
-
-      if (songsError) throw songsError;
-
-      console.log("Songs data", songsData);
-
-      setSongs(
-        songsData.map((song) => {
-          console.log(song);
-          return {
-            id: song.id,
-            title: song.title,
-            artist: song.artist,
-            notes: song.notes || "",
-            files: song.files || [],
-            keyedFiles: song.keyed_files || {},
-            keyHistory:
-              song.song_keys
-                ?.map((key) => ({
-                  id: key.id,
-                  key: key.key,
-                  playedAt: key.played_at,
-                  setlistId: key.setlist_id,
-                  setlistName: key.setlists?.name,
-                }))
-                .sort(
-                  (a, b) =>
-                    new Date(b.playedAt).getTime() -
-                    new Date(a.playedAt).getTime()
-                ) || [],
-            createdAt: song.created_at,
-            updatedAt: song.updated_at,
-          };
-        })
-      );
-    } catch (err) {
-      setError("Failed to load songs");
-      toast.error("Error", {
-        description: "Failed to load songs",
-      });
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Mirror query state into context state
+  if (songsLoading !== isLoading) setIsLoading(songsLoading);
+  if ((songsError as unknown as Error | null)?.message && !error)
+    setError((songsError as unknown as Error).message);
+  if (songsData && songs !== songsData) setSongs(songsData);
 
   const addSong = async (songData: Partial<Song>): Promise<Song> => {
     if (!user?.organizationId)
@@ -158,14 +83,21 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         notes: data.notes || "",
         files: data.files || [],
         keyedFiles: data.keyed_files || {},
-        keyHistory:
-          data.song_keys?.map((key) => ({
+        keyHistory: (data.song_keys || []).map(
+          (key: {
+            id: string;
+            key: string;
+            played_at: string;
+            setlist_id: string;
+            setlists?: { name?: string } | null;
+          }) => ({
             id: key.id,
             key: key.key,
             playedAt: key.played_at,
             setlistId: key.setlist_id,
-            setlistName: key.setlists?.name,
-          })) || [],
+            setlistName: key.setlists?.name || "",
+          })
+        ),
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
@@ -232,19 +164,26 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         notes: data.notes || "",
         files: data.files || [],
         keyedFiles: data.keyed_files || {},
-        keyHistory:
-          data.song_keys
-            ?.map((key) => ({
+        keyHistory: (data.song_keys || [])
+          .map(
+            (key: {
+              id: string;
+              key: string;
+              played_at: string;
+              setlist_id: string;
+              setlists?: { name?: string } | null;
+            }) => ({
               id: key.id,
               key: key.key,
               playedAt: key.played_at,
               setlistId: key.setlist_id,
-              setlistName: key.setlists?.name,
-            }))
-            .sort(
-              (a, b) =>
-                new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
-            ) || [],
+              setlistName: key.setlists?.name || "",
+            })
+          )
+          .sort(
+            (a: { playedAt: string }, b: { playedAt: string }) =>
+              new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+          ),
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
@@ -283,11 +222,13 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
       // Add paths from keyed files structure
       if (songToDelete?.keyedFiles) {
-        Object.values(songToDelete.keyedFiles).forEach((keyFiles) => {
-          if (keyFiles?.length) {
-            filePaths.push(...keyFiles.map((f) => f.path));
+        Object.values(songToDelete.keyedFiles).forEach(
+          (keyFiles: SongFile[] | undefined) => {
+            if (keyFiles?.length) {
+              filePaths.push(...keyFiles.map((f: SongFile) => f.path));
+            }
           }
-        });
+        );
       }
 
       // Remove all files from storage

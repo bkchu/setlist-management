@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./use-auth";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+// import { toast } from "sonner";
+import { useGetUserSettings } from "@/api/settings/get";
+import { useUpdateUserSettings } from "@/api/settings/put";
 
 export interface UserSettings {
   oneTouchSongs: {
@@ -33,110 +34,44 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const {
+    data,
+    isLoading: settingsLoading,
+    error: settingsError,
+  } = useGetUserSettings(user?.id);
+
   useEffect(() => {
-    if (user) {
-      loadSettings();
-    } else {
+    if (!user) {
       setSettings(defaultSettings);
-    }
-  }, [user]);
-
-  const loadSettings = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 is "no rows returned" error
-        throw error;
-      }
-
-      if (data) {
-        setSettings({
-          oneTouchSongs: data.one_touch_songs || { songIds: [] },
-        });
-      } else {
-        // Create default settings if none exist
-        await supabase.from("user_settings").insert({
-          user_id: user.id,
-          one_touch_songs: defaultSettings.oneTouchSongs,
-        });
-
-        setSettings(defaultSettings);
-      }
-    } catch (err) {
-      setError("Failed to load settings");
-      toast.error("Error", {
-        description: "Failed to load settings",
-      });
-      console.error(err);
-    } finally {
       setIsLoading(false);
+      return;
     }
-  };
+    if (settingsLoading !== isLoading) setIsLoading(settingsLoading);
+    if ((settingsError as unknown as Error | null)?.message && !error) {
+      setError((settingsError as unknown as Error).message);
+    }
+    if (data) {
+      setSettings({
+        oneTouchSongs: data.one_touch_songs || { songIds: [] },
+      });
+    }
+  }, [user, data, settingsLoading, settingsError, isLoading, error]);
+
+  const updateMutation = useUpdateUserSettings(user?.id || "");
 
   const updateSettings = async (
     newSettings: Partial<UserSettings>
   ): Promise<UserSettings> => {
     if (!user) throw new Error("User not authenticated");
 
-    setIsLoading(true);
-    setError(null);
+    const updatedSettings = { ...settings, ...newSettings };
 
-    try {
-      const updatedSettings = { ...settings, ...newSettings };
+    await updateMutation.mutateAsync({
+      oneTouchSongs: updatedSettings.oneTouchSongs,
+    });
 
-      // First check if a record exists
-      const { data: existingData } = await supabase
-        .from("user_settings")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      let error;
-
-      if (existingData) {
-        // Update existing record
-        const result = await supabase
-          .from("user_settings")
-          .update({
-            one_touch_songs: updatedSettings.oneTouchSongs,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", user.id);
-
-        error = result.error;
-      } else {
-        // Insert new record
-        const result = await supabase.from("user_settings").insert({
-          user_id: user.id,
-          one_touch_songs: updatedSettings.oneTouchSongs,
-          updated_at: new Date().toISOString(),
-        });
-
-        error = result.error;
-      }
-
-      if (error) throw error;
-
-      setSettings(updatedSettings);
-      return updatedSettings;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update settings"
-      );
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setSettings(updatedSettings);
+    return updatedSettings;
   };
 
   const updateOneTouchSongs = async (

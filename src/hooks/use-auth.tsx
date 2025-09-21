@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
 
       // Fetch organizations in the background without blocking auth loading
-      void fetchAndSetOrganizations(session);
+      void fetchAndSetOrganizations(session, true); // Force refresh on initial load
     };
 
     bootstrapSession();
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTimeout(async () => {
           await setBasicUser(session);
           setIsLoading(false);
-          void fetchAndSetOrganizations(session);
+          void fetchAndSetOrganizations(session, true); // Force refresh on sign in
         }, 0);
       } else if (event === "SIGNED_OUT") {
         setIsLoading(true);
@@ -71,10 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
         }, 0);
       } else {
-        // Other events (TOKEN_REFRESHED, USER_UPDATED)
+        // Other events (TOKEN_REFRESHED, USER_UPDATED) - no org fetch to avoid refocus churn
         setTimeout(async () => {
           await setBasicUser(session);
-          void fetchAndSetOrganizations(session);
         }, 0);
       }
     });
@@ -84,21 +83,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setBasicUser = async (session: Session | null) => {
     if (session?.user) {
-      setUser((prev) => ({
+      const next = {
         id: session.user.id,
         email: session.user.email!,
         name:
           session.user.user_metadata.name || session.user.email!.split("@")[0],
-        organizationId: prev?.organizationId,
-        organizations: prev?.organizations ?? [],
-      }));
+        organizationId: undefined as string | undefined,
+        organizations: [] as User["organizations"],
+      };
+
+      setUser((prev) => {
+        // Preserve existing org state
+        const merged = {
+          ...next,
+          organizationId: prev?.organizationId,
+          organizations: prev?.organizations ?? [],
+        };
+        // Avoid state update if nothing changed to prevent re-renders on refocus
+        const unchanged =
+          prev?.id === merged.id &&
+          prev?.email === merged.email &&
+          prev?.name === merged.name &&
+          prev?.organizationId === merged.organizationId &&
+          (prev?.organizations?.length || 0) ===
+            (merged.organizations?.length || 0);
+        return unchanged ? prev! : merged;
+      });
     } else {
       setUser(null);
     }
   };
 
-  const fetchAndSetOrganizations = async (session: Session | null) => {
+  const fetchAndSetOrganizations = async (
+    session: Session | null,
+    forceRefresh = false
+  ) => {
     if (!session?.user) return;
+
+    // Don't refetch if we already have organizations and this isn't a forced refresh
+    if (!forceRefresh && user?.organizations && user.organizations.length > 0) {
+      return;
+    }
+
     setOrgsLoading(true);
     try {
       const { data: userAccessibleOrgs, error: orgsError } = await supabase
@@ -176,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { session },
     } = await supabase.auth.getSession();
     await setBasicUser(session);
-    await fetchAndSetOrganizations(session);
+    await fetchAndSetOrganizations(session, true); // Force refresh when explicitly requested
   };
 
   const login = async (email: string, password: string) => {

@@ -7,9 +7,10 @@ export function getSignedSongFileUrlQueryOptions(
   expiresIn: number,
   version?: string | number
 ) {
+  // Keep URLs fresh for most of their lifetime, but refresh before expiry
   const staleTime = Math.max(
     0,
-    Math.min(expiresIn * 1000 - 30_000, 5 * 60 * 1000)
+    expiresIn * 1000 - 10 * 60 * 1000 // Refresh 10 minutes before expiry
   );
   return {
     queryKey: songKeys.fileUrl(path, version),
@@ -18,16 +19,16 @@ export function getSignedSongFileUrlQueryOptions(
       return { url, expiresAt: Date.now() + expiresIn * 1000 } as const;
     },
     staleTime,
-    // Retain for a day; version changes will invalidate
-    gcTime: 24 * 60 * 60 * 1000,
+    // Retain for longer than expiry to allow background refresh
+    gcTime: (expiresIn + 60 * 60) * 1000, // expiry + 1 hour
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: 2, // More retries for network issues
   } as const;
 }
 
 export function useGetSignedSongFileUrls({
   paths,
-  expiresIn = 3600,
+  expiresIn = 8 * 60 * 60, // 8 hours - match storage.ts default
   versions,
 }: {
   paths?: string[];

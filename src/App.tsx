@@ -6,7 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SongProvider } from "@/hooks/use-songs";
@@ -47,6 +47,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLoading: orgsQueryLoading, data: orgsData } =
     useUserOrganizations();
 
+  // Only show the loading screen on the initial organizations resolution
+  const [orgsResolved, setOrgsResolved] = useState(false);
+  useEffect(() => {
+    if (!orgsLoading && !orgsQueryLoading) {
+      // Once either an organization is set or the query has run, consider resolved
+      if (user?.organizationId !== undefined || orgsData !== undefined) {
+        setOrgsResolved(true);
+      }
+    }
+  }, [orgsLoading, orgsQueryLoading, user?.organizationId, orgsData]);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -61,7 +72,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // While organizations are being resolved, render the app frame with a placeholder
   const renderContent = () => {
-    if (orgsLoading || orgsQueryLoading) {
+    // Only show loading before the first organizations resolution
+    const isInitialLoading =
+      !orgsResolved && (orgsLoading || (orgsQueryLoading && !orgsData));
+
+    if (isInitialLoading) {
       return (
         <div className="flex h-full items-center justify-center">
           Loading...

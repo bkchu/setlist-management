@@ -63,10 +63,12 @@ export function useFileSlides({
     queries: processedFiles.map(({ file }) => ({
       queryKey: ["signed-url", file.path] as const,
       queryFn: () => getSignedUrl(file.path),
-      staleTime: 50 * 60 * 1000, // 50 minutes (10 minutes before URL expires)
-      gcTime: 60 * 60 * 1000, // 1 hour
-      retry: 1,
+      // Keep cached for most of 8-hour expiry, refresh 10 minutes before expiry
+      staleTime: (8 * 60 * 60 - 10 * 60) * 1000, // 7h 50m
+      gcTime: 9 * 60 * 60 * 1000, // 9 hours - longer than expiry
+      retry: 2,
       retryDelay: 1000,
+      refetchOnWindowFocus: false,
       enabled: !!file.path,
     })),
   });

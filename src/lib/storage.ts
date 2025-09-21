@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 
 export async function signSongFilePath(
   filePath: string,
-  expiresIn = 3600
+  expiresIn = 8 * 60 * 60 // 8 hours - enough for long rehearsals/performances
 ): Promise<string> {
   const { data, error } = await supabase.storage
     .from("song-files")

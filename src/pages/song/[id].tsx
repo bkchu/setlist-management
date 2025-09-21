@@ -101,7 +101,7 @@ export default function SongPage() {
 
   const { urlsByPath, results } = useGetSignedSongFileUrls({
     paths: filePaths,
-    expiresIn: 3600,
+    // Use default 8-hour expiry for long sessions
     versions,
   });
 
