@@ -129,7 +129,17 @@ export function SetlistForm({
                   {date ? format(date, "PPP") : "Select a date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 mt-2">
+              <PopoverContent
+                className="w-auto p-0"
+                align="start"
+                onInteractOutside={(e) => {
+                  // Prevent the Dialog from catching pointer events when interacting with the calendar
+                  const target = e.target as HTMLElement;
+                  if (target.closest('[role="dialog"]')) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <Calendar
                   mode="single"
                   selected={date}
