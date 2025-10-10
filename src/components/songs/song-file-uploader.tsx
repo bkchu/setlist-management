@@ -53,9 +53,7 @@ export function SongFileUploader({
     setIsUploading(true);
 
     try {
-      const filePath = `${user.organizationId}/${songId}/${
-        songKey || "default"
-      }/${file.name}`;
+      const filePath = `${user.organizationId}/${songId}/${songKey}/${file.name}`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -78,7 +76,7 @@ export function SongFileUploader({
       };
 
       const newKeyedFiles = { ...(song.keyedFiles || {}) };
-      const key = (songKey || "default") as MusicalKey | "default";
+      const key = songKey as MusicalKey;
 
       if (!newKeyedFiles[key]) {
         newKeyedFiles[key] = [];

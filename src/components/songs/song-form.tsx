@@ -59,12 +59,9 @@ export function SongForm({
     if (song?.keyedFiles && Object.keys(song.keyedFiles).length > 0) {
       // Use existing keyedFiles if available
       keyedFiles = song.keyedFiles;
-    } else if (song?.files && song.files.length > 0) {
-      // Migrate old files to default key if no keyedFiles exist
-      keyedFiles = { default: song.files };
     } else {
       // Start with empty structure
-      keyedFiles = { default: [] };
+      keyedFiles = {};
     }
 
     return {
@@ -76,7 +73,7 @@ export function SongForm({
   const [formData, setFormData] = useState<Partial<Song>>(initializeFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedKey, setSelectedKey] = useState<string>("default");
+  const [selectedKey, setSelectedKey] = useState<string>("");
 
   // Reset form when dialog opens or when the song changes
   useEffect(() => {
@@ -84,8 +81,8 @@ export function SongForm({
     const nextData = initializeFormData();
     setFormData(nextData);
 
-    // Choose initial key: first key with files if available, else default
-    let initialKey = "default";
+    // Choose initial key: first key with files if available, else first available key (G)
+    let initialKey = "G";
     if (nextData.keyedFiles) {
       const keysWithFiles = Object.entries(nextData.keyedFiles).filter(
         ([, files]) => files && files.length > 0
@@ -114,11 +111,7 @@ export function SongForm({
 
   // Helper to get files for current selected key
   const getCurrentFiles = (): SongFile[] => {
-    if (!formData.keyedFiles) return [];
-
-    if (selectedKey === "default") {
-      return formData.keyedFiles.default || [];
-    }
+    if (!formData.keyedFiles || !selectedKey) return [];
     return formData.keyedFiles[selectedKey as MusicalKey] || [];
   };
 
@@ -127,11 +120,7 @@ export function SongForm({
     const updated: KeyedSongFiles = {
       ...formData.keyedFiles,
     } as KeyedSongFiles;
-    if (selectedKey === "default") {
-      updated.default = files;
-    } else {
-      updated[selectedKey as MusicalKey] = files;
-    }
+    updated[selectedKey as MusicalKey] = files;
 
     setFormData((prev) => ({
       ...prev,
@@ -195,9 +184,7 @@ export function SongForm({
       }
 
       toast.success("Files uploaded", {
-        description: `Successfully uploaded ${files.length} file(s) for ${
-          selectedKey === "default" ? "default" : `key ${selectedKey}`
-        }`,
+        description: `Successfully uploaded ${files.length} file(s) for key ${selectedKey}`,
       });
     } catch (error) {
       console.error(error);
@@ -323,7 +310,6 @@ export function SongForm({
                       <SelectValue placeholder="Select a key" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Default (No Key)</SelectItem>
                       {AVAILABLE_KEYS.map((key) => (
                         <SelectItem key={key} value={key}>
                           {key}
@@ -357,9 +343,7 @@ export function SongForm({
                       )}
                       {isUploading
                         ? "Uploading..."
-                        : `Upload for ${
-                            selectedKey === "default" ? "Default" : selectedKey
-                          }`}
+                        : `Upload for ${selectedKey}`}
                     </label>
                   </div>
                 </div>
@@ -369,11 +353,7 @@ export function SongForm({
               {getCurrentFiles().length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">
-                    Files for{" "}
-                    {selectedKey === "default"
-                      ? "Default"
-                      : `Key ${selectedKey}`}{" "}
-                    ({getCurrentFiles().length}):
+                    Files for Key {selectedKey} ({getCurrentFiles().length}):
                   </p>
                   <div className="space-y-2">
                     {getCurrentFiles().map((file, index) => (
@@ -425,9 +405,7 @@ export function SongForm({
                             }`}
                             onClick={() => setSelectedKey(key)}
                           >
-                            <span className="font-medium">
-                              {key === "default" ? "Default" : key}
-                            </span>
+                            <span className="font-medium">{key}</span>
                             <span className="text-muted-foreground">
                               {files!.length} file(s)
                             </span>

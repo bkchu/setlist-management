@@ -53,8 +53,7 @@ export function FileSection({
     return (
       <div className="space-y-2">
         <Label className="text-sm font-medium">
-          File Preview (
-          {selectedKey === "default" ? "Default" : `Key: ${selectedKey}`})
+          File Preview (Key: {selectedKey})
         </Label>
         <div className="rounded-md border bg-muted/20 p-2 flex justify-center items-center">
           {isImage(filesForSelectedKey[0].name) ? (

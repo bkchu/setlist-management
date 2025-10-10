@@ -130,60 +130,31 @@ export function EditSongDialog({
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Key</Label>
-                  <div className="space-y-3">
-                    <Button
-                      variant={
-                        editableSong.key === "default" ? "default" : "outline"
-                      }
-                      className="w-full relative"
-                      onClick={() => handleKeyChange("default")}
-                    >
-                      Default
-                      {(() => {
-                        const songInDb = songs.find(
-                          (s) => s.id === editingSong.songId
-                        );
-                        return (
-                          songInDb &&
-                          hasFilesForSpecificKey(songInDb, "default") && (
-                            <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
-                          )
-                        );
-                      })()}
-                    </Button>
-                    <div className="flex items-center">
-                      <div className="flex-grow border-t border-muted" />
-                      <span className="flex-shrink mx-2 text-xs text-muted-foreground">
-                        OR
-                      </span>
-                      <div className="flex-grow border-t border-muted" />
-                    </div>
-                    <div className="grid grid-cols-6 gap-2">
-                      {KEY_OPTIONS.map((key) => {
-                        const songInDb = songs.find(
-                          (s) => s.id === editingSong.songId
-                        );
-                        const hasFiles = songInDb
-                          ? hasFilesForSpecificKey(songInDb, key)
-                          : false;
-                        const isSelected = editableSong.key === key;
+                  <div className="grid grid-cols-6 gap-2">
+                    {KEY_OPTIONS.map((key) => {
+                      const songInDb = songs.find(
+                        (s) => s.id === editingSong.songId
+                      );
+                      const hasFiles = songInDb
+                        ? hasFilesForSpecificKey(songInDb, key)
+                        : false;
+                      const isSelected = editableSong.key === key;
 
-                        return (
-                          <Button
-                            key={key}
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            className="h-10 relative"
-                            onClick={() => handleKeyChange(key)}
-                          >
-                            {key}
-                            {hasFiles && (
-                              <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
-                            )}
-                          </Button>
-                        );
-                      })}
-                    </div>
+                      return (
+                        <Button
+                          key={key}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          className="h-10 relative"
+                          onClick={() => handleKeyChange(key)}
+                        >
+                          {key}
+                          {hasFiles && (
+                            <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
+                          )}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -251,10 +222,7 @@ export function EditSongDialog({
                     return (
                       <div className="space-y-2 mt-4">
                         <Label className="text-sm font-medium">
-                          Upload File for{" "}
-                          {selectedKey === "default"
-                            ? "Default"
-                            : `Key ${selectedKey}`}
+                          Upload File for Key {selectedKey}
                         </Label>
                         <SongFileUploader
                           songId={editingSong.songId}

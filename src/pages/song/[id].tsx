@@ -40,7 +40,7 @@ export default function SongPage() {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [selectedKey, setSelectedKey] = useState<string>("default");
+  const [selectedKey, setSelectedKey] = useState<string>("");
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
 
   // Handle container resize
@@ -269,7 +269,8 @@ export default function SongPage() {
                   {(() => {
                     const allKeyedFiles = getAllKeyedFiles(song);
                     const keysWithFiles = Object.entries(allKeyedFiles).filter(
-                      ([, files]) => files && files.length > 0
+                      ([key, files]) =>
+                        key !== "default" && files && files.length > 0
                     );
 
                     if (keysWithFiles.length === 0) {
@@ -303,7 +304,7 @@ export default function SongPage() {
                                 setSelectedFileIndex(0);
                               }}
                             >
-                              {key === "default" ? "Default" : key}
+                              {key}
                               <span className="ml-1 text-xs opacity-70">
                                 ({files!.length})
                               </span>
@@ -318,11 +319,7 @@ export default function SongPage() {
                               {/* File list sidebar */}
                               <div className="space-y-2">
                                 <h3 className="text-sm font-medium text-muted-foreground">
-                                  Files for{" "}
-                                  {selectedKey === "default"
-                                    ? "Default"
-                                    : `Key ${selectedKey}`}
-                                  :
+                                  Files for Key {selectedKey}:
                                 </h3>
                                 <div className="space-y-1 max-h-64 overflow-y-auto">
                                   {currentFiles.map((file, index) => (
@@ -368,11 +365,7 @@ export default function SongPage() {
                                           {currentFile.name}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                          (
-                                          {selectedKey === "default"
-                                            ? "Default"
-                                            : `Key ${selectedKey}`}
-                                          )
+                                          (Key {selectedKey})
                                         </span>
                                       </div>
                                       <Button

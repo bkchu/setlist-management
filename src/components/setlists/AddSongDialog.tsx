@@ -144,10 +144,7 @@ export function AddSongDialog({
       setShowNotes(false);
       onOpenChange(false);
 
-      const selectedKeyLabel =
-        addSongForm.key === "default" || !addSongForm.key
-          ? `Default (${song.default_key})`
-          : `Key ${addSongForm.key}`;
+      const selectedKeyLabel = `Key ${addSongForm.key}`;
 
       // Success toast with optional action to upload a file if missing
       const hasFileForKey = files.length > 0;
@@ -242,55 +239,29 @@ export function AddSongDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Key</Label>
 
-              <div className="space-y-3">
-                <Button
-                  variant={
-                    addSongForm.key === "default" ? "default" : "outline"
-                  }
-                  className="w-full relative"
-                  onClick={() => {
-                    setAddSongForm((prev) => ({ ...prev, key: "default" }));
-                  }}
-                >
-                  {selectedSongInModal?.default_key
-                    ? `Default (${selectedSongInModal.default_key})`
-                    : "Default"}
-                  {selectedSongInModal &&
-                    hasFilesForSpecificKey(selectedSongInModal, "default") && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary" />
-                    )}
-                </Button>
-                <div className="flex items-center">
-                  <div className="flex-grow border-t border-muted" />
-                  <span className="flex-shrink mx-2 text-xs text-muted-foreground">
-                    OR
-                  </span>
-                  <div className="flex-grow border-t border-muted" />
-                </div>
-                <div className="grid grid-cols-6 gap-2">
-                  {KEY_OPTIONS.map((key) => {
-                    const hasFiles = selectedSongInModal
-                      ? hasFilesForSpecificKey(selectedSongInModal, key)
-                      : false;
-                    const isSelected = addSongForm.key === key;
-                    return (
-                      <Button
-                        key={key}
-                        variant={isSelected ? "default" : "outline"}
-                        size="sm"
-                        className="h-10 relative"
-                        onClick={() => {
-                          setAddSongForm((prev) => ({ ...prev, key }));
-                        }}
-                      >
-                        {key}
-                        {hasFiles && (
-                          <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
-                        )}
-                      </Button>
-                    );
-                  })}
-                </div>
+              <div className="grid grid-cols-6 gap-2">
+                {KEY_OPTIONS.map((key) => {
+                  const hasFiles = selectedSongInModal
+                    ? hasFilesForSpecificKey(selectedSongInModal, key)
+                    : false;
+                  const isSelected = addSongForm.key === key;
+                  return (
+                    <Button
+                      key={key}
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      className="h-10 relative"
+                      onClick={() => {
+                        setAddSongForm((prev) => ({ ...prev, key }));
+                      }}
+                    >
+                      {key}
+                      {hasFiles && (
+                        <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-primary" />
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -321,9 +292,7 @@ export function AddSongDialog({
                   const newKeyedFiles = {
                     ...(selectedSongInModal.keyedFiles || {}),
                   };
-                  const key = (addSongForm.key || "default") as
-                    | MusicalKey
-                    | "default";
+                  const key = addSongForm.key as MusicalKey;
                   if (!newKeyedFiles[key]) {
                     newKeyedFiles[key] = [];
                   }
@@ -377,7 +346,7 @@ export function AddSongDialog({
           <Button
             onClick={handleAddNewSong}
             className="px-4"
-            disabled={isAddingSong || !selectedSongInModal || !addSongForm.key}
+            disabled={isAddingSong || !selectedSongInModal}
           >
             {isAddingSong ? (
               <>

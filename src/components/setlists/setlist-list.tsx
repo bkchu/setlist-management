@@ -34,26 +34,43 @@ export function SetlistList({
   onEditSetlist,
   onDeleteSetlist,
 }: SetlistListProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
 
   const handleAddSubmit = async (setlistData: Partial<Setlist>) => {
     await Promise.resolve(onAddSetlist(setlistData));
-    setShowAddForm(false);
+    setIsFormOpen(false);
+    setEditingSetlist(null);
   };
 
   const handleEditSubmit = async (setlistData: Partial<Setlist>) => {
     if (editingSetlist) {
       await Promise.resolve(onEditSetlist(editingSetlist.id, setlistData));
+      setIsFormOpen(false);
       setEditingSetlist(null);
     }
+  };
+
+  const handleOpenAddForm = () => {
+    setEditingSetlist(null);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEditForm = (setlist: Setlist) => {
+    setEditingSetlist(setlist);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingSetlist(null);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
         <h2 className="text-lg font-semibold">All Setlists</h2>
-        <Button size="sm" onClick={() => setShowAddForm(true)}>
+        <Button size="sm" onClick={handleOpenAddForm}>
           <Plus className="mr-2 h-4 w-4" />
           Add Setlist
         </Button>
@@ -116,7 +133,7 @@ export function SetlistList({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => setEditingSetlist(setlist)}
+                            onClick={() => handleOpenEditForm(setlist)}
                           >
                             Edit
                           </DropdownMenuItem>
@@ -137,19 +154,14 @@ export function SetlistList({
         </Table>
       </div>
 
-      {/* Self-contained dialogs */}
+      {/* Single dialog for both add and edit */}
       <SetlistForm
-        open={showAddForm}
-        onOpenChange={setShowAddForm}
-        onSubmit={handleAddSubmit}
-      />
-      <SetlistForm
-        open={Boolean(editingSetlist)}
+        open={isFormOpen}
         onOpenChange={(open) => {
-          if (!open) setEditingSetlist(null);
+          if (!open) handleCloseForm();
         }}
         setlist={editingSetlist ?? undefined}
-        onSubmit={handleEditSubmit}
+        onSubmit={editingSetlist ? handleEditSubmit : handleAddSubmit}
       />
     </div>
   );

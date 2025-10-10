@@ -110,7 +110,7 @@ export default function SetlistPage() {
   const keyResolver = useCallback(
     (song: Song) => {
       const setlistSong = setlist?.songs.find((s) => s.songId === song.id);
-      return setlistSong?.key || "default";
+      return setlistSong?.key || song.default_key || "";
     },
     [setlist?.songs]
   );

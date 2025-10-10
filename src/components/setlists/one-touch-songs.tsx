@@ -37,7 +37,7 @@ export function OneTouchSongs({
     [selectedSongId]
   );
 
-  const keyResolver = useCallback(() => "default", []);
+  const keyResolver = useCallback((song: Song) => song.default_key || "", []);
 
   // Get slides for the selected song
   const { flattenedSlides, isLoading } = useFileSlides({

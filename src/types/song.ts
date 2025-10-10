@@ -10,7 +10,6 @@ export interface SongFile {
 
 // New interface for key-specific files
 export interface KeyedSongFiles {
-  default?: SongFile[];
   G?: SongFile[];
   Gb?: SongFile[];
   "F#"?: SongFile[];
@@ -84,14 +83,7 @@ export interface SetlistSong
 export function getFilesForKey(song: Song, key?: string): SongFile[] {
   if (!song.keyedFiles) {
     // Fallback to old files structure during migration
-    if (!key || key === "default") {
-      return song.files || [];
-    }
-    return [];
-  }
-
-  if (key === "default") {
-    return song.keyedFiles.default || [];
+    return song.files || [];
   }
 
   if (key && song.keyedFiles[key as MusicalKey]) {
@@ -105,7 +97,7 @@ export function getFilesForKey(song: Song, key?: string): SongFile[] {
 export function getAllKeyedFiles(song: Song): KeyedSongFiles {
   if (!song.keyedFiles) {
     // Fallback to old files structure during migration
-    return { default: song.files || [] };
+    return {};
   }
   return song.keyedFiles;
 }
@@ -119,10 +111,7 @@ export function hasFilesForKey(song: Song, key: string): boolean {
 // Helper function to check for files for a key *without* fallback logic
 export function hasFilesForSpecificKey(song: Song, key: string): boolean {
   if (!song.keyedFiles) {
-    return key === "default" && !!song.files && song.files.length > 0;
-  }
-  if (key === "default") {
-    return !!song.keyedFiles.default && song.keyedFiles.default.length > 0;
+    return false;
   }
   return (
     !!song.keyedFiles[key as MusicalKey] &&

@@ -24,7 +24,7 @@ const getSignedUrl = async (filePath: string): Promise<string> =>
 export function useFileSlides({
   songs,
   songFilter,
-  keyResolver = () => "default",
+  keyResolver = () => "",
   songOrderer,
 }: UseFileSlidesOptions) {
   const [numPages, setNumPages] = useState<Record<string, number>>({});
