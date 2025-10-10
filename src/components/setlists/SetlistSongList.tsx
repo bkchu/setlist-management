@@ -6,6 +6,7 @@ import {
   Music2Icon,
   XIcon,
   GripVertical,
+  PlusIcon,
 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -189,6 +190,7 @@ interface SetlistSongListProps {
   onReorder: (songId: string, direction: "up" | "down") => void;
   onEdit: (song: SetlistSong) => void;
   onRemove: (songId: string) => void;
+  onAdd?: () => void;
 }
 
 export const SetlistSongList = React.memo(function SetlistSongList({
@@ -196,6 +198,7 @@ export const SetlistSongList = React.memo(function SetlistSongList({
   onReorder,
   onEdit,
   onRemove,
+  onAdd,
 }: SetlistSongListProps) {
   if (songs.length === 0) {
     return (
@@ -205,6 +208,17 @@ export const SetlistSongList = React.memo(function SetlistSongList({
         <p className="mt-1 text-sm text-muted-foreground">
           Add songs to your setlist to get started
         </p>
+        {onAdd && (
+          <Button
+            size="xl"
+            variant="secondary"
+            className="flex-1 min-h-12 mt-4"
+            onClick={onAdd}
+          >
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Add Song
+          </Button>
+        )}
       </div>
     );
   }

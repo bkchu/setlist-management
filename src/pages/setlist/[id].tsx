@@ -38,6 +38,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import clsx from "clsx";
 
 // Optimized drag preview component using the SetlistSongRow
 const DragPreview = React.memo(function DragPreview({
@@ -381,7 +382,16 @@ export default function SetlistPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Songs</h2>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAddSongModal(true)}
+                  >
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Add Song
+                  </Button>
                 </div>
+
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -401,8 +411,10 @@ export default function SetlistPage() {
                       onReorder={handleReorderSong}
                       onEdit={setEditingSong}
                       onRemove={handleRemoveSong}
+                      onAdd={() => setShowAddSongModal(true)}
                     />
                   </SortableContext>
+
                   <DragOverlay>
                     {activeId ? (
                       <DragPreview songId={activeId} setlist={setlist} />
@@ -414,26 +426,18 @@ export default function SetlistPage() {
           </Card>
 
           <div className="space-y-4">
-            <div className="flex gap-2 flex-col">
-              <Button
-                size="xl"
-                className="flex-1 flex gap-2 border-none min-h-12"
-                onClick={() => setShowCarousel(true)}
-                disabled={flattenedSlides.length === 0}
-              >
-                <FilesIcon /> View Files
-              </Button>
-              <Button
-                size="xl"
-                variant="secondary"
-                className="flex-1 min-h-12"
-                onClick={() => setShowAddSongModal(true)}
-                disabled={songsNotInSetlist.length === 0}
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Add Song
-              </Button>
-            </div>
+            {setlist.songs.length > 0 && (
+              <div className="flex gap-2 flex-col">
+                <Button
+                  size="xl"
+                  className={clsx("flex-1 flex gap-2 border-none min-h-12")}
+                  onClick={() => setShowCarousel(true)}
+                  disabled={flattenedSlides.length === 0}
+                >
+                  <FilesIcon /> View Files
+                </Button>
+              </div>
+            )}
 
             <OneTouchSongs onSaveNotes={handleSaveNotesInViewer} />
 
