@@ -3,11 +3,22 @@ import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
 import { cn } from "@/lib/utils";
-import { Song } from "@/types";
+import { Song, getAllKeyedFiles } from "@/types";
 import { StarIcon } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileViewer } from "@/components/setlists/FileViewer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverAnchor,
+} from "@/components/ui/popover";
+import {
+  ResponsiveKeyPicker,
+  KeyPickerContent,
+  KeyOption,
+} from "@/components/songs/key-picker";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface OneTouchSongsProps {
   onSongSelect?: (songId: string) => void;
@@ -25,6 +36,10 @@ export function OneTouchSongs({
   const navigate = useNavigate();
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [isKeyPickerOpen, setIsKeyPickerOpen] = useState(false);
+  const [anchorSongId, setAnchorSongId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   // Get the actual song objects for the one-touch songs
   const oneTouchSongs = settings.oneTouchSongs.songIds
@@ -37,7 +52,13 @@ export function OneTouchSongs({
     [selectedSongId]
   );
 
-  const keyResolver = useCallback((song: Song) => song.default_key || "", []);
+  const keyResolver = useCallback(
+    (song: Song) => {
+      void song;
+      return selectedKey && selectedKey !== "__legacy__" ? selectedKey : "";
+    },
+    [selectedKey]
+  );
 
   // Get slides for the selected song
   const { flattenedSlides, isLoading } = useFileSlides({
@@ -70,19 +91,67 @@ export function OneTouchSongs({
     return null;
   }
 
+  function getKeysWithFiles(song: Song): {
+    keys: KeyOption[];
+    legacyCount: number;
+  } {
+    const keyed = getAllKeyedFiles(song) as Record<
+      string,
+      unknown[] | undefined
+    >;
+    const entries = Object.entries(keyed ?? {});
+    const keys: KeyOption[] = entries.reduce(
+      (acc: KeyOption[], [name, files]) => {
+        const count = Array.isArray(files) ? files.length : 0;
+        if (count > 0) acc.push({ name, count });
+        return acc;
+      },
+      []
+    );
+    const legacyCount = song.files?.length ?? 0;
+    return { keys, legacyCount };
+  }
+
   const handleSongClick = (songId: string) => {
     if (onSongSelect) {
       onSongSelect(songId);
     } else {
-      // Set the selected song and show file viewer
-      setSelectedSongId(songId);
-      setShowFileViewer(true);
+      const song = songs.find((s) => s.id === songId);
+      if (!song) return;
+
+      const { keys, legacyCount } = getKeysWithFiles(song);
+
+      if (legacyCount > 0 && keys.length === 0) {
+        setSelectedKey("__legacy__");
+        setSelectedSongId(songId);
+        setShowFileViewer(true);
+        return;
+      }
+
+      if (keys.length === 1) {
+        setSelectedKey(keys[0].name);
+        setSelectedSongId(songId);
+        setShowFileViewer(true);
+        return;
+      }
+
+      if (keys.length > 1) {
+        setAnchorSongId(songId);
+        setIsKeyPickerOpen(true);
+      } else {
+        // no files at all fallback
+        setSelectedSongId(songId);
+        setShowFileViewer(true);
+      }
     }
   };
 
   const handleFileViewerClose = () => {
     setShowFileViewer(false);
     setSelectedSongId(null);
+    setSelectedKey(null);
+    setIsKeyPickerOpen(false);
+    setAnchorSongId(null);
   };
 
   const handleSaveNotesInViewer = async (songId: string, notes: string) => {
@@ -102,24 +171,98 @@ export function OneTouchSongs({
         </div>
 
         <div className="p-2 space-y-1">
-          {oneTouchSongs.map((song) => (
-            <Button
-              key={song.id}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-left h-auto py-2"
-              onClick={() => handleSongClick(song.id)}
-            >
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">{song.title}</span>
-                {song.artist && (
-                  <span className="text-xs text-muted-foreground">
-                    {song.artist}
-                  </span>
+          {oneTouchSongs.map((song) => {
+            const { keys } = getKeysWithFiles(song);
+            const isAnchor = anchorSongId === song.id && isKeyPickerOpen;
+            return (
+              <div key={song.id} className="relative">
+                {/* Desktop/tablet: Popover path */}
+                {!isMobile && (
+                  <Popover
+                    open={isAnchor && keys.length > 1}
+                    onOpenChange={(open) => {
+                      setIsKeyPickerOpen(open);
+                      if (!open) setAnchorSongId(null);
+                    }}
+                  >
+                    <PopoverAnchor asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-left h-auto py-2"
+                        onClick={() => handleSongClick(song.id)}
+                      >
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-medium">
+                            {song.title}
+                          </span>
+                          {song.artist && (
+                            <span className="text-xs text-muted-foreground">
+                              {song.artist}
+                            </span>
+                          )}
+                        </div>
+                      </Button>
+                    </PopoverAnchor>
+                    {isAnchor && keys.length > 1 && (
+                      <PopoverContent align="start" className="w-80">
+                        <KeyPickerContent
+                          songTitle={song.title}
+                          keys={keys}
+                          onSelect={(k) => {
+                            setSelectedKey(k);
+                            setSelectedSongId(song.id);
+                            setShowFileViewer(true);
+                            setIsKeyPickerOpen(false);
+                            setAnchorSongId(null);
+                          }}
+                        />
+                      </PopoverContent>
+                    )}
+                  </Popover>
+                )}
+
+                {/* Mobile: Drawer path */}
+                {isMobile && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-left h-auto py-2"
+                      onClick={() => handleSongClick(song.id)}
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-medium">
+                          {song.title}
+                        </span>
+                        {song.artist && (
+                          <span className="text-xs text-muted-foreground">
+                            {song.artist}
+                          </span>
+                        )}
+                      </div>
+                    </Button>
+                    {isAnchor && keys.length > 1 && (
+                      <ResponsiveKeyPicker
+                        isOpen={isKeyPickerOpen}
+                        onOpenChange={(open) => {
+                          setIsKeyPickerOpen(open);
+                          if (!open) setAnchorSongId(null);
+                        }}
+                        songTitle={song.title}
+                        keys={keys}
+                        onSelect={(k) => {
+                          setSelectedKey(k);
+                          setSelectedSongId(song.id);
+                          setShowFileViewer(true);
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </div>
-            </Button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
