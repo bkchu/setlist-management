@@ -1,19 +1,35 @@
-import { SetlistSearchCombobox } from "@/components/setlists/setlist-search-combobox";
-import { Header } from "@/components/layout/header";
 import { SetlistList } from "@/components/setlists/setlist-list";
-import { useSetlists } from "@/hooks/use-setlists";
 import { toast } from "sonner";
 import { Setlist } from "@/types";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
+import { useGetSetlistsByOrganization } from "@/api/setlists/list";
+import { useCreateSetlist } from "@/api/setlists/post";
+import { useUpdateSetlist } from "@/api/setlists/put";
+import { useDeleteSetlist } from "@/api/setlists/delete";
 
 export default function Setlists() {
-  const { setlists, addSetlist, updateSetlist, deleteSetlist } = useSetlists();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: setlists = [] } = useGetSetlistsByOrganization(
+    user?.organizationId
+  );
+  const createSetlist = useCreateSetlist();
+  const updateSetlist = useUpdateSetlist();
+  const deleteSetlist = useDeleteSetlist();
 
   const handleAddSetlist = async (setlistData: Partial<Setlist>) => {
     try {
-      await addSetlist(setlistData);
+      if (!user?.organizationId) throw new Error("No organization selected");
+      const created = await createSetlist.mutateAsync({
+        name: setlistData.name!,
+        date: setlistData.date!,
+        organizationId: user.organizationId,
+      });
       toast.success("Setlist created", {
         description: `"${setlistData.name}" has been created`,
       });
+      navigate(`/setlist/${created.id}`);
     } catch (error) {
       toast.error("Error", {
         description:
@@ -27,7 +43,7 @@ export default function Setlists() {
     setlistData: Partial<Setlist>
   ) => {
     try {
-      await updateSetlist(id, setlistData);
+      await updateSetlist.mutateAsync({ id, payload: setlistData });
       toast.success("Setlist updated", {
         description: `"${setlistData.name}" has been updated`,
       });
@@ -41,7 +57,7 @@ export default function Setlists() {
 
   const handleDeleteSetlist = async (id: string) => {
     try {
-      await deleteSetlist(id);
+      await deleteSetlist.mutateAsync(id);
       toast.success("Setlist deleted", {
         description: "The setlist has been removed",
       });
@@ -54,20 +70,13 @@ export default function Setlists() {
   };
 
   return (
-    <>
-      <Header
-        title="Setlists"
-        searchBar={<SetlistSearchCombobox setlists={setlists} />}
+    <main className="flex-1 overflow-auto p-4 md:p-6">
+      <SetlistList
+        setlists={setlists}
+        onAddSetlist={handleAddSetlist}
+        onEditSetlist={handleEditSetlist}
+        onDeleteSetlist={handleDeleteSetlist}
       />
-
-      <main className="flex-1 p-4">
-        <SetlistList
-          setlists={setlists}
-          onAddSetlist={handleAddSetlist}
-          onEditSetlist={handleEditSetlist}
-          onDeleteSetlist={handleDeleteSetlist}
-        />
-      </main>
-    </>
+    </main>
   );
 }

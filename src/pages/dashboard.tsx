@@ -1,14 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/app-layout";
-import { useSetlists } from "@/hooks/use-setlists";
 import { useSongs } from "@/hooks/use-songs";
 import { CalendarIcon, ListMusicIcon, MusicIcon, PlayIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
+import { useGetSetlistsByOrganization } from "@/api/setlists/list";
 
 export default function Dashboard() {
   const { songs } = useSongs();
-  const { setlists } = useSetlists();
+  const { user } = useAuth();
+  const { data: setlists = [] } = useGetSetlistsByOrganization(
+    user?.organizationId
+  );
 
   // Find next setlist - closest to today
   const sortedSetlists = [...setlists].sort(
@@ -16,15 +20,15 @@ export default function Dashboard() {
   );
 
   // Helper to normalize a date to midnight (local time)
-function normalizeToDateOnly(date: Date | string) {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
+  function normalizeToDateOnly(date: Date | string) {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
 
-const today = normalizeToDateOnly(new Date());
-const upcomingSetlists = sortedSetlists.filter(
-  (setlist) => normalizeToDateOnly(setlist.date) >= today
-);
+  const today = normalizeToDateOnly(new Date());
+  const upcomingSetlists = sortedSetlists.filter(
+    (setlist) => normalizeToDateOnly(setlist.date) >= today
+  );
 
   const nextSetlist = upcomingSetlists.length > 0 ? upcomingSetlists[0] : null;
 

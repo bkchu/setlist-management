@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
-import { Header } from "@/components/layout/header";
 import { SongList } from "@/components/songs/song-list";
 import { useSongs } from "@/hooks/use-songs";
 import { toast } from "sonner";
@@ -58,8 +56,6 @@ export default function Songs() {
 
   return (
     <>
-      <Header title="Songs" searchBar={<SongSearchCombobox songs={songs} />} />
-
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <SongList
           songs={songs}

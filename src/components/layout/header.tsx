@@ -9,9 +9,9 @@ interface HeaderProps {
   searchBar?: React.ReactNode;
 }
 
-export function Header({ title, subtitle, children, searchBar }: HeaderProps) {
+const Header = ({ title, subtitle, children, searchBar }: HeaderProps) => {
   return (
-    <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
       <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-2 h-full">
           <div className="items-center gap-2 border-r border-border pr-4 h-full hidden sm:flex md:hidden">
@@ -30,6 +30,8 @@ export function Header({ title, subtitle, children, searchBar }: HeaderProps) {
         </div>
       </div>
       <Separator />
-    </div>
+    </header>
   );
-}
+};
+
+export { Header };

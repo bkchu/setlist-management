@@ -2,9 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { setlistKeys } from "./keys";
 import { Setlist, SetlistSong } from "@/types";
+import { transformSetlist } from "./transform";
 
 export type UpdateSetlistPayload = Partial<Pick<Setlist, "name" | "date">> & {
   songs?: SetlistSong[];
+};
+
+export type UpdateSetlistVariables = {
+  id: string;
+  payload: UpdateSetlistPayload;
 };
 
 export async function updateSetlistServer(
@@ -116,46 +122,17 @@ export async function updateSetlistServer(
     .eq("id", id)
     .single();
   if (error) throw error;
-  return {
-    id: data.id,
-    name: data.name,
-    date: data.date,
-    songs:
-      data.setlist_songs
-        ?.map((item: any) => ({
-          id: item.id,
-          songId: item.song_id,
-          key: item.key || "",
-          notes: item.notes || "",
-          order: item.order,
-          song: {
-            id: item.songs.id,
-            title: item.songs.title,
-            artist: item.songs.artist,
-            notes: item.songs.notes || "",
-            createdAt: item.songs.created_at,
-            updatedAt: item.songs.updated_at,
-          },
-        }))
-        .sort((a: any, b: any) => a.order - b.order) || [],
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
+  return transformSetlist(data);
 }
 
-export function useUpdateSetlist(id: string) {
+export function useUpdateSetlist() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateSetlistPayload) =>
+    mutationFn: ({ id, payload }: UpdateSetlistVariables) =>
       updateSetlistServer(id, payload),
     onSuccess: (updated) => {
-      queryClient.setQueryData(setlistKeys.detail(id), updated);
-      // Only invalidate list collections so list pages refresh.
-      // Avoid broad invalidations that also match the detail key and trigger duplicate refetches.
-      queryClient.invalidateQueries({
-        queryKey: setlistKeys.lists(),
-        exact: true,
-      });
+      queryClient.setQueryData(setlistKeys.detail(updated.id), updated);
+      queryClient.invalidateQueries({ queryKey: setlistKeys.lists() });
     },
   });
 }

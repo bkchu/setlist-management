@@ -45,10 +45,14 @@ export function SetlistForm({
   const [name, setName] = useState(initialize().name);
   const [date, setDate] = useState<Date | undefined>(initialize().date);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Reset when opened or when the setlist changes
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setIsCalendarOpen(false);
+      return;
+    }
     const init = initialize();
     setName(init.name);
     setDate(init.date);
@@ -82,7 +86,6 @@ export function SetlistForm({
         })
       );
       onOpenChange(false);
-      toast.success(setlist ? "Setlist updated" : "Setlist created");
     } catch (error) {
       console.error(error);
       toast.error("Error", {
@@ -93,9 +96,21 @@ export function SetlistForm({
     }
   };
 
-  console.log("open", open);
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // If the calendar popover is open, close it first to allow Radix to
+      // properly restore aria-hidden/pointer-events, then close the dialog.
+      if (isCalendarOpen) {
+        setIsCalendarOpen(false);
+        setTimeout(() => onOpenChange(false), 0);
+        return;
+      }
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -115,7 +130,11 @@ export function SetlistForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
-            <Popover>
+            <Popover
+              open={isCalendarOpen}
+              onOpenChange={setIsCalendarOpen}
+              modal={true}
+            >
               <PopoverTrigger asChild>
                 <Button
                   type="button"
@@ -129,21 +148,14 @@ export function SetlistForm({
                   {date ? format(date, "PPP") : "Select a date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="w-auto p-0"
-                align="start"
-                onInteractOutside={(e) => {
-                  // Prevent the Dialog from catching pointer events when interacting with the calendar
-                  const target = e.target as HTMLElement;
-                  if (target.closest('[role="dialog"]')) {
-                    e.preventDefault();
-                  }
-                }}
-              >
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(newDate) => {
+                    setDate(newDate);
+                    setIsCalendarOpen(false);
+                  }}
                   initialFocus
                 />
               </PopoverContent>

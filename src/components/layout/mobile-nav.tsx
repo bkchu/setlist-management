@@ -15,14 +15,14 @@ export function MobileNav() {
         icon: Home,
       },
       {
-        name: "Songs",
-        href: "/songs",
-        icon: Music,
-      },
-      {
         name: "Setlists",
         href: "/setlists",
         icon: ListMusic,
+      },
+      {
+        name: "Songs",
+        href: "/songs",
+        icon: Music,
       },
       {
         name: "Settings",
