@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SongProvider } from "@/hooks/use-songs";
-import { SetlistProvider } from "@/hooks/use-setlists";
+// Removed SetlistProvider in favor of API hooks per React Query rules
 import { SettingsProvider } from "@/hooks/use-settings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -83,19 +83,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
+
     // If user doesn't have an organization after loading, redirect to onboarding
     if (!user.organizationId && !(orgsData && orgsData.length > 0)) {
       return <Navigate to="/onboarding" replace />;
     }
+
     return children;
   };
 
   return (
     <div className="relative flex w-full min-h-dvh">
-      <div className="hidden md:block">
+      <div className="hidden md:block fixed left-0 top-0">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 md:ml-40">
         <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
           {renderContent()}
         </div>
@@ -130,72 +132,70 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SongProvider>
-            <SetlistProvider>
-              <SettingsProvider>
-                <Router>
-                  <ToastOnJoin />
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route
-                      path="/reset-password"
-                      element={<ResetPasswordPage />}
-                    />
-                    <Route path="/onboarding" element={<Onboarding />} />
-                    <Route path="/join" element={<JoinOrganization />} />
-                    <Route
-                      path="/"
-                      element={
-                        <ProtectedRoute>
-                          <Dashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/songs"
-                      element={
-                        <ProtectedRoute>
-                          <Songs />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/song/:id"
-                      element={
-                        <ProtectedRoute>
-                          <SongPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/setlists"
-                      element={
-                        <ProtectedRoute>
-                          <Setlists />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/setlist/:id"
-                      element={
-                        <ProtectedRoute>
-                          <SetlistPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/settings"
-                      element={
-                        <ProtectedRoute>
-                          <Settings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Router>
-                <Toaster position="bottom-right" richColors />
-              </SettingsProvider>
-            </SetlistProvider>
+            <SettingsProvider>
+              <Router>
+                <ToastOnJoin />
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/reset-password"
+                    element={<ResetPasswordPage />}
+                  />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/join" element={<JoinOrganization />} />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/songs"
+                    element={
+                      <ProtectedRoute>
+                        <Songs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/song/:id"
+                    element={
+                      <ProtectedRoute>
+                        <SongPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/setlists"
+                    element={
+                      <ProtectedRoute>
+                        <Setlists />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/setlist/:id"
+                    element={
+                      <ProtectedRoute>
+                        <SetlistPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Router>
+              <Toaster position="bottom-right" richColors />
+            </SettingsProvider>
           </SongProvider>
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />

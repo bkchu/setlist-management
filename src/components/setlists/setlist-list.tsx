@@ -20,6 +20,7 @@ import { SetlistForm } from "./setlist-form";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { SetlistSearchCombobox } from "./setlist-search-combobox";
 
 interface SetlistListProps {
   setlists: Setlist[];
@@ -69,11 +70,14 @@ export function SetlistList({
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <h2 className="text-lg font-semibold">All Setlists</h2>
-        <Button size="sm" onClick={handleOpenAddForm}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Setlist
-        </Button>
+        <h2 className="text-lg font-semibold">Setlists</h2>
+        <div className="flex items-center gap-2">
+          <SetlistSearchCombobox setlists={setlists} />
+          <Button size="sm" onClick={handleOpenAddForm}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Setlist
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">

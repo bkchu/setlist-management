@@ -6,7 +6,7 @@ interface SidebarNavProps {
   items: {
     href: string;
     title: string;
-    icon: LucideIcon;
+    icon: typeof LucideIcon;
   }[];
   className?: string;
 }
@@ -19,7 +19,7 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
       {items.map((item) => {
         const isActive = location.pathname === item.href;
         const Icon = item.icon;
-        
+
         return (
           <Link
             key={item.href}
@@ -34,7 +34,9 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
             <Icon
               className={cn(
                 "h-4 w-4 transition-colors",
-                isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground group-hover:text-foreground"
               )}
             />
             {item.title}

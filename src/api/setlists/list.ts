@@ -2,34 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { setlistKeys } from "./keys";
 import { Setlist } from "@/types";
-
-function transformSetlist(data: any): Setlist {
-  return {
-    id: data.id,
-    name: data.name,
-    date: data.date,
-    songs:
-      data.setlist_songs
-        ?.map((item: any) => ({
-          id: item.id,
-          songId: item.song_id,
-          key: item.key || "",
-          notes: item.notes || "",
-          order: item.order,
-          song: {
-            id: item.songs.id,
-            title: item.songs.title,
-            artist: item.songs.artist,
-            notes: item.songs.notes || "",
-            createdAt: item.songs.created_at,
-            updatedAt: item.songs.updated_at,
-          },
-        }))
-        .sort((a: any, b: any) => a.order - b.order) || [],
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
-}
+import { transformSetlists } from "./transform";
 
 export async function fetchSetlistsByOrganization(
   orgId: string
@@ -41,7 +14,7 @@ export async function fetchSetlistsByOrganization(
     .order("date", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map(transformSetlist);
+  return transformSetlists(data ?? []);
 }
 
 export function useGetSetlistsByOrganization(orgId?: string) {

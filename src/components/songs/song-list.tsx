@@ -23,6 +23,7 @@ import { Song } from "@/types";
 import { SongForm } from "./song-form";
 import { useSettings } from "@/hooks/use-settings";
 import { toast } from "sonner";
+import { SongSearchCombobox } from "./song-search-combobox";
 
 interface SongListProps {
   songs: Song[];
@@ -116,11 +117,14 @@ export function SongList({
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <h2 className="text-lg font-semibold">All Songs</h2>
-        <Button size="sm" onClick={() => setShowAddForm(true)}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          Add Song
-        </Button>
+        <h2 className="text-lg font-semibold">Songs</h2>
+        <div className="flex items-center gap-2">
+          <SongSearchCombobox songs={songs} />
+          <Button size="sm" onClick={() => setShowAddForm(true)}>
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Add Song
+          </Button>
+        </div>
       </div>
 
       {songs.length === 0 ? (
