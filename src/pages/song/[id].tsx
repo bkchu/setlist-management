@@ -35,7 +35,7 @@ export default function SongPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: song, isLoading: isSongLoading } = useGetSong({ songId: id });
-  const updateSongMutation = useUpdateSong(id || "");
+  const updateSongMutation = useUpdateSong();
   const [isEditing, setIsEditing] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -159,7 +159,7 @@ export default function SongPage() {
     if (!song) return;
 
     try {
-      await updateSongMutation.mutateAsync(songData);
+      await updateSongMutation.mutateAsync({ id: song.id, payload: songData });
       setIsEditing(false);
       toast.success("Song updated", {
         description: "The song has been updated successfully",
