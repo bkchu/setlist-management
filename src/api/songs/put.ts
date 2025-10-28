@@ -61,14 +61,16 @@ export async function updateSongServer(
   };
 }
 
-export function useUpdateSong(id: string) {
+export type UpdateSongVariables = { id: string; payload: Partial<Song> };
+
+export function useUpdateSong() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Partial<Song>) => updateSongServer(id, payload),
+    mutationFn: ({ id, payload }: UpdateSongVariables) =>
+      updateSongServer(id, payload),
     onSuccess: (updated) => {
-      qc.setQueryData(songKeys.detail(id), updated);
-      qc.invalidateQueries({ queryKey: songKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: songKeys.all });
+      qc.setQueryData(songKeys.detail(updated.id), updated);
+      qc.invalidateQueries({ queryKey: songKeys.lists() });
     },
   });
 }
