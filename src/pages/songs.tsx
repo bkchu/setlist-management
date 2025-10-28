@@ -1,18 +1,34 @@
 import { useState } from "react";
 import { SongList } from "@/components/songs/song-list";
-import { useSongs } from "@/hooks/use-songs";
 import { toast } from "sonner";
 import { Song } from "@/types";
 import { SongForm } from "@/components/songs/song-form";
+import { useAuth } from "@/hooks/use-auth";
+import { useGetSongsByOrganization } from "@/api/songs/list";
+import { useCreateSong } from "@/api/songs/post";
+import { useUpdateSong } from "@/api/songs/put";
+import { useDeleteSong } from "@/api/songs/delete";
 
 export default function Songs() {
-  const { songs, addSong, updateSong, deleteSong } = useSongs();
+  const { user } = useAuth();
+  const { data: songs = [] } = useGetSongsByOrganization(user?.organizationId);
+  const createSong = useCreateSong();
+  const updateSong = useUpdateSong();
+  const deleteSong = useDeleteSong();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const handleAddSong = async (songData: Partial<Song>) => {
     try {
-      await addSong(songData);
+      if (!user?.organizationId) throw new Error("No organization selected");
+      await createSong.mutateAsync({
+        title: songData.title!,
+        artist: songData.artist,
+        notes: songData.notes,
+        files: songData.files,
+        keyedFiles: songData.keyedFiles,
+        organizationId: user.organizationId,
+      });
       toast.success("Song added", {
         description: `"${songData.title}" has been added to your library`,
       });
@@ -26,7 +42,7 @@ export default function Songs() {
 
   const handleEditSong = async (id: string, songData: Partial<Song>) => {
     try {
-      await updateSong(id, songData);
+      await updateSong.mutateAsync({ id, payload: songData });
       setIsEditing(false);
       toast.success("Song updated", {
         description: `"${songData.title}" has been updated`,
@@ -41,7 +57,7 @@ export default function Songs() {
 
   const handleDeleteSong = async (id: string) => {
     try {
-      await deleteSong(id);
+      await deleteSong.mutateAsync(id);
       setSelectedSong(null);
       toast.success("Song deleted", {
         description: "The song has been removed from your library",
