@@ -84,7 +84,7 @@ const DragPreview = React.memo(function DragPreview({
 export default function SetlistPage() {
   const { id } = useParams<{ id: string }>();
   const { data: setlist, isLoading } = useGetSetlist({ setlistId: id });
-  const updateSetlistMutation = useUpdateSetlist(id || "");
+  const updateSetlistMutation = useUpdateSetlist();
   const { songs } = useSongs();
   const navigate = useNavigate();
 
@@ -179,9 +179,12 @@ export default function SetlistPage() {
     if (!setlist || !updateSetlistMutation) return;
     try {
       await updateSetlistMutation.mutateAsync({
-        name: updatedSetlist.name,
-        date: updatedSetlist.date,
-        songs: setlist.songs,
+        id: setlist.id,
+        payload: {
+          name: updatedSetlist.name,
+          date: updatedSetlist.date,
+          songs: setlist.songs,
+        },
       });
       setIsEditingMetadata(false);
       toast.success("Setlist updated");
@@ -197,7 +200,10 @@ export default function SetlistPage() {
         const updatedSongs = setlist.songs.map((s) =>
           s.id === songId ? { ...s, ...updates } : s
         );
-        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
+        await updateSetlistMutation.mutateAsync({
+          id: setlist.id,
+          payload: { songs: updatedSongs },
+        });
         setEditingSong(null);
         toast.success("Song updated");
       } catch {
@@ -212,7 +218,10 @@ export default function SetlistPage() {
       if (!setlist || !updateSetlistMutation) return;
       try {
         const updatedSongs = [...setlist.songs, newSong];
-        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
+        await updateSetlistMutation.mutateAsync({
+          id: setlist.id,
+          payload: { songs: updatedSongs },
+        });
       } catch {
         toast.error("Error adding song");
       }
@@ -227,7 +236,10 @@ export default function SetlistPage() {
         const updatedSongs = setlist.songs
           .filter((s) => s.id !== songId)
           .map((s, idx) => ({ ...s, order: idx + 1 }));
-        await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
+        await updateSetlistMutation.mutateAsync({
+          id: setlist.id,
+          payload: { songs: updatedSongs },
+        });
         toast.success("Song removed");
       } catch {
         toast.error("Error removing song");
@@ -250,7 +262,10 @@ export default function SetlistPage() {
           ...s,
           order: idx + 1,
         }));
-        await updateSetlistMutation.mutateAsync({ songs: reorderedSongs });
+        await updateSetlistMutation.mutateAsync({
+          id: setlist.id,
+          payload: { songs: reorderedSongs },
+        });
         toast.success("Order updated");
       } catch {
         toast.error("Error updating song order");
@@ -291,7 +306,10 @@ export default function SetlistPage() {
               ...s,
               order: idx + 1,
             }));
-            await updateSetlistMutation.mutateAsync({ songs: reorderedSongs });
+            await updateSetlistMutation.mutateAsync({
+              id: setlist.id,
+              payload: { songs: reorderedSongs },
+            });
             toast.success("Songs reordered");
           } catch {
             toast.error("Error reordering songs");
@@ -320,7 +338,10 @@ export default function SetlistPage() {
       return song;
     });
     try {
-      await updateSetlistMutation.mutateAsync({ songs: updatedSongs });
+      await updateSetlistMutation.mutateAsync({
+        id: setlist.id,
+        payload: { songs: updatedSongs },
+      });
       toast.success("Notes saved");
     } catch {
       toast.error("Failed to save notes");
