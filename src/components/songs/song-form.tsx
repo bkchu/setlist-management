@@ -31,10 +31,14 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 
 interface SongFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   song?: Song;
-  onSubmit: (song: Partial<Song>) => Promise<void> | void;
+  onSubmit: (
+    song: Partial<Song>,
+    meta?: { selectedKey: string }
+  ) => Promise<void> | void;
+  variant?: "dialog" | "inline";
 }
 
 export function SongForm({
@@ -42,6 +46,7 @@ export function SongForm({
   onOpenChange,
   song,
   onSubmit,
+  variant = "dialog",
 }: SongFormProps) {
   const { user } = useAuth();
   // Initialize form data with proper fallback logic
@@ -77,7 +82,8 @@ export function SongForm({
 
   // Reset form when dialog opens or when the song changes
   useEffect(() => {
-    if (!open) return;
+    // For inline variant, initialize on mount; for dialog variant, initialize when opened
+    if (variant === "dialog" && !open) return;
     const nextData = initializeFormData();
     setFormData(nextData);
 
@@ -92,7 +98,7 @@ export function SongForm({
       }
     }
     setSelectedKey(initialKey);
-  }, [open, initializeFormData]);
+  }, [open, initializeFormData, variant]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -244,9 +250,11 @@ export function SongForm({
     setIsSubmitting(true);
 
     try {
-      await Promise.resolve(onSubmit(formData));
-      onOpenChange(false);
-      toast.success(song ? "Song updated" : "Song saved");
+      await Promise.resolve(onSubmit(formData, { selectedKey }));
+      if (variant === "dialog") {
+        onOpenChange?.(false);
+        toast.success(song ? "Song updated" : "Song saved");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Error", {
@@ -257,179 +265,193 @@ export function SongForm({
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{song ? "Edit Song" : "Add Song"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Enter song title"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="artist">Artist</Label>
-            <Input
-              id="artist"
-              name="artist"
-              value={formData.artist}
-              onChange={handleChange}
-              placeholder="Enter artist name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Add notes about the song (optional)"
-              rows={4}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Chord Sheets by Key</Label>
-            <div className="rounded-lg border border-dashed p-4 space-y-4">
-              {/* Key selector */}
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="key-select" className="text-sm font-medium">
-                    Select Key
-                  </Label>
-                  <Select value={selectedKey} onValueChange={setSelectedKey}>
-                    <SelectTrigger className="w-full max-w-48">
-                      <SelectValue placeholder="Select a key" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_KEYS.map((key) => (
-                        <SelectItem key={key} value={key}>
-                          {key}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+  const formBody = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          placeholder="Enter song title"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="artist">Artist</Label>
+        <Input
+          id="artist"
+          name="artist"
+          value={formData.artist}
+          onChange={handleChange}
+          placeholder="Enter artist name"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea
+          id="notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Add notes about the song (optional)"
+          rows={4}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Chord Sheets by Key</Label>
+        <div className="rounded-lg border border-dashed p-4 space-y-4">
+          {/* Key selector */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label htmlFor="key-select" className="text-sm font-medium">
+                Select Key
+              </Label>
+              <Select value={selectedKey} onValueChange={setSelectedKey}>
+                <SelectTrigger className="w-full max-w-48">
+                  <SelectValue placeholder="Select a key" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_KEYS.map((key) => (
+                    <SelectItem key={key} value={key}>
+                      {key}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* File upload for selected key */}
-                <div className="flex-1">
-                  <Label className="text-sm font-medium">Upload Files</Label>
-                  <div>
-                    <input
-                      type="file"
-                      id="files"
-                      className="hidden"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                    />
-                    <label
-                      htmlFor="files"
-                      className="flex cursor-pointer items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
-                    >
-                      {isUploading ? (
-                        <Loader2Icon className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UploadIcon className="h-4 w-4" />
-                      )}
-                      {isUploading
-                        ? "Uploading..."
-                        : `Upload for ${selectedKey}`}
-                    </label>
-                  </div>
-                </div>
+            {/* File upload for selected key */}
+            <div className="flex-1">
+              <Label className="text-sm font-medium">Upload Files</Label>
+              <div>
+                <input
+                  type="file"
+                  id="files"
+                  className="hidden"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+                <label
+                  htmlFor="files"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <UploadIcon className="h-4 w-4" />
+                  )}
+                  {isUploading ? "Uploading..." : `Upload for ${selectedKey}`}
+                </label>
               </div>
+            </div>
+          </div>
 
-              {/* Display files for selected key */}
-              {getCurrentFiles().length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">
-                    Files for Key {selectedKey} ({getCurrentFiles().length}):
+          {/* Display files for selected key */}
+          {getCurrentFiles().length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Files for Key {selectedKey} ({getCurrentFiles().length}):
+              </p>
+              <div className="space-y-2">
+                {getCurrentFiles().map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded-md border bg-card p-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileIcon className="h-4 w-4 text-muted-foreground" />
+                      <span>{file.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveFile(file)}
+                    >
+                      <TrashIcon className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Overview of all keys with files */}
+          {formData.keyedFiles &&
+            (() => {
+              const keysWithFiles = Object.entries(formData.keyedFiles).filter(
+                ([, files]) => files && files.length > 0
+              );
+
+              if (keysWithFiles.length === 0) return null;
+
+              return (
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-3">
+                    File Summary ({keysWithFiles.length} key
+                    {keysWithFiles.length !== 1 ? "s" : ""} with files):
                   </p>
-                  <div className="space-y-2">
-                    {getCurrentFiles().map((file, index) => (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                    {keysWithFiles.map(([key, files]) => (
                       <div
-                        key={index}
-                        className="flex items-center justify-between rounded-md border bg-card p-2 text-sm"
+                        key={key}
+                        className={`flex justify-between items-center p-2 rounded border cursor-pointer transition-colors ${
+                          selectedKey === key
+                            ? "bg-primary/10 border-primary"
+                            : "bg-muted/30 border-border hover:bg-muted/50"
+                        }`}
+                        onClick={() => setSelectedKey(key)}
                       >
-                        <div className="flex items-center gap-2">
-                          <FileIcon className="h-4 w-4 text-muted-foreground" />
-                          <span>{file.name}</span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveFile(file)}
-                        >
-                          <TrashIcon className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <span className="font-medium">{key}</span>
+                        <span className="text-muted-foreground">
+                          {files!.length} file(s)
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              );
+            })()}
+        </div>
+      </div>
 
-              {/* Overview of all keys with files */}
-              {formData.keyedFiles &&
-                (() => {
-                  const keysWithFiles = Object.entries(
-                    formData.keyedFiles
-                  ).filter(([, files]) => files && files.length > 0);
-
-                  if (keysWithFiles.length === 0) return null;
-
-                  return (
-                    <div className="pt-4 border-t">
-                      <p className="text-sm font-medium mb-3">
-                        File Summary ({keysWithFiles.length} key
-                        {keysWithFiles.length !== 1 ? "s" : ""} with files):
-                      </p>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                        {keysWithFiles.map(([key, files]) => (
-                          <div
-                            key={key}
-                            className={`flex justify-between items-center p-2 rounded border cursor-pointer transition-colors ${
-                              selectedKey === key
-                                ? "bg-primary/10 border-primary"
-                                : "bg-muted/30 border-border hover:bg-muted/50"
-                            }`}
-                            onClick={() => setSelectedKey(key)}
-                          >
-                            <span className="font-medium">{key}</span>
-                            <span className="text-muted-foreground">
-                              {files!.length} file(s)
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isSubmitting}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
+      {variant === "dialog" ? (
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" disabled={isSubmitting}>
+              Cancel
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </DialogClose>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
+          </Button>
+        </DialogFooter>
+      ) : (
+        <div className="flex justify-end gap-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
+          </Button>
+        </div>
+      )}
+    </form>
   );
+
+  if (variant === "dialog") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{song ? "Edit Song" : "Add Song"}</DialogTitle>
+          </DialogHeader>
+          {formBody}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return <div className="space-y-4">{formBody}</div>;
 }
