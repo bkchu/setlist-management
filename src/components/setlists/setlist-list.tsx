@@ -58,8 +58,9 @@ export function SetlistList({
   };
 
   const handleOpenEditForm = (setlist: Setlist) => {
+    // Defer opening so the dropdown can fully close/unmount first
     setEditingSetlist(setlist);
-    setIsFormOpen(true);
+    setTimeout(() => setIsFormOpen(true), 0);
   };
 
   const handleCloseForm = () => {
@@ -137,13 +138,13 @@ export function SetlistList({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => handleOpenEditForm(setlist)}
+                            onSelect={() => handleOpenEditForm(setlist)}
                           >
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => onDeleteSetlist(setlist.id)}
+                            onSelect={() => onDeleteSetlist(setlist.id)}
                           >
                             Delete
                           </DropdownMenuItem>
