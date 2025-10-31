@@ -1,18 +1,36 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/app-layout";
 import { useSongs } from "@/hooks/use-songs";
-import { CalendarIcon, ListMusicIcon, MusicIcon, PlayIcon } from "lucide-react";
-import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import {
+  CalendarIcon,
+  ListMusicIcon,
+  MusicIcon,
+  AlertTriangleIcon,
+  Plus,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetSetlistsByOrganization } from "@/api/setlists/list";
+import { Button } from "@/components/ui/button";
+import { SetlistCard } from "@/components/dashboard/setlist-card";
+import { useState } from "react";
+import { SetlistForm } from "@/components/setlists/setlist-form";
+import { SongForm } from "@/components/songs/song-form";
+import { toast } from "sonner";
+import { Setlist, Song } from "@/types";
+import { useCreateSetlist } from "@/api/setlists/post";
+import { useCreateSong } from "@/api/songs/post";
 
 export default function Dashboard() {
   const { songs } = useSongs();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: setlists = [] } = useGetSetlistsByOrganization(
     user?.organizationId
   );
+  const createSetlist = useCreateSetlist();
+  const createSong = useCreateSong();
+  const [showSetlistForm, setShowSetlistForm] = useState(false);
+  const [showSongForm, setShowSongForm] = useState(false);
 
   // Find next setlist - closest to today
   const sortedSetlists = [...setlists].sort(
@@ -30,169 +48,160 @@ export default function Dashboard() {
     (setlist) => normalizeToDateOnly(setlist.date) >= today
   );
 
-  const nextSetlist = upcomingSetlists.length > 0 ? upcomingSetlists[0] : null;
+  // Get next 3-5 upcoming setlists for display
+  const displayedUpcomingSetlists = upcomingSetlists.slice(0, 5);
+
+  // Helper function to find setlists needing attention
+  // Setlists happening this week that are empty or incomplete (< 3 songs)
+  function getSetlistsNeedingAttention() {
+    const oneWeekFromToday = new Date(today);
+    oneWeekFromToday.setDate(oneWeekFromToday.getDate() + 7);
+
+    return setlists.filter((setlist) => {
+      const setlistDate = normalizeToDateOnly(setlist.date);
+      const isThisWeek =
+        setlistDate >= today &&
+        setlistDate <= normalizeToDateOnly(oneWeekFromToday);
+      const songCount = setlist.songs.length;
+      const needsAttention = isThisWeek && (songCount === 0 || songCount < 3);
+      return needsAttention;
+    });
+  }
+
+  const setlistsNeedingAttention = getSetlistsNeedingAttention();
+
+  const handleCreateSetlist = async (setlistData: Partial<Setlist>) => {
+    try {
+      if (!user?.organizationId) throw new Error("No organization selected");
+      const created = await createSetlist.mutateAsync({
+        name: setlistData.name!,
+        date: setlistData.date!,
+        organizationId: user.organizationId,
+      });
+      setShowSetlistForm(false);
+      toast.success("Setlist created", {
+        description: `"${setlistData.name}" has been created`,
+      });
+      navigate(`/setlist/${created.id}`);
+    } catch (error) {
+      toast.error("Error", {
+        description:
+          error instanceof Error ? error.message : "Failed to create setlist",
+      });
+    }
+  };
+
+  const handleCreateSong = async (songData: Partial<Song>) => {
+    try {
+      if (!user?.organizationId) throw new Error("No organization selected");
+      await createSong.mutateAsync({
+        title: songData.title!,
+        artist: songData.artist,
+        notes: songData.notes,
+        files: songData.files,
+        keyedFiles: songData.keyedFiles,
+        organizationId: user.organizationId,
+      });
+      setShowSongForm(false);
+      toast.success("Song added", {
+        description: `"${songData.title}" has been added to your library`,
+      });
+    } catch (error) {
+      toast.error("Error", {
+        description:
+          error instanceof Error ? error.message : "Failed to add song",
+      });
+    }
+  };
 
   return (
     <AppLayout title="Dashboard">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Songs</CardTitle>
-            <MusicIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold">{songs.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Songs in your library
-                </p>
-              </div>
-              <Link
-                to="/songs"
-                className="ml-2 rounded px-2 py-1 text-xs text-primary border border-primary hover:bg-primary/10 transition"
-                aria-label="Go to Songs"
-              >
-                View
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Setlists
-            </CardTitle>
-            <ListMusicIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold">{setlists.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Planned worship setlists
-                </p>
-              </div>
-              <Link
-                to="/setlists"
-                className="ml-2 rounded px-2 py-1 text-xs text-primary border border-primary hover:bg-primary/10 transition"
-                aria-label="Go to Setlists"
-              >
-                View
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Setlist</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="mt-4">
-            {nextSetlist ? (
-              <Link
-                to={`/setlist/${nextSetlist.id}`}
-                className="block rounded hover:bg-primary/10 transition p-2 -m-2"
-                aria-label={`Go to setlist ${nextSetlist.name}`}
-              >
-                <div className="text-2xl font-bold">{nextSetlist.name}</div>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(nextSetlist.date), "EEEE, MMMM d, yyyy")}
-                </p>
-                <p className="mt-2 text-sm">
-                  {nextSetlist.songs.length} songs planned
-                </p>
-              </Link>
-            ) : (
-              <>
-                <div className="text-lg font-medium">No upcoming setlists</div>
-                <p className="text-xs text-muted-foreground">
-                  Create your first setlist to get started
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* Quick Actions Bar */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <Button
+          onClick={() => setShowSetlistForm(true)}
+          size="default"
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create Setlist
+        </Button>
+        <Button
+          onClick={() => setShowSongForm(true)}
+          variant="outline"
+          size="default"
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Song
+        </Button>
       </div>
 
-      <div className="mt-6">
-        <h2 className="mb-4 text-lg font-semibold">Recent Activity</h2>
-        <div className="rounded-lg border">
-          {songs.length === 0 && setlists.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-              <div className="rounded-full bg-primary/10 p-3">
-                <PlayIcon className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">Let's get started</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Add songs to your library and create setlists for your worship
-                services.
-              </p>
-              <div className="mt-6 flex gap-2">
-                <Link to="/songs" className="text-sm text-primary underline">
-                  Go to Songs
-                </Link>
-                <Link to="/setlists" className="text-sm text-primary underline">
-                  Go to Setlists
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {/* Gather and sort recent items from both songs and setlists */}
-              {[
-                ...[...songs].map((song) => ({
-                  type: "song",
-                  id: song.id,
-                  title: song.title,
-                  subtitle: song.artist,
-                  date: song.updatedAt,
-                  icon: <MusicIcon className="h-5 w-5 text-muted-foreground" />,
-                  link: `/song/${song.id}`,
-                })),
-                ...[...setlists].map((setlist) => ({
-                  type: "setlist",
-                  id: setlist.id,
-                  title: setlist.name,
-                  subtitle: format(new Date(setlist.date), "MMM d, yyyy"),
-                  date: setlist.updatedAt || setlist.date, // fallback if no updatedAt
-                  icon: (
-                    <ListMusicIcon className="h-5 w-5 text-muted-foreground" />
-                  ),
-                  link: `/setlist/${setlist.id}`,
-                })),
-              ]
-                .sort(
-                  (a, b) =>
-                    new Date(b.date).getTime() - new Date(a.date).getTime()
-                )
-                .slice(0, 7)
-                .map((item) => (
-                  <Link
-                    key={item.type + "-" + item.id}
-                    to={item.link}
-                    className="flex items-center justify-between p-4 hover:bg-primary/5 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      {item.icon}
-                      <div>
-                        <p className="font-medium">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.subtitle}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(item.date), "MMM d, yyyy")}
-                    </div>
-                  </Link>
-                ))}
-            </div>
-          )}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="md:col-span-2 lg:col-span-4">
+          <SetlistCard
+            title="Upcoming Setlists"
+            icon={CalendarIcon}
+            setlists={displayedUpcomingSetlists}
+            emptyMessage="No upcoming setlists"
+            emptyActionLabel="Create Setlist"
+            onEmptyAction={() => setShowSetlistForm(true)}
+            showViewAll={
+              upcomingSetlists.length > displayedUpcomingSetlists.length
+            }
+            maxItems={5}
+          />
         </div>
       </div>
+
+      {/* Setlists Needing Attention - only show when there are issues */}
+      {setlistsNeedingAttention.length > 0 && (
+        <div className="mt-4">
+          <SetlistCard
+            title="Setlists Needing Attention"
+            icon={AlertTriangleIcon}
+            setlists={setlistsNeedingAttention}
+            showAttentionStyle={true}
+            maxItems={setlistsNeedingAttention.length}
+          />
+        </div>
+      )}
+
+      {/* Subtle stats footer */}
+      <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-muted-foreground">
+        <Link
+          to="/setlists"
+          className="flex items-center gap-2 hover:text-foreground transition"
+          aria-label="Go to Setlists"
+        >
+          <ListMusicIcon className="h-4 w-4" />
+          <span className="font-medium">{setlists.length}</span>
+          <span>setlists</span>
+        </Link>
+        <Link
+          to="/songs"
+          className="flex items-center gap-2 hover:text-foreground transition"
+          aria-label="Go to Songs"
+        >
+          <MusicIcon className="h-4 w-4" />
+          <span className="font-medium">{songs.length}</span>
+          <span>songs</span>
+        </Link>
+      </div>
+
+      {/* Setlist Form Dialog */}
+      <SetlistForm
+        open={showSetlistForm}
+        onOpenChange={setShowSetlistForm}
+        onSubmit={handleCreateSetlist}
+      />
+
+      {/* Song Form Dialog */}
+      <SongForm
+        open={showSongForm}
+        onOpenChange={setShowSongForm}
+        onSubmit={handleCreateSong}
+      />
     </AppLayout>
   );
 }

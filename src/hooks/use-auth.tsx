@@ -1,7 +1,15 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
-import { Session } from "@supabase/supabase-js";
+import { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { organizationKeys } from "@/api/organizations/keys";
 
@@ -23,6 +31,50 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+/**
+ * Deep equality check for user objects
+ */
+function areUsersEqual(user1: User | null, user2: User | null): boolean {
+  if (user1 === user2) return true;
+  if (!user1 || !user2) return false;
+
+  if (
+    user1.id !== user2.id ||
+    user1.email !== user2.email ||
+    user1.name !== user2.name ||
+    user1.organizationId !== user2.organizationId
+  ) {
+    return false;
+  }
+
+  if (user1.organizations.length !== user2.organizations.length) {
+    return false;
+  }
+
+  return user1.organizations.every(
+    (org1, index) =>
+      org1.id === user2.organizations[index]?.id &&
+      org1.organizationId === user2.organizations[index]?.organizationId &&
+      org1.organizationName === user2.organizations[index]?.organizationName &&
+      org1.role === user2.organizations[index]?.role
+  );
+}
+
+/**
+ * Extract user data from Supabase session
+ */
+function extractUserFromSession(
+  session: Session | null
+): Omit<User, "organizationId" | "organizations"> | null {
+  if (!session?.user) return null;
+
+  return {
+    id: session.user.id,
+    email: session.user.email!,
+    name: session.user.user_metadata.name || session.user.email!.split("@")[0],
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,19 +82,178 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [orgsLoading, setOrgsLoading] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
+  // Track if we've initialized to prevent unnecessary updates
+  const initializedRef = useRef(false);
+  // Track the last user ID to detect actual user changes
+  const lastUserIdRef = useRef<string | null>(null);
+
+  /**
+   * Update user state only if it actually changed
+   */
+  const updateUserIfChanged = useCallback((newUser: User | null) => {
+    setUser((prev: User | null) => {
+      if (areUsersEqual(prev, newUser)) {
+        return prev; // Return previous reference to prevent re-render
+      }
+      return newUser;
+    });
+  }, []);
+
+  /**
+   * Update basic user info from session, preserving organization state
+   */
+  const updateBasicUserFromSession = useCallback(
+    (session: Session | null) => {
+      const basicUserData = extractUserFromSession(session);
+      if (!basicUserData) {
+        updateUserIfChanged(null);
+        return;
+      }
+
+      setUser((prev: User | null) => {
+        // If user ID changed, this is a different user
+        if (prev && prev.id !== basicUserData.id) {
+          return {
+            ...basicUserData,
+            organizationId: undefined,
+            organizations: [],
+          };
+        }
+
+        // Otherwise, merge with existing state
+        const merged: User = {
+          ...basicUserData,
+          organizationId: prev?.organizationId,
+          organizations: prev?.organizations ?? [],
+        };
+
+        // Only update if something actually changed
+        if (areUsersEqual(prev, merged)) {
+          return prev!;
+        }
+
+        return merged;
+      });
+    },
+    [updateUserIfChanged]
+  );
+
+  /**
+   * Fetch and update organizations
+   */
+  const fetchAndSetOrganizations = useCallback(
+    async (session: Session | null, forceRefresh = false) => {
+      if (!session?.user) {
+        return;
+      }
+
+      // Don't refetch if we already have organizations and this isn't a forced refresh
+      if (
+        !forceRefresh &&
+        user?.organizations &&
+        user.organizations.length > 0
+      ) {
+        return;
+      }
+
+      setOrgsLoading(true);
+      try {
+        const { data: userAccessibleOrgs, error: orgsError } = await supabase
+          .from("user_accessible_organizations")
+          .select("id, name, owner_id, role, created_at");
+
+        if (orgsError) {
+          console.error("Error fetching organizations:", orgsError);
+          queryClient.setQueryData(organizationKeys.list(session.user.id), []);
+          updateUserIfChanged(
+            user
+              ? {
+                  ...user,
+                  organizationId: undefined,
+                  organizations: [],
+                }
+              : null
+          );
+        } else if (userAccessibleOrgs && userAccessibleOrgs.length > 0) {
+          const organizations = userAccessibleOrgs.map(
+            (org: {
+              id: string;
+              name: string;
+              owner_id: string | null;
+              role: "owner" | "admin" | "member";
+              created_at: string | null;
+            }) => ({
+              id: org.id,
+              organizationId: org.id,
+              organizationName: org.name,
+              role: org.role,
+              createdAt: org.created_at || new Date().toISOString(),
+            })
+          );
+
+          const organizationId = organizations[0].organizationId;
+          queryClient.setQueryData(
+            organizationKeys.list(session.user.id),
+            userAccessibleOrgs
+          );
+
+          setUser((prev: User | null) => {
+            if (!prev) return prev;
+            const updated: User = {
+              ...prev,
+              organizationId,
+              organizations,
+            };
+            return areUsersEqual(prev, updated) ? prev : updated;
+          });
+        } else {
+          // No organizations yet
+          const pendingJoinCode = localStorage.getItem("pendingJoinCode");
+          if (pendingJoinCode) {
+            localStorage.removeItem("pendingJoinCode");
+            setTimeout(() => {
+              window.location.href = `/join?code=${pendingJoinCode}`;
+            }, 100);
+          }
+          queryClient.setQueryData(organizationKeys.list(session.user.id), []);
+
+          setUser((prev: User | null) => {
+            if (!prev) return prev;
+            const updated: User = {
+              ...prev,
+              organizationId: undefined,
+              organizations: [],
+            };
+            return areUsersEqual(prev, updated) ? prev : updated;
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching/creating user organization:", err);
+      } finally {
+        setOrgsLoading(false);
+      }
+    },
+    [user, queryClient, updateUserIfChanged]
+  );
+
+  // Initialize session on mount
   useEffect(() => {
+    let mounted = true;
+
     const bootstrapSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      console.log("Initial session check:", session?.user?.id || "no user");
 
-      // Set minimal user immediately and clear the global auth loading state
-      await setBasicUser(session);
+      if (!mounted) return;
+
+      updateBasicUserFromSession(session);
+      lastUserIdRef.current = session?.user?.id ?? null;
       setIsLoading(false);
+      initializedRef.current = true;
 
       // Fetch organizations in the background without blocking auth loading
-      void fetchAndSetOrganizations(session, true); // Force refresh on initial load
+      void fetchAndSetOrganizations(session, true);
     };
 
     bootstrapSession();
@@ -50,162 +261,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state change:", event, session?.user?.id || "no user");
+    } = supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        if (!mounted) return;
 
-      if (event === "SIGNED_IN") {
-        setIsLoading(true);
-        // Clear any user-scoped cache to avoid leaking previous state
-        queryClient.clear();
-        setTimeout(async () => {
-          await setBasicUser(session);
+        const currentUserId = session?.user?.id ?? null;
+        const userIdChanged = lastUserIdRef.current !== currentUserId;
+
+        // Only process meaningful auth events
+        if (event === "SIGNED_IN") {
+          setIsLoading(true);
+          queryClient.clear();
+          updateBasicUserFromSession(session);
+          lastUserIdRef.current = currentUserId;
           setIsLoading(false);
-          void fetchAndSetOrganizations(session, true); // Force refresh on sign in
-        }, 0);
-      } else if (event === "SIGNED_OUT") {
-        setIsLoading(true);
-        setTimeout(async () => {
-          setUser(null);
+          void fetchAndSetOrganizations(session, true);
+        } else if (event === "SIGNED_OUT") {
+          setIsLoading(true);
+          updateUserIfChanged(null);
+          lastUserIdRef.current = null;
           setOrgsLoading(false);
           queryClient.clear();
           setIsLoading(false);
-        }, 0);
-      } else {
-        // Other events (TOKEN_REFRESHED, USER_UPDATED) - no org fetch to avoid refocus churn
-        setTimeout(async () => {
-          await setBasicUser(session);
-        }, 0);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const setBasicUser = async (session: Session | null) => {
-    if (session?.user) {
-      const next = {
-        id: session.user.id,
-        email: session.user.email!,
-        name:
-          session.user.user_metadata.name || session.user.email!.split("@")[0],
-        organizationId: undefined as string | undefined,
-        organizations: [] as User["organizations"],
-      };
-
-      setUser((prev) => {
-        // Preserve existing org state
-        const merged = {
-          ...next,
-          organizationId: prev?.organizationId,
-          organizations: prev?.organizations ?? [],
-        };
-        // Avoid state update if nothing changed to prevent re-renders on refocus
-        const unchanged =
-          prev?.id === merged.id &&
-          prev?.email === merged.email &&
-          prev?.name === merged.name &&
-          prev?.organizationId === merged.organizationId &&
-          (prev?.organizations?.length || 0) ===
-            (merged.organizations?.length || 0);
-        return unchanged ? prev! : merged;
-      });
-    } else {
-      setUser(null);
-    }
-  };
-
-  const fetchAndSetOrganizations = async (
-    session: Session | null,
-    forceRefresh = false
-  ) => {
-    if (!session?.user) return;
-
-    // Don't refetch if we already have organizations and this isn't a forced refresh
-    if (!forceRefresh && user?.organizations && user.organizations.length > 0) {
-      return;
-    }
-
-    setOrgsLoading(true);
-    try {
-      const { data: userAccessibleOrgs, error: orgsError } = await supabase
-        .from("user_accessible_organizations")
-        .select("id, name, owner_id, role, created_at");
-
-      if (orgsError) {
-        console.error("Error fetching organizations:", orgsError);
-        // Populate React Query cache with empty list
-        queryClient.setQueryData(organizationKeys.list(session.user.id), []);
-        setUser((prev) =>
-          prev
-            ? {
-                ...prev,
-                organizationId: undefined,
-                organizations: [],
-              }
-            : prev
-        );
-      } else if (userAccessibleOrgs && userAccessibleOrgs.length > 0) {
-        const organizations = userAccessibleOrgs.map((org) => ({
-          id: org.id,
-          organizationId: org.id,
-          organizationName: org.name,
-          role: org.role,
-          createdAt: org.created_at || new Date().toISOString(),
-        }));
-
-        const organizationId = organizations[0].organizationId;
-        // Seed React Query cache so consumers don't refetch
-        queryClient.setQueryData(
-          organizationKeys.list(session.user.id),
-          userAccessibleOrgs
-        );
-        setUser((prev) =>
-          prev
-            ? {
-                ...prev,
-                organizationId,
-                organizations,
-              }
-            : prev
-        );
-      } else {
-        // No organizations yet
-        const pendingJoinCode = localStorage.getItem("pendingJoinCode");
-        if (pendingJoinCode) {
-          console.log("Found pending join code, will redirect to join flow");
-          localStorage.removeItem("pendingJoinCode");
-          setTimeout(() => {
-            window.location.href = `/join?code=${pendingJoinCode}`;
-          }, 100);
+        } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          // Only update if user ID changed or if we haven't initialized yet
+          if (userIdChanged || !initializedRef.current) {
+            updateBasicUserFromSession(session);
+            lastUserIdRef.current = currentUserId;
+            // Only fetch orgs if user changed
+            if (userIdChanged) {
+              void fetchAndSetOrganizations(session, true);
+            }
+          }
+          // Otherwise, ignore token refresh events - they don't change user state
         }
-        // Populate React Query cache with empty list
-        queryClient.setQueryData(organizationKeys.list(session.user.id), []);
-        setUser((prev) =>
-          prev
-            ? {
-                ...prev,
-                organizationId: undefined,
-                organizations: [],
-              }
-            : prev
-        );
       }
-    } catch (err) {
-      console.error("Error fetching/creating user organization:", err);
-    } finally {
-      setOrgsLoading(false);
-    }
-  };
+    );
 
-  const refreshUser = async () => {
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [
+    updateBasicUserFromSession,
+    fetchAndSetOrganizations,
+    queryClient,
+    updateUserIfChanged,
+  ]);
+
+  const refreshUser = useCallback(async () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    await setBasicUser(session);
-    await fetchAndSetOrganizations(session, true); // Force refresh when explicitly requested
-  };
+    updateBasicUserFromSession(session);
+    await fetchAndSetOrganizations(session, true);
+  }, [updateBasicUserFromSession, fetchAndSetOrganizations]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -222,34 +334,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const signInWithProvider = async (provider: "google" | "github") => {
-    setIsLoading(true);
-    setError(null);
+  const signInWithProvider = useCallback(
+    async (provider: "google" | "github") => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
 
-      if (error) throw error;
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : `Failed to sign in with ${provider}`
-      );
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (error) throw error;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : `Failed to sign in with ${provider}`
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
-  const sendPasswordResetEmail = async (email: string) => {
+  const sendPasswordResetEmail = useCallback(async (email: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -267,9 +382,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const updatePassword = async (password: string) => {
+  const updatePassword = useCallback(async (password: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -283,33 +398,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
+  const register = useCallback(
+    async (name: string, email: string, password: string) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name,
+            },
           },
-        },
-      });
+        });
 
-      if (error) throw error;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create account");
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (error) throw error;
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to create account"
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -322,108 +442,130 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const switchOrganization = (organizationId: string) => {
-    if (!user) return;
-    // Allow switching optimistically; membership is enforced by RLS on data queries
-    setUser({
-      ...user,
-      organizationId,
-    });
-    console.log("Switched to organization:", organizationId);
-  };
+  const switchOrganization = useCallback(
+    (organizationId: string) => {
+      if (!user) return;
+      setUser((prev: User | null) => {
+        if (!prev || prev.organizationId === organizationId) return prev;
+        return {
+          ...prev,
+          organizationId,
+        };
+      });
+    },
+    [user]
+  );
 
-  const createOrganization = async (name: string) => {
-    if (!user) throw new Error("User not authenticated");
+  const createOrganization = useCallback(
+    async (name: string) => {
+      if (!user) throw new Error("User not authenticated");
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      // First create the organization
-      const { data: newOrg, error: createError } = await supabase
-        .from("organizations")
-        .insert([
-          {
-            name: name.trim(),
-            owner_id: user.id,
-          },
-        ])
-        .select("id, name")
-        .single();
-
-      if (createError) throw createError;
-
-      if (newOrg) {
-        // Then add the user to the organization as owner
-        const { data: membership, error: membershipError } = await supabase
-          .from("user_organizations")
+      try {
+        const { data: newOrg, error: createError } = await supabase
+          .from("organizations")
           .insert([
             {
-              user_id: user.id,
-              organization_id: newOrg.id,
-              role: "owner",
+              name: name.trim(),
+              owner_id: user.id,
             },
           ])
-          .select("id, created_at")
+          .select("id, name")
           .single();
 
-        if (membershipError) throw membershipError;
+        if (createError) throw createError;
 
-        if (membership) {
-          // Update the user state with the new organization
-          const newOrganization = {
-            id: membership.id,
-            organizationId: newOrg.id,
-            organizationName: newOrg.name,
-            role: "owner" as const,
-            createdAt: membership.created_at || new Date().toISOString(),
-          };
+        if (newOrg) {
+          const { data: membership, error: membershipError } = await supabase
+            .from("user_organizations")
+            .insert([
+              {
+                user_id: user.id,
+                organization_id: newOrg.id,
+                role: "owner",
+              },
+            ])
+            .select("id, created_at")
+            .single();
 
-          setUser({
-            ...user,
-            organizationId: newOrg.id,
-            organizations: [...user.organizations, newOrganization],
-          });
+          if (membershipError) throw membershipError;
 
-          console.log("Successfully created organization:", newOrg.id);
+          if (membership) {
+            const newOrganization = {
+              id: membership.id,
+              organizationId: newOrg.id,
+              organizationName: newOrg.name,
+              role: "owner" as const,
+              createdAt: membership.created_at || new Date().toISOString(),
+            };
+
+            setUser((prev: User | null) => {
+              if (!prev) return prev;
+              const updated: User = {
+                ...prev,
+                organizationId: newOrg.id,
+                organizations: [...prev.organizations, newOrganization],
+              };
+              return areUsersEqual(prev, updated) ? prev : updated;
+            });
+          }
         }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to create organization"
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create organization"
-      );
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [user]
+  );
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo<AuthContextProps>(
+    () => ({
+      user,
+      login,
+      logout,
+      register,
+      signInWithProvider,
+      sendPasswordResetEmail,
+      updatePassword,
+      switchOrganization,
+      createOrganization,
+      refreshUser,
+      isLoading,
+      error,
+      orgsLoading,
+    }),
+    [
+      user,
+      login,
+      logout,
+      register,
+      signInWithProvider,
+      sendPasswordResetEmail,
+      updatePassword,
+      switchOrganization,
+      createOrganization,
+      refreshUser,
+      isLoading,
+      error,
+      orgsLoading,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        register,
-        signInWithProvider,
-        sendPasswordResetEmail,
-        updatePassword,
-        switchOrganization,
-        createOrganization,
-        refreshUser,
-        isLoading,
-        error,
-        orgsLoading,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextProps {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
