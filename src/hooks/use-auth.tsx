@@ -270,6 +270,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Only process meaningful auth events
         if (event === "SIGNED_IN") {
+          // Only treat as a fresh sign-in when the actual user changed.
+          // Some environments can emit SIGNED_IN again on tab focus.
+          if (!userIdChanged) {
+            return;
+          }
           setIsLoading(true);
           queryClient.clear();
           updateBasicUserFromSession(session);

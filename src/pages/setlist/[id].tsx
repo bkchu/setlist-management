@@ -5,7 +5,7 @@ import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
 import { toast } from "sonner";
 import { SetlistSong, Setlist, Song } from "@/types";
-import { FilesIcon, PlusIcon, GripVertical } from "lucide-react";
+import { FilesIcon, PlusIcon, GripVertical, Loader2 } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import React from "react";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
@@ -144,10 +144,18 @@ export default function SetlistPage() {
     [setlistSongsJson]
   );
 
-  // Use the new hook for file slides
-  const { flattenedSlides } = useFileSlides({
+  // Use the new hook for file slides - always provide stable filter function
+  const stableSongFilter = useCallback(
+    (song: Song) => {
+      if (!setlist) return false;
+      return songFilter(song);
+    },
+    [setlist, songFilter]
+  );
+
+  const { flattenedSlides, isLoading: isFileSlidesLoading } = useFileSlides({
     songs,
-    songFilter: setlist ? songFilter : undefined,
+    songFilter: stableSongFilter,
     keyResolver,
     songOrderer,
   });
@@ -338,27 +346,92 @@ export default function SetlistPage() {
     document.body.style.overflow = "";
   }, []);
 
-  const handleSaveNotesInViewer = async (songId: string, notes: string) => {
-    if (!setlist || !updateSetlistMutation) return;
-    const updatedSongs = setlist.songs.map((song) => {
-      if (song.songId === songId) {
-        return { ...song, notes };
-      }
-      return song;
-    });
-    try {
-      await updateSetlistMutation.mutateAsync({
-        id: setlist.id,
-        payload: { songs: updatedSongs },
+  const handleSaveNotesInViewer = useCallback(
+    async (songId: string, notes: string) => {
+      if (!setlist || !updateSetlistMutation) return;
+      const updatedSongs = setlist.songs.map((song) => {
+        if (song.songId === songId) {
+          return { ...song, notes };
+        }
+        return song;
       });
-      toast.success("Notes saved");
-    } catch {
-      toast.error("Failed to save notes");
-    }
-  };
+      try {
+        await updateSetlistMutation.mutateAsync({
+          id: setlist.id,
+          payload: { songs: updatedSongs },
+        });
+        toast.success("Notes saved");
+      } catch {
+        toast.error("Failed to save notes");
+      }
+    },
+    [setlist, updateSetlistMutation]
+  );
+
+  // Memoize callbacks passed to child components
+  const handleShowCarousel = useCallback((open: boolean) => {
+    setShowCarousel(open);
+  }, []);
+
+  const handleCloseEditDialog = useCallback((isOpen: boolean) => {
+    if (!isOpen) setEditingSong(null);
+  }, []);
+
+  const handleShowAddModal = useCallback(() => {
+    setShowAddSongModal(true);
+  }, []);
+
+  const handleShowEditMetadata = useCallback(() => {
+    setIsEditingMetadata(true);
+  }, []);
+
+  const handleShowCarouselButton = useCallback(() => {
+    setShowCarousel(true);
+  }, []);
+
+  // Memoize arrays passed as props to prevent unnecessary re-renders
+  const sortableItems = useMemo(
+    () => [...(setlist?.songs.map((song) => song.id) ?? []), "end-drop-zone"],
+    [setlist?.songs]
+  );
+
+  const setlistArray = useMemo(() => (setlist ? [setlist] : []), [setlist]);
+
+  const breadcrumbItems = useMemo(
+    () => [
+      { href: "/setlists", label: "Setlists" },
+      ...(setlist
+        ? [{ href: `/setlist/${setlist.id}`, label: setlist.name }]
+        : []),
+    ],
+    [setlist]
+  );
+
+  // Memoize flattenedSlides length check to prevent flicker
+  const hasSlides = useMemo(
+    () => flattenedSlides.length > 0,
+    [flattenedSlides.length]
+  );
+
+  // Show loading state only if we truly don't have data yet
+  // Prioritize showing cached data over loading state to prevent flicker on remount
+  // isLoading can flicker on remount even with cached data, so check data first
+  if (!setlist && isLoading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Loading..." />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading setlist...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!setlist) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
@@ -368,7 +441,7 @@ export default function SetlistPage() {
       {showCarousel && (
         <FileViewer
           isOpen={showCarousel}
-          onOpenChange={setShowCarousel}
+          onOpenChange={handleShowCarousel}
           slides={flattenedSlides}
           onSaveNotes={handleSaveNotesInViewer}
         />
@@ -380,12 +453,12 @@ export default function SetlistPage() {
         setlist={setlist}
         songsNotInSetlist={songsNotInSetlist}
         onSongAdded={handleAddNewSong}
-        setlists={setlist ? [setlist] : []}
+        setlists={setlistArray}
       />
 
       <EditSongDialog
         editingSong={editingSong}
-        onOpenChange={(isOpen) => !isOpen && setEditingSong(null)}
+        onOpenChange={handleCloseEditDialog}
         onSave={handleSaveSong}
       />
 
@@ -398,12 +471,7 @@ export default function SetlistPage() {
 
       <div className="flex-1 space-y-8 overflow-auto p-4 md:p-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <Breadcrumb
-            items={[
-              { href: "/setlists", label: "Setlists" },
-              { href: `/setlist/${setlist.id}`, label: setlist.name },
-            ]}
-          />
+          <Breadcrumb items={breadcrumbItems} />
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -413,10 +481,7 @@ export default function SetlistPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Songs</h2>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowAddSongModal(true)}
-                  >
+                  <Button variant="secondary" onClick={handleShowAddModal}>
                     <PlusIcon className="mr-2 h-4 w-4" />
                     Add Song
                   </Button>
@@ -430,10 +495,7 @@ export default function SetlistPage() {
                   onDragCancel={handleDragCancel}
                 >
                   <SortableContext
-                    items={[
-                      ...setlist.songs.map((song) => song.id),
-                      "end-drop-zone",
-                    ]}
+                    items={sortableItems}
                     strategy={verticalListSortingStrategy}
                   >
                     <SetlistSongList
@@ -441,7 +503,7 @@ export default function SetlistPage() {
                       onReorder={handleReorderSong}
                       onEdit={setEditingSong}
                       onRemove={handleRemoveSong}
-                      onAdd={() => setShowAddSongModal(true)}
+                      onAdd={handleShowAddModal}
                     />
                   </SortableContext>
 
@@ -461,8 +523,8 @@ export default function SetlistPage() {
                 <Button
                   size="xl"
                   className={clsx("flex-1 flex gap-2 border-none min-h-12")}
-                  onClick={() => setShowCarousel(true)}
-                  disabled={flattenedSlides.length === 0}
+                  onClick={handleShowCarouselButton}
+                  disabled={!hasSlides || isFileSlidesLoading}
                 >
                   <FilesIcon /> View Files
                 </Button>
@@ -473,7 +535,7 @@ export default function SetlistPage() {
 
             <SetlistInfoCard
               setlist={setlist}
-              onEdit={() => setIsEditingMetadata(true)}
+              onEdit={handleShowEditMetadata}
             />
           </div>
         </div>

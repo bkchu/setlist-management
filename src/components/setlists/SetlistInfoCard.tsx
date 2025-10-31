@@ -9,13 +9,17 @@ import {
 import { Setlist } from "@/types";
 import { format } from "date-fns";
 import { Edit as EditIcon } from "lucide-react";
+import React from "react";
 
 interface SetlistInfoCardProps {
   setlist: Setlist;
   onEdit: () => void;
 }
 
-export function SetlistInfoCard({ setlist, onEdit }: SetlistInfoCardProps) {
+export const SetlistInfoCard = React.memo(function SetlistInfoCard({
+  setlist,
+  onEdit,
+}: SetlistInfoCardProps) {
   return (
     <Card>
       <CardContent className="pt-6">
@@ -79,4 +83,4 @@ export function SetlistInfoCard({ setlist, onEdit }: SetlistInfoCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
