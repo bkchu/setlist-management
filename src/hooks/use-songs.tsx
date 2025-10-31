@@ -1,9 +1,14 @@
-import { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useCallback, useMemo } from "react";
 import { Song } from "@/types";
 import type { SongFile } from "@/types";
 import { useAuth } from "./use-auth";
 import { supabase } from "@/lib/supabase";
 import { useGetSongsByOrganization } from "@/api/songs/list";
+import { useQueryClient } from "@tanstack/react-query";
+import { songKeys } from "@/api/songs/keys";
+import { createSongServer } from "@/api/songs/post";
+import { updateSongServer } from "@/api/songs/put";
+import { deleteSongServer } from "@/api/songs/delete";
 
 interface SongContextProps {
   songs: Song[];
@@ -18,209 +23,72 @@ const SongContext = createContext<SongContextProps | undefined>(undefined);
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const {
     data: songsData,
     isLoading: songsLoading,
     error: songsError,
   } = useGetSongsByOrganization(user?.organizationId);
+  const queryClient = useQueryClient();
+  const songs = useMemo(() => songsData ?? [], [songsData]);
+  const error = songsError
+    ? (songsError as unknown as Error)?.message ?? "Failed to load songs"
+    : null;
+  const isLoading = songsLoading;
 
-  // Mirror query state into context state
-  if (songsLoading !== isLoading) setIsLoading(songsLoading);
-  if ((songsError as unknown as Error | null)?.message && !error)
-    setError((songsError as unknown as Error).message);
-  if (songsData && songs !== songsData) setSongs(songsData);
-
-  const addSong = async (songData: Partial<Song>): Promise<Song> => {
-    if (!user?.organizationId)
-      throw new Error("User not authenticated or no organization");
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const addSong = useCallback(
+    async (songData: Partial<Song>): Promise<Song> => {
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
       if (!songData.title) {
         throw new Error("Song title is required");
       }
 
-      const { data, error } = await supabase
-        .from("songs")
-        .insert([
-          {
-            title: songData.title,
-            artist: songData.artist || "",
-            notes: songData.notes || "",
-            files: songData.files || [],
-            keyed_files: songData.keyedFiles || {},
-            organization_id: user.organizationId,
-          },
-        ])
-        .select(
-          `
-          *,
-          song_keys (
-            id,
-            key,
-            played_at,
-            setlist_id,
-            setlists (
-              name
-            )
-          )
-        `
-        )
-        .single();
+      const created = await createSongServer({
+        title: songData.title,
+        artist: songData.artist,
+        notes: songData.notes,
+        files: songData.files,
+        keyedFiles: songData.keyedFiles,
+        organizationId: user.organizationId,
+      });
 
-      if (error) throw error;
-      if (!data) throw new Error("Failed to create song");
+      queryClient.setQueryData(songKeys.detail(created.id), created);
+      queryClient.invalidateQueries({ queryKey: songKeys.lists() });
+      return created;
+    },
+    [user?.organizationId, queryClient]
+  );
 
-      const newSong: Song = {
-        id: data.id,
-        title: data.title,
-        artist: data.artist,
-        notes: data.notes || "",
-        files: data.files || [],
-        keyedFiles: data.keyed_files || {},
-        keyHistory: (data.song_keys || []).map(
-          (key: {
-            id: string;
-            key: string;
-            played_at: string;
-            setlist_id: string;
-            setlists?: { name?: string } | null;
-          }) => ({
-            id: key.id,
-            key: key.key,
-            playedAt: key.played_at,
-            setlistId: key.setlist_id,
-            setlistName: key.setlists?.name || "",
-          })
-        ),
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-
-      setSongs((prev) => [newSong, ...prev]);
-      return newSong;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add song");
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateSong = async (
-    id: string,
-    songData: Partial<Song>
-  ): Promise<Song> => {
-    if (!user?.organizationId)
-      throw new Error("User not authenticated or no organization");
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const updateSong = useCallback(
+    async (id: string, songData: Partial<Song>): Promise<Song> => {
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
       if (songData.title === "") {
         throw new Error("Song title is required");
       }
 
-      const { data, error } = await supabase
-        .from("songs")
-        .update({
-          title: songData.title,
-          artist: songData.artist,
-          notes: songData.notes,
-          files: songData.files,
-          keyed_files: songData.keyedFiles,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select(
-          `
-          *,
-          song_keys (
-            id,
-            key,
-            played_at,
-            setlist_id,
-            setlists (
-              name
-            )
-          )
-        `
-        )
-        .single();
+      const updated = await updateSongServer(id, songData);
+      queryClient.setQueryData(songKeys.detail(updated.id), updated);
+      queryClient.invalidateQueries({ queryKey: songKeys.lists() });
+      return updated;
+    },
+    [user?.organizationId, queryClient]
+  );
 
-      if (error) throw error;
-      if (!data) throw new Error("Song not found");
-
-      const updatedSong: Song = {
-        id: data.id,
-        title: data.title,
-        artist: data.artist,
-        notes: data.notes || "",
-        files: data.files || [],
-        keyedFiles: data.keyed_files || {},
-        keyHistory: (data.song_keys || [])
-          .map(
-            (key: {
-              id: string;
-              key: string;
-              played_at: string;
-              setlist_id: string;
-              setlists?: { name?: string } | null;
-            }) => ({
-              id: key.id,
-              key: key.key,
-              playedAt: key.played_at,
-              setlistId: key.setlist_id,
-              setlistName: key.setlists?.name || "",
-            })
-          )
-          .sort(
-            (a: { playedAt: string }, b: { playedAt: string }) =>
-              new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
-          ),
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-
-      setSongs((prev) =>
-        prev.map((song) => (song.id === id ? updatedSong : song))
-      );
-
-      return updatedSong;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update song");
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deleteSong = async (id: string): Promise<void> => {
-    if (!user?.organizationId)
-      throw new Error("User not authenticated or no organization");
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const deleteSong = useCallback(
+    async (id: string): Promise<void> => {
+      if (!user?.organizationId)
+        throw new Error("User not authenticated or no organization");
       // Get the song to delete its files first
       const songToDelete = songs.find((s) => s.id === id);
 
       // Collect all file paths from both old files and keyed files
       const filePaths: string[] = [];
 
-      // Add paths from old files structure
       if (songToDelete?.files?.length) {
         filePaths.push(...songToDelete.files.map((f) => f.path));
       }
 
-      // Add paths from keyed files structure
       if (songToDelete?.keyedFiles) {
         Object.values(songToDelete.keyedFiles).forEach(
           (keyFiles: SongFile[] | undefined) => {
@@ -231,30 +99,31 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      // Remove all files from storage
       if (filePaths.length > 0) {
         await supabase.storage.from("song-files").remove(filePaths);
       }
 
-      const { error } = await supabase.from("songs").delete().eq("id", id);
+      await deleteSongServer(id);
+      queryClient.invalidateQueries({ queryKey: songKeys.lists() });
+    },
+    [user?.organizationId, songs, queryClient]
+  );
 
-      if (error) throw error;
-
-      setSongs((prev) => prev.filter((song) => song.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete song");
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo<SongContextProps>(
+    () => ({
+      songs,
+      addSong,
+      updateSong,
+      deleteSong,
+      isLoading,
+      error,
+    }),
+    [songs, addSong, updateSong, deleteSong, isLoading, error]
+  );
 
   return (
-    <SongContext.Provider
-      value={{ songs, addSong, updateSong, deleteSong, isLoading, error }}
-    >
-      {children}
-    </SongContext.Provider>
+    <SongContext.Provider value={contextValue}>{children}</SongContext.Provider>
   );
 }
 

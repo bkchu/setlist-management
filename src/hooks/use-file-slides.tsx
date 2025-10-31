@@ -95,7 +95,8 @@ export function useFileSlides({
     });
 
     return result;
-  }, [processedFiles, queries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processedFiles, queries.map((q) => q.data).join(",")]);
 
   // Create slides from files
   const flattenedSlides = useMemo(() => {

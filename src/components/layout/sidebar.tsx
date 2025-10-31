@@ -17,32 +17,34 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
+
+// Static nav items - defined outside component to prevent recreation
+const NAV_ITEMS = [
+  {
+    title: "Home",
+    href: "/",
+    icon: HomeIcon,
+  },
+  {
+    title: "Setlists",
+    href: "/setlists",
+    icon: ListMusic,
+  },
+  {
+    title: "Songs",
+    href: "/songs",
+    icon: MusicIcon,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: SettingsIcon,
+  },
+] as const;
 
 export function Sidebar() {
   const { user, logout } = useAuth();
-
-  const navItems = [
-    {
-      title: "Home",
-      href: "/",
-      icon: HomeIcon,
-    },
-    {
-      title: "Setlists",
-      href: "/setlists",
-      icon: ListMusic,
-    },
-    {
-      title: "Songs",
-      href: "/songs",
-      icon: MusicIcon,
-    },
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: SettingsIcon,
-    },
-  ];
 
   return (
     <div className="flex w-40 flex-col border-r h-screen">
@@ -53,7 +55,7 @@ export function Sidebar() {
       </Link>
       <Separator />
       <ScrollArea className="flex-1 px-2 py-4">
-        <SidebarNav items={navItems} />
+        <SidebarNav items={NAV_ITEMS} />
       </ScrollArea>
 
       <div className="p-4">

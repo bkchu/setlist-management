@@ -101,10 +101,17 @@ export default function SetlistPage() {
     [songs, setlist]
   );
 
+  // Create a stable reference to setlist.songs for callbacks
+  const setlistSongsJson = useMemo(
+    () => JSON.stringify(setlist?.songs ?? []),
+    [setlist?.songs]
+  );
+
   // Memoize the filter and resolver functions to prevent infinite loops
   const songFilter = useCallback(
     (song: Song) => !!setlist?.songs.some((s) => s.songId === song.id),
-    [setlist?.songs]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setlistSongsJson]
   );
 
   const keyResolver = useCallback(
@@ -112,7 +119,8 @@ export default function SetlistPage() {
       const setlistSong = setlist?.songs.find((s) => s.songId === song.id);
       return setlistSong?.key || song.default_key || "";
     },
-    [setlist?.songs]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setlistSongsJson]
   );
 
   const songOrderer = useCallback(
@@ -132,7 +140,8 @@ export default function SetlistPage() {
         return orderA - orderB;
       });
     },
-    [setlist]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setlistSongsJson]
   );
 
   // Use the new hook for file slides

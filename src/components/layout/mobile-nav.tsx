@@ -3,35 +3,35 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
+// Static nav items - defined outside component to prevent recreation
+const NAV_ITEMS = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+  },
+  {
+    name: "Setlists",
+    href: "/setlists",
+    icon: ListMusic,
+  },
+  {
+    name: "Songs",
+    href: "/songs",
+    icon: Music,
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
+] as const;
+
 export function MobileNav() {
   const { pathname } = useLocation();
 
   const renderedNavItems = useMemo(() => {
-    // Moved navItems inside useMemo to fix the dependency array issue
-    const navItems = [
-      {
-        name: "Dashboard",
-        href: "/dashboard",
-        icon: Home,
-      },
-      {
-        name: "Setlists",
-        href: "/setlists",
-        icon: ListMusic,
-      },
-      {
-        name: "Songs",
-        href: "/songs",
-        icon: Music,
-      },
-      {
-        name: "Settings",
-        href: "/settings",
-        icon: Settings,
-      },
-    ];
-
-    return navItems.map((item) => {
+    return NAV_ITEMS.map((item) => {
       let isActive;
       if (item.name === "Dashboard") {
         isActive =
@@ -61,7 +61,7 @@ export function MobileNav() {
         </Link>
       );
     });
-  }, [pathname]); // Removed navItems from dependency array since it's now defined inside the hook
+  }, [pathname]);
 
   return (
     <nav className="flex h-14 w-full items-center justify-around">

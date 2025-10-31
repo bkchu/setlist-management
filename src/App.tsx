@@ -4,9 +4,10 @@ import {
   Routes,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SongProvider } from "@/hooks/use-songs";
@@ -27,7 +28,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import ResetPasswordPage from "@/pages/reset-password";
-import { useUserOrganizations } from "@/api/organizations/get";
+// import { useUserOrganizations } from "@/api/organizations/get";
 
 // Create a query client instance
 const queryClient = new QueryClient({
@@ -43,74 +44,14 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected route component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, orgsLoading } = useAuth();
-  const { isLoading: orgsQueryLoading, data: orgsData } =
-    useUserOrganizations();
-
-  // Only show the loading screen on the initial organizations resolution
-  const [orgsResolved, setOrgsResolved] = useState(false);
-  useEffect(() => {
-    if (!orgsLoading && !orgsQueryLoading) {
-      // Once either an organization is set or the query has run, consider resolved
-      if (user?.organizationId !== undefined || orgsData !== undefined) {
-        setOrgsResolved(true);
-      }
-    }
-  }, [orgsLoading, orgsQueryLoading, user?.organizationId, orgsData]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // While organizations are being resolved, render the app frame with a placeholder
-  const renderContent = () => {
-    // Only show loading before the first organizations resolution
-    const isInitialLoading =
-      !orgsResolved && (orgsLoading || (orgsQueryLoading && !orgsData));
-
-    if (isInitialLoading) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          Loading...
-        </div>
-      );
-    }
-
-    // If user doesn't have an organization after loading, redirect to onboarding
-    if (!user.organizationId && !(orgsData && orgsData.length > 0)) {
-      return <Navigate to="/onboarding" replace />;
-    }
-
-    return children;
-  };
-
+// Lightweight loading components
+function LoadingScreen() {
   return (
-    <div className="relative flex w-full min-h-dvh">
-      <div className="hidden md:block fixed left-0 top-0">
-        <Sidebar />
-      </div>
-      <div className="flex-1 flex flex-col min-h-0 md:ml-40">
-        <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
-          {renderContent()}
-        </div>
-      </div>
-      {/* Global Mobile Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden pb-[env(safe-area-inset-bottom)]">
-        <MobileNav />
-      </div>
-    </div>
+    <div className="flex h-screen items-center justify-center">Loading...</div>
   );
 }
+
+// Removed inner loading placeholder to keep Routes mounted
 
 function ToastOnJoin() {
   const location = useLocation();
@@ -128,6 +69,112 @@ function ToastOnJoin() {
   return null;
 }
 
+// App content that handles routing logic
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isLoading, orgsLoading } = useAuth();
+
+  // Make org resolution sticky for the session to avoid flicker on focus
+  const [orgsReady, setOrgsReady] = useState(false);
+  useEffect(() => {
+    if (!user) {
+      setOrgsReady(false);
+      return;
+    }
+    if (!orgsLoading) {
+      setOrgsReady(true);
+    }
+  }, [user, user?.id, orgsLoading]);
+
+  const shouldShowOnboarding = useMemo(() => {
+    const hasOrgId = Boolean(user?.organizationId);
+    const orgCount = user?.organizations?.length ?? 0;
+    return orgsReady && !hasOrgId && orgCount === 0;
+  }, [orgsReady, user?.organizationId, user?.organizations?.length]);
+
+  // Public routes that don't need protection
+  const isPublicRoute = [
+    "/login",
+    "/reset-password",
+    "/onboarding",
+    "/join",
+  ].includes(location.pathname);
+
+  // Imperative onboarding redirect to avoid unmounting the Routes tree
+  const hasRedirectedRef = useRef(false);
+  useEffect(() => {
+    if (isLoading || !user) return;
+    if (
+      orgsReady &&
+      shouldShowOnboarding &&
+      !hasRedirectedRef.current &&
+      location.pathname !== "/onboarding" &&
+      !["/login", "/reset-password", "/onboarding", "/join"].includes(
+        location.pathname
+      )
+    ) {
+      hasRedirectedRef.current = true;
+      navigate("/onboarding", { replace: true });
+    }
+  }, [
+    isLoading,
+    user,
+    orgsReady,
+    shouldShowOnboarding,
+    location.pathname,
+    navigate,
+  ]);
+
+  // Show loading screen during initial auth
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Redirect to login if not authenticated and trying to access protected route
+  if (!user && !isPublicRoute) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If on public route, render it directly without the app shell
+  if (isPublicRoute) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/join" element={<JoinOrganization />} />
+      </Routes>
+    );
+  }
+
+  // Protected routes with persistent app shell
+  return (
+    <div className="relative flex w-full min-h-dvh">
+      <div className="hidden md:block fixed left-0 top-0">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col min-h-0 md:ml-40">
+        <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/songs" element={<Songs />} />
+            <Route path="/song/:id" element={<SongPage />} />
+            <Route path="/setlists" element={<Setlists />} />
+            <Route path="/setlist/:id" element={<SetlistPage />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </div>
+      {/* Global Mobile Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden pb-[env(safe-area-inset-bottom)]">
+        <MobileNav />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -137,66 +184,9 @@ function App() {
             <SettingsProvider>
               <Router>
                 <ToastOnJoin />
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/reset-password"
-                    element={<ResetPasswordPage />}
-                  />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/join" element={<JoinOrganization />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/songs"
-                    element={
-                      <ProtectedRoute>
-                        <Songs />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/song/:id"
-                    element={
-                      <ProtectedRoute>
-                        <SongPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/setlists"
-                    element={
-                      <ProtectedRoute>
-                        <Setlists />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/setlist/:id"
-                    element={
-                      <ProtectedRoute>
-                        <SetlistPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <AppContent />
+                <Toaster position="bottom-right" richColors />
               </Router>
-              <Toaster position="bottom-right" richColors />
             </SettingsProvider>
           </SongProvider>
         </AuthProvider>

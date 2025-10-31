@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { useAuth } from "./use-auth";
 // import { toast } from "sonner";
 import { useGetUserSettings } from "@/api/settings/get";
@@ -30,9 +30,6 @@ const SettingsContext = createContext<SettingsContextProps | undefined>(
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const {
     data,
@@ -40,22 +37,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     error: settingsError,
   } = useGetUserSettings(user?.id);
 
-  useEffect(() => {
-    if (!user) {
-      setSettings(defaultSettings);
-      setIsLoading(false);
-      return;
-    }
-    if (settingsLoading !== isLoading) setIsLoading(settingsLoading);
-    if ((settingsError as unknown as Error | null)?.message && !error) {
-      setError((settingsError as unknown as Error).message);
-    }
-    if (data) {
-      setSettings({
-        oneTouchSongs: data.one_touch_songs || { songIds: [] },
-      });
-    }
-  }, [user, data, settingsLoading, settingsError, isLoading, error]);
+  const settings = useMemo<UserSettings>(() => {
+    if (!user || !data) return defaultSettings;
+    return {
+      oneTouchSongs: data.one_touch_songs || { songIds: [] },
+    };
+  }, [user, data]);
+
+  const isLoading = settingsLoading;
+  const error = settingsError
+    ? (settingsError as unknown as Error)?.message ?? "Failed to load settings"
+    : null;
 
   const updateMutation = useUpdateUserSettings(user?.id || "");
 
@@ -70,7 +62,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       oneTouchSongs: updatedSettings.oneTouchSongs,
     });
 
-    setSettings(updatedSettings);
     return updatedSettings;
   };
 
@@ -79,14 +70,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   ): Promise<UserSettings> => {
     // Limit to 3 songs
     const limitedSongIds = songIds.slice(0, 3);
-
-    // Update local state immediately for better UX
-    setSettings((prev) => ({
-      ...prev,
-      oneTouchSongs: {
-        songIds: limitedSongIds,
-      },
-    }));
 
     return updateSettings({
       oneTouchSongs: {

@@ -18,12 +18,16 @@ export async function fetchSetlistById(id: string): Promise<Setlist> {
 export type UseGetSetlistProps = { setlistId?: string };
 
 export function useGetSetlist({ setlistId }: UseGetSetlistProps) {
-  return useQuery({
+  const query = useQuery({
     queryKey: setlistId ? setlistKeys.detail(setlistId) : setlistKeys.all,
     queryFn: () => fetchSetlistById(setlistId as string),
     enabled: Boolean(setlistId),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
+  return query;
 }
