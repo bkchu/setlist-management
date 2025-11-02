@@ -4,7 +4,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
@@ -17,7 +16,6 @@ import { FileViewer } from "@/components/setlists/FileViewer";
 import {
   Command,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
   CommandEmpty,
@@ -170,7 +168,6 @@ export function OneTouchSongs({
   const songListContent = (
     <div>
       <Command>
-        <CommandInput placeholder="Quick open slides..." />
         <CommandList>
           <CommandEmpty>No favorites yet.</CommandEmpty>
           <CommandGroup heading="One-Touch Songs">
