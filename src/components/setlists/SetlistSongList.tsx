@@ -45,6 +45,7 @@ interface SetlistSongRowProps {
   onEdit: (song: SetlistSong) => void;
   onRemove: (songId: string) => void;
   isOverlay?: boolean;
+  hasFileForSelectedKeyOverride?: boolean;
 }
 
 const SetlistSongRow = React.memo(function SetlistSongRow({
@@ -54,6 +55,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
   onEdit,
   onRemove,
   isOverlay = false,
+  hasFileForSelectedKeyOverride,
 }: SetlistSongRowProps) {
   const {
     attributes,
@@ -69,6 +71,24 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  // Subtle indicators next to title
+  const selectedKey = (song.key ?? "").trim();
+  const hasKey = selectedKey !== "";
+  const keyedFiles = (song.song.keyedFiles ?? {}) as Record<
+    string,
+    unknown[] | undefined
+  >;
+  const fileCountForSelectedKey = hasKey
+    ? Array.isArray(keyedFiles[selectedKey])
+      ? (keyedFiles[selectedKey] as unknown[]).length
+      : 0
+    : 0;
+  const computedHasFileForSelectedKey = hasKey && fileCountForSelectedKey > 0;
+  const hasFileForSelectedKey =
+    typeof hasFileForSelectedKeyOverride === "boolean"
+      ? hasFileForSelectedKeyOverride
+      : computedHasFileForSelectedKey;
 
   // Don't render drag handles and actions for overlay
   if (isOverlay) {
@@ -109,7 +129,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
         stiffness: 500,
         damping: 30,
       }}
-      className={`relative flex items-center justify-between rounded-md border p-3 ${
+      className={`relative flex flex-col md:flex-row md:items-center md:justify-between rounded-md border p-3 gap-3 ${
         isDragging ? "opacity-50 shadow-lg" : ""
       } ${isOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
     >
@@ -118,7 +138,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
         <div className="absolute -top-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Drag handle */}
         <div
           {...attributes}
@@ -129,28 +149,42 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           <GripVertical className="h-5 w-5" />
         </div>
 
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square shrink-0">
           {index + 1}
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">{song.song.title}</p>
+        <div className="space-y-1 flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium truncate">{song.song.title}</p>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/40 border border-black/80 text-[10px] font-medium text-muted-foreground/80 whitespace-nowrap">
+                {hasKey ? selectedKey : "no key"}
+              </span>
+              {hasKey && !hasFileForSelectedKey && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/40 border border-black/80 text-[10px] font-medium text-muted-foreground/80 whitespace-nowrap">
+                  no slides
+                </span>
+              )}
+            </div>
+          </div>
           {song.song.artist && (
-            <p className="text-xs text-muted-foreground">{song.song.artist}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {song.song.artist}
+            </p>
           )}
-          <p className="text-xs text-muted-foreground">
-            {song.key && `Key: ${song.key}`}
-            {song.key && song.notes && " • "}
-            {song.notes}
-          </p>
+          {song.notes && (
+            <p className="text-xs text-muted-foreground truncate">
+              {song.notes}
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between md:justify-end gap-1 md:gap-1 w-full md:w-auto">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onReorder(song.id, "up")}
           disabled={index === 0}
-          className="h-8 w-8"
+          className="h-8 flex-1 md:flex-none md:w-8"
         >
           <span className="sr-only">Move up</span>
           <ArrowUpIcon className="h-3.5 w-3.5" />
@@ -159,7 +193,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           variant="ghost"
           size="icon"
           onClick={() => onReorder(song.id, "down")}
-          className="h-8 w-8"
+          className="h-8 flex-1 md:flex-none md:w-8"
         >
           <span className="sr-only">Move down</span>
           <ArrowDownIcon className="h-3.5 w-3.5" />
@@ -168,14 +202,14 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           variant="ghost"
           size="icon"
           onClick={() => onEdit(song)}
-          className="h-8 w-8"
+          className="h-8 flex-1 md:flex-none md:w-8"
         >
           <EditIcon className="h-3.5 w-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-destructive hover:text-destructive"
+          className="h-8 flex-1 md:flex-none md:w-8 text-destructive hover:text-destructive"
           onClick={() => onRemove(song.id)}
         >
           <XIcon className="h-3.5 w-3.5" />
@@ -191,6 +225,7 @@ interface SetlistSongListProps {
   onEdit: (song: SetlistSong) => void;
   onRemove: (songId: string) => void;
   onAdd?: () => void;
+  fileAvailabilityBySongId?: Record<string, boolean>;
 }
 
 export const SetlistSongList = React.memo(function SetlistSongList({
@@ -199,10 +234,11 @@ export const SetlistSongList = React.memo(function SetlistSongList({
   onEdit,
   onRemove,
   onAdd,
+  fileAvailabilityBySongId,
 }: SetlistSongListProps) {
   if (songs.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-8 text-center">
+      <div className="rounded-md border border-dashed p-6 text-center">
         <Music2Icon className="mx-auto h-8 w-8 text-muted-foreground" />
         <h3 className="mt-2 text-sm font-medium">No songs added yet</h3>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -224,7 +260,7 @@ export const SetlistSongList = React.memo(function SetlistSongList({
   }
 
   return (
-    <div className="space-y-2" style={{ touchAction: "pan-y" }}>
+    <div className="space-y-1.5" style={{ touchAction: "pan-y" }}>
       <AnimatePresence>
         {songs.map((song, index) => (
           <SetlistSongRow
@@ -234,6 +270,7 @@ export const SetlistSongList = React.memo(function SetlistSongList({
             onReorder={onReorder}
             onEdit={onEdit}
             onRemove={onRemove}
+            hasFileForSelectedKeyOverride={fileAvailabilityBySongId?.[song.id]}
           />
         ))}
       </AnimatePresence>

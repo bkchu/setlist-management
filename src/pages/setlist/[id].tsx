@@ -11,7 +11,7 @@ import React from "react";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
 import { EditSongDialog } from "@/components/setlists/EditSongDialog";
 import { SetlistSongList } from "@/components/setlists/SetlistSongList";
-import { SetlistInfoCard } from "@/components/setlists/SetlistInfoCard";
+import { getAllKeyedFiles } from "@/types";
 import { FileViewer } from "@/components/setlists/FileViewer";
 import { Header } from "@/components/layout/header";
 import { OneTouchSongs } from "@/components/setlists/one-touch-songs";
@@ -19,6 +19,13 @@ import { SetlistForm } from "@/components/setlists/setlist-form";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import {} from "@/components/ui/dialog";
 import {
   DndContext,
@@ -38,7 +45,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import clsx from "clsx";
 
 // Optimized drag preview component using the SetlistSongRow
 const DragPreview = React.memo(function DragPreview({
@@ -94,6 +100,7 @@ export default function SetlistPage() {
   const [showCarousel, setShowCarousel] = useState(false);
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [showFilesPopover, setShowFilesPopover] = useState(false);
 
   const songsNotInSetlist = useMemo(
     () =>
@@ -413,6 +420,72 @@ export default function SetlistPage() {
     [flattenedSlides.length]
   );
 
+  // Compute file availability per setlist song for the selected key
+  const fileAvailabilityBySongId = useMemo(() => {
+    const availability: Record<string, boolean> = {};
+    if (!setlist) return availability;
+    for (const setlistSong of setlist.songs) {
+      const details = songs.find((s) => s.id === setlistSong.songId);
+      if (!details) {
+        availability[setlistSong.id] = false;
+        continue;
+      }
+      const selectedKey = (setlistSong.key ?? "").trim();
+      if (!selectedKey) {
+        availability[setlistSong.id] = false;
+        continue;
+      }
+      const keyed = (getAllKeyedFiles(details) ?? {}) as Record<
+        string,
+        unknown[] | undefined
+      >;
+      const count = Array.isArray(keyed[selectedKey])
+        ? (keyed[selectedKey] as unknown[]).length
+        : 0;
+      availability[setlistSong.id] = count > 0;
+    }
+    return availability;
+  }, [setlist, songs]);
+
+  // Calculate file status for contextual messaging
+  const fileStatus = useMemo(() => {
+    if (!setlist || setlist.songs.length === 0) {
+      return { hasFiles: false, message: "" };
+    }
+
+    const songsWithFiles = setlist.songs.filter((setlistSong) => {
+      const song = songs.find((s) => s.id === setlistSong.songId);
+      if (!song) return false;
+
+      // Check if song has files (legacy or keyed)
+      const hasLegacyFiles = (song.files?.length ?? 0) > 0;
+      const hasKeyedFiles =
+        song.keyedFiles && Object.keys(song.keyedFiles).length > 0;
+
+      return hasLegacyFiles || hasKeyedFiles;
+    });
+
+    if (songsWithFiles.length === 0) {
+      return {
+        hasFiles: false,
+        message: "Add files to songs to view them here",
+      };
+    }
+
+    const songsWithKeys = setlist.songs.filter((setlistSong) => {
+      return setlistSong.key && setlistSong.key.trim() !== "";
+    });
+
+    if (songsWithKeys.length === 0 && songsWithFiles.length > 0) {
+      return {
+        hasFiles: false,
+        message: "Select keys for songs to view files",
+      };
+    }
+
+    return { hasFiles: true, message: "" };
+  }, [setlist, songs]);
+
   // Show loading state only if we truly don't have data yet
   // Prioritize showing cached data over loading state to prevent flicker on remount
   // isLoading can flicker on remount even with cached data, so check data first
@@ -474,72 +547,123 @@ export default function SetlistPage() {
           <Breadcrumb items={breadcrumbItems} />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="md:col-span-2">
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Songs</h2>
+        {/* Minimal setlist summary (no card) */}
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <div className="min-w-0 flex items-center gap-3 text-muted-foreground">
+            <div className="truncate font-medium text-foreground">
+              {setlist.name}
+            </div>
+            {setlist.date && (
+              <div className="flex items-center gap-1">
+                <span>{format(new Date(setlist.date), "MMM d, yyyy")}</span>
+              </div>
+            )}
+            <span className="opacity-50">•</span>
+            <div>
+              {setlist.songs.length}{" "}
+              {setlist.songs.length === 1 ? "song" : "songs"}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleShowEditMetadata}
+            className="h-8 px-2"
+          >
+            Edit
+          </Button>
+        </div>
 
+        <Card className="!mt-4">
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="text-lg font-semibold">Songs</h2>
+
+                <div className="flex items-center gap-2">
+                  {setlist.songs.length > 0 && (
+                    <Popover
+                      open={showFilesPopover}
+                      onOpenChange={setShowFilesPopover}
+                    >
+                      <PopoverTrigger asChild>
+                        <div>
+                          <Button
+                            variant="outline"
+                            onClick={(e) => {
+                              if (!hasSlides || isFileSlidesLoading) {
+                                e.preventDefault();
+                                setShowFilesPopover(true);
+                              } else {
+                                handleShowCarouselButton();
+                              }
+                            }}
+                            className={cn(
+                              "gap-2",
+                              (!hasSlides || isFileSlidesLoading) &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                            aria-disabled={!hasSlides || isFileSlidesLoading}
+                          >
+                            <FilesIcon className="h-4 w-4" />
+                            View Files
+                          </Button>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="top"
+                        align="end"
+                        className="w-auto p-2 text-xs"
+                      >
+                        <p>
+                          {isFileSlidesLoading
+                            ? "Loading files..."
+                            : fileStatus.message || "No files available"}
+                        </p>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   <Button variant="secondary" onClick={handleShowAddModal}>
                     <PlusIcon className="mr-2 h-4 w-4" />
                     Add Song
                   </Button>
                 </div>
-
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                  onDragStart={handleDragStart}
-                  onDragCancel={handleDragCancel}
-                >
-                  <SortableContext
-                    items={sortableItems}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <SetlistSongList
-                      songs={setlist.songs}
-                      onReorder={handleReorderSong}
-                      onEdit={setEditingSong}
-                      onRemove={handleRemoveSong}
-                      onAdd={handleShowAddModal}
-                    />
-                  </SortableContext>
-
-                  <DragOverlay>
-                    {activeId ? (
-                      <DragPreview songId={activeId} setlist={setlist} />
-                    ) : null}
-                  </DragOverlay>
-                </DndContext>
               </div>
-            </CardContent>
-          </Card>
 
-          <div className="space-y-4">
-            {setlist.songs.length > 0 && (
-              <div className="flex gap-2 flex-col">
-                <Button
-                  size="xl"
-                  className={clsx("flex-1 flex gap-2 border-none min-h-12")}
-                  onClick={handleShowCarouselButton}
-                  disabled={!hasSlides || isFileSlidesLoading}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                onDragStart={handleDragStart}
+                onDragCancel={handleDragCancel}
+              >
+                <SortableContext
+                  items={sortableItems}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <FilesIcon /> View Files
-                </Button>
-              </div>
-            )}
+                  <SetlistSongList
+                    songs={setlist.songs}
+                    onReorder={handleReorderSong}
+                    onEdit={setEditingSong}
+                    onRemove={handleRemoveSong}
+                    onAdd={handleShowAddModal}
+                    fileAvailabilityBySongId={fileAvailabilityBySongId}
+                  />
+                </SortableContext>
 
-            <OneTouchSongs onSaveNotes={handleSaveNotesInViewer} />
-
-            <SetlistInfoCard
-              setlist={setlist}
-              onEdit={handleShowEditMetadata}
-            />
-          </div>
-        </div>
+                <DragOverlay>
+                  {activeId ? (
+                    <DragPreview songId={activeId} setlist={setlist} />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Floating OneTouchSongs Button */}
+      <OneTouchSongs onSaveNotes={handleSaveNotesInViewer} asFloatingButton />
     </div>
   );
 }
