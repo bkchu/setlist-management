@@ -66,10 +66,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   CopyIcon,
   MoreHorizontal,
@@ -93,9 +90,7 @@ export function JoinCodeManager() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [expiresInHours, setExpiresInHours] = useState("24");
   const [latestInvite, setLatestInvite] = useState<JoinCode | null>(null);
-  const [statusFilter, setStatusFilter] = useState<InviteStatus | "all">(
-    "all"
-  );
+  const [statusFilter, setStatusFilter] = useState<InviteStatus | "all">("all");
 
   const handleGenerateCode = async () => {
     if (!user?.organizationId) return;
@@ -221,22 +216,19 @@ export function JoinCodeManager() {
     expired: statusBuckets.expired.length,
   };
 
-  const groupedJoinCodes = useMemo(
-    () => {
-      if (statusFilter === "all") {
-        return STATUS_ORDER.map((status) => ({
-          status,
-          codes: statusBuckets[status],
-        })).filter((group) => group.codes.length > 0);
-      }
+  const groupedJoinCodes = useMemo(() => {
+    if (statusFilter === "all") {
+      return STATUS_ORDER.map((status) => ({
+        status,
+        codes: statusBuckets[status],
+      })).filter((group) => group.codes.length > 0);
+    }
 
-      const status = statusFilter as InviteStatus;
-      return statusBuckets[status].length
-        ? [{ status, codes: statusBuckets[status] }]
-        : [];
-    },
-    [statusBuckets, statusFilter]
-  );
+    const status = statusFilter as InviteStatus;
+    return statusBuckets[status].length
+      ? [{ status, codes: statusBuckets[status] }]
+      : [];
+  }, [statusBuckets, statusFilter]);
 
   const activeCodesCount = statusCounts.active;
   const filterOptions: Array<{
@@ -245,7 +237,11 @@ export function JoinCodeManager() {
     count: number;
   }> = [
     { value: "all", label: "All", count: joinCodes.length },
-    { value: "active", label: STATUS_LABELS.active, count: statusCounts.active },
+    {
+      value: "active",
+      label: STATUS_LABELS.active,
+      count: statusCounts.active,
+    },
     { value: "used", label: STATUS_LABELS.used, count: statusCounts.used },
     {
       value: "expired",
@@ -270,9 +266,9 @@ export function JoinCodeManager() {
             Invite Links
           </CardTitle>
           <CardDescription>
-            Only organization owners can create or share invite links (single-use
-            join codes). Ask an owner to generate one if you need to invite
-            someone.
+            Only organization owners can create or share invite links
+            (single-use join codes). Ask an owner to generate one if you need to
+            invite someone.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -298,12 +294,12 @@ export function JoinCodeManager() {
               <div className="text-2xl font-bold text-green-600">
                 {activeCodesCount}
               </div>
-              <div className="text-sm text-muted-foreground">Active Invites</div>
+              <div className="text-sm text-muted-foreground">
+                Active Invites
+              </div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">
-                {statusCounts.used}
-              </div>
+              <div className="text-2xl font-bold">{statusCounts.used}</div>
               <div className="text-sm text-muted-foreground">Used Invites</div>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -801,9 +797,7 @@ export function JoinCodeManager() {
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                           <DropdownMenuItem
-                                            onSelect={(e) =>
-                                              e.preventDefault()
-                                            }
+                                            onSelect={(e) => e.preventDefault()}
                                             className="gap-2 text-destructive focus:text-destructive"
                                           >
                                             <TrashIcon className="h-4 w-4" />
@@ -818,8 +812,8 @@ export function JoinCodeManager() {
                                             <AlertDialogDescription>
                                               Are you sure you want to revoke
                                               this invite link? This action
-                                              cannot be undone and the code
-                                              will no longer work.
+                                              cannot be undone and the code will
+                                              no longer work.
                                             </AlertDialogDescription>
                                           </AlertDialogHeader>
                                           <AlertDialogFooter>
