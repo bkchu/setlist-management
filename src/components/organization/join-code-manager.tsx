@@ -97,30 +97,6 @@ export function JoinCodeManager() {
     "all"
   );
 
-  // Check if user is owner
-  const isOwner =
-    user?.organizations.find(
-      (org) => org.organizationId === user.organizationId
-    )?.role === "owner";
-
-  if (!isOwner) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Invite Links
-          </CardTitle>
-          <CardDescription>
-            Only organization owners can create or share invite links (single-use
-            join codes). Ask an owner to generate one if you need to invite
-            someone.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   const handleGenerateCode = async () => {
     if (!user?.organizationId) return;
 
@@ -278,6 +254,30 @@ export function JoinCodeManager() {
     },
   ];
   const hasFilteredResults = groupedJoinCodes.length > 0;
+
+  // Check if user is owner (evaluated after hooks to keep consistent order)
+  const isOwner =
+    user?.organizations.find(
+      (org) => org.organizationId === user.organizationId
+    )?.role === "owner";
+
+  if (!isOwner) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="h-5 w-5" />
+            Invite Links
+          </CardTitle>
+          <CardDescription>
+            Only organization owners can create or share invite links (single-use
+            join codes). Ask an owner to generate one if you need to invite
+            someone.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
