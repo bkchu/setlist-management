@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useJoinCodes } from "@/hooks/use-join-codes";
@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Loader2Icon,
   BuildingIcon,
   CheckCircleIcon,
   XCircleIcon,
-  AlertTriangleIcon,
   ArrowRightIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -44,8 +44,17 @@ export default function JoinOrganization() {
   const [isValidating, setIsValidating] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [recentlyJoined, setRecentlyJoined] = useState(false);
   const joinCode = searchParams.get("code");
   const [currentCode, setCurrentCode] = useState<string | null>(joinCode);
+  const redirectTimeoutRef = useRef<number | null>(null);
+  // Track the last code we successfully validated to prevent duplicate requests
+  const lastValidatedCodeRef = useRef<string | null>(null);
+  const validateInFlightRef = useRef(false);
+  // Stabilize validateCode reference to avoid effect churn
+  const validateCodeRef = useRef<(code: string) => Promise<void>>(
+    async () => {}
+  );
   // Accept either a raw code or a full join URL
   const extractCode = (value: string): string => {
     const trimmed = value.trim();
@@ -70,7 +79,7 @@ export default function JoinOrganization() {
           setValidation({
             isValid: false,
             error: result.isExpired
-              ? `This join code has expired${
+              ? `This invite code has expired${
                   result.expiresAt
                     ? ` (expired ${new Date(
                         result.expiresAt
@@ -78,12 +87,12 @@ export default function JoinOrganization() {
                     : "."
                 }`
               : result.isUsed
-              ? `This join code has already been used${
+              ? `This invite code has already been used${
                   result.usedAt
                     ? ` (used ${new Date(result.usedAt).toLocaleString()})`
                     : "."
                 }`
-              : "This join code was not found.",
+              : "We couldn’t find this invite code.",
             isExpired: result.isExpired,
             isUsed: result.isUsed,
             expiresAt: result.expiresAt,
@@ -110,10 +119,10 @@ export default function JoinOrganization() {
           }
         }
       } catch (error) {
-        console.error("Error validating join code:", error);
+        console.error("Error validating invite code:", error);
         setValidation({
           isValid: false,
-          error: "Failed to validate join code. Please try again.",
+          error: "Failed to validate invite code. Please try again.",
         });
       } finally {
         setIsValidating(false);
@@ -122,8 +131,13 @@ export default function JoinOrganization() {
     [hasLocalOrganizationAccess, validateJoinCode]
   );
 
+  // Keep a stable reference for validateCode to avoid effect dependency loops
+  useEffect(() => {
+    validateCodeRef.current = validateCode;
+  }, [validateCode]);
+
   const handleJoinOrganization = async () => {
-    if (!currentCode || !validation?.isValid) return;
+    if (!currentCode || !validation?.isValid || recentlyJoined) return;
 
     setIsJoining(true);
     try {
@@ -139,7 +153,10 @@ export default function JoinOrganization() {
         }
       }
       await refreshUser();
-      navigate("/?joined=1", { replace: true });
+      setRecentlyJoined(true);
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        navigate("/?joined=1", { replace: true });
+      }, 1400);
     } catch (error) {
       console.error("Error joining organization:", error);
       toast.error(
@@ -153,7 +170,7 @@ export default function JoinOrganization() {
   };
 
   const handleGoToLogin = () => {
-    // Store the join code in localStorage to use after login
+    // Store the invite code in localStorage to use after login
     if (joinCode) {
       localStorage.setItem("pendingJoinCode", joinCode);
     }
@@ -161,7 +178,7 @@ export default function JoinOrganization() {
   };
 
   const handleCreateAccount = () => {
-    // Store the join code in localStorage to use after registration
+    // Store the invite code in localStorage to use after registration
     if (joinCode) {
       localStorage.setItem("pendingJoinCode", joinCode);
     }
@@ -175,13 +192,39 @@ export default function JoinOrganization() {
       return;
     }
 
-    // If user is authenticated but has no organization, validate the code
+    // If user is authenticated but has no organization, validate the code (once per code)
     if (user && !authLoading && joinCode) {
-      validateCode(joinCode);
-    } else if (!joinCode && isValidating) {
+      if (
+        validateInFlightRef.current ||
+        lastValidatedCodeRef.current === joinCode
+      ) {
+        return;
+      }
+      validateInFlightRef.current = true;
+      setIsValidating(true);
+      void validateCodeRef.current(joinCode)
+        .then(() => {
+          lastValidatedCodeRef.current = joinCode;
+        })
+        .finally(() => {
+          validateInFlightRef.current = false;
+        });
+      return;
+    }
+
+    // If no code present, ensure we aren't stuck in validating state
+    if (!joinCode) {
       setIsValidating(false);
     }
-  }, [joinCode, user, authLoading, navigate, validateCode, isValidating]);
+  }, [user?.id, user?.organizationId, authLoading, joinCode, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Show loading while auth is initializing
   if (authLoading) {
@@ -218,22 +261,25 @@ export default function JoinOrganization() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button onClick={handleGoToLogin} className="w-full">
-                Sign In to Existing Account
+                Sign in to join
               </Button>
               <Button
                 onClick={handleCreateAccount}
                 variant="outline"
                 className="w-full"
               >
-                Create New Account
+                Create account to join
               </Button>
             </CardContent>
           </Card>
 
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              Your join code:{" "}
+              Your invite code:{" "}
               <span className="font-mono font-medium">{joinCode}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              We'll keep this invite ready when you sign in.
             </p>
           </div>
         </div>
@@ -247,7 +293,7 @@ export default function JoinOrganization() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2Icon className="h-8 w-8 animate-spin mx-auto" />
-          <h2 className="text-xl font-semibold">Validating join code...</h2>
+          <h2 className="text-xl font-semibold">Validating invite code...</h2>
           <p className="text-muted-foreground">
             Please wait while we verify your invitation.
           </p>
@@ -282,25 +328,38 @@ export default function JoinOrganization() {
             <CardContent className="space-y-4">
               {validation?.isValid ? (
                 <>
-                  <div className="text-center space-y-2">
-                    <p className="text-muted-foreground">
-                      You've been invited to join:
-                    </p>
+                  {recentlyJoined && (
+                    <Alert className="text-left border-green-500/40 bg-green-500/10">
+                      <AlertTitle>You're in!</AlertTitle>
+                      <AlertDescription>
+                        Redirecting you to {validation.organizationName}.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="text-center space-y-3">
+                    <Badge
+                      variant="outline"
+                      className="uppercase tracking-wide text-[0.65rem]"
+                    >
+                      Single-use invite
+                    </Badge>
                     <h2 className="text-2xl font-bold">
                       {validation.organizationName}
                     </h2>
-                    <Badge variant="secondary">Organization</Badge>
                     {validation.expiresAt && (
                       <p className="text-xs text-muted-foreground">
-                        Expires{" "}
+                        Invite expires{" "}
                         {new Date(validation.expiresAt).toLocaleString()}
                       </p>
                     )}
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                    <p className="text-sm font-medium">What happens next?</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
+                    <p className="text-sm font-medium text-left">
+                      What happens next?
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 text-left">
                       <li>• You'll become a member of this organization</li>
                       <li>• You'll have access to shared songs and setlists</li>
                       <li>• You can collaborate with other team members</li>
@@ -309,13 +368,18 @@ export default function JoinOrganization() {
 
                   <Button
                     onClick={handleJoinOrganization}
-                    disabled={isJoining}
+                    disabled={isJoining || recentlyJoined}
                     className="w-full gap-2"
                   >
-                    {isJoining ? (
+                    {recentlyJoined ? (
                       <>
                         <Loader2Icon className="h-4 w-4 animate-spin" />
-                        Joining Organization...
+                        Redirecting...
+                      </>
+                    ) : isJoining ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                        Joining organization...
                       </>
                     ) : (
                       <>
@@ -327,27 +391,19 @@ export default function JoinOrganization() {
                 </>
               ) : (
                 <>
-                  <div className="text-center space-y-4">
-                    <AlertTriangleIcon className="h-8 w-8 mx-auto text-yellow-600" />
-                    <div>
-                      <h3 className="font-medium text-red-600 mb-2">
-                        Cannot Join Organization
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {validation?.error}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        If you believe this is a mistake, contact the
-                        organization owner to request a new code or a fresh
-                        link.
-                      </p>
-                    </div>
-                  </div>
+                  <Alert variant="destructive" className="text-left">
+                    <AlertTitle>Cannot Join Organization</AlertTitle>
+                    <AlertDescription>{validation?.error}</AlertDescription>
+                  </Alert>
+                  <p className="text-xs text-muted-foreground">
+                    If you believe this is a mistake, contact the organization
+                    owner to request a fresh invite link.
+                  </p>
 
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Enter another code"
+                        placeholder="Enter another invite code"
                         value={manualCode}
                         onChange={(e) => setManualCode(e.target.value)}
                       />
@@ -360,7 +416,7 @@ export default function JoinOrganization() {
                           validateCode(manualCode.trim());
                         }}
                       >
-                        Try Code
+                        Check Code
                       </Button>
                     </div>
                     <Button
@@ -386,7 +442,7 @@ export default function JoinOrganization() {
         {joinCode && (
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              Join code:{" "}
+              Invite code:{" "}
               <span className="font-mono font-medium">{joinCode}</span>
             </p>
           </div>
@@ -395,7 +451,7 @@ export default function JoinOrganization() {
         {!joinCode && (
           <Card>
             <CardHeader>
-              <CardTitle>Have a join code?</CardTitle>
+              <CardTitle>Have an invite link or code?</CardTitle>
               <CardDescription>Paste it below to validate.</CardDescription>
             </CardHeader>
             <CardContent>

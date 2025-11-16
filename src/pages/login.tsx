@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,6 +41,7 @@ export default function Login() {
     email: "",
     password: "",
   });
+  const [hasPendingInvite, setHasPendingInvite] = useState(false);
 
   // Redirect authenticated users away from login page
   useEffect(() => {
@@ -51,6 +53,15 @@ export default function Login() {
       }
     }
   }, [user, isLoading, navigate]);
+
+  useEffect(() => {
+    try {
+      const pending = localStorage.getItem("pendingJoinCode");
+      setHasPendingInvite(Boolean(pending));
+    } catch {
+      setHasPendingInvite(false);
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -106,14 +117,24 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Music2Icon className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl">{getTitle()}</CardTitle>
-          <CardDescription>{getDescription()}</CardDescription>
-        </CardHeader>
+      <div className="w-full max-w-md space-y-4">
+        {hasPendingInvite && (
+          <Alert>
+            <AlertTitle>Finish joining your team</AlertTitle>
+            <AlertDescription>
+              Sign in or create an account to accept your invite. We'll bring
+              your link with you.
+            </AlertDescription>
+          </Alert>
+        )}
+        <Card className="w-full">
+          <CardHeader className="space-y-2 text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+              <Music2Icon className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl">{getTitle()}</CardTitle>
+            <CardDescription>{getDescription()}</CardDescription>
+          </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {isRegisterMode && (
@@ -225,7 +246,8 @@ export default function Login() {
             </Button>
           </CardFooter>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

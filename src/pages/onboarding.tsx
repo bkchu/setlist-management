@@ -115,7 +115,7 @@ export default function Onboarding() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      You'll need a join link from an organization admin
+                      You'll need an invite link from an organization admin
                     </p>
                   </Label>
                 </div>
@@ -155,14 +155,15 @@ export default function Onboarding() {
               <div className="pt-4 border-t space-y-4">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <UsersIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <h3 className="font-medium mb-1">Need a join link?</h3>
+                  <h3 className="font-medium mb-1">Need an invite link?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Ask an admin from the organization to send you a join link.
-                    You'll be able to access the app once you click their link.
+                    Ask an org admin to send you their invite link (a single-use
+                    join code). You'll land on the right page as soon as you
+                    click it.
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  The join link will look like: setlify.app/join?code=ABC123
+                  Invite links look like: setlify.app/join?code=ABC123
                 </p>
                 <div className="flex justify-center">
                   <Button
@@ -171,7 +172,7 @@ export default function Onboarding() {
                       navigate(code ? `/join?code=${code}` : "/join")
                     }
                   >
-                    I already have a code
+                    I already have an invite code
                   </Button>
                 </div>
               </div>

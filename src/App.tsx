@@ -55,17 +55,24 @@ function LoadingScreen() {
 
 function ToastOnJoin() {
   const location = useLocation();
+  const toastNavigate = useNavigate();
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const joined = params.get("joined");
     if (joined === "1") {
       const org = localStorage.getItem("joinSuccessOrgName");
       toast.success("Joined organization", {
-        description: org ? `You are now a member of ${org}.` : undefined,
+        description: org
+          ? `You are now a member of ${org}.`
+          : "You're ready to collaborate.",
+        action: {
+          label: "Invite members",
+          onClick: () => toastNavigate("/settings"),
+        },
       });
       localStorage.removeItem("joinSuccessOrgName");
     }
-  }, [location.search]);
+  }, [location.search, toastNavigate]);
   return null;
 }
 

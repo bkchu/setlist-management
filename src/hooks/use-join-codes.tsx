@@ -89,9 +89,9 @@ export function useJoinCodes(): UseJoinCodesResult {
       setJoinCodes(formattedCodes);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch join codes"
+        err instanceof Error ? err.message : "Failed to fetch invite links"
       );
-      console.error("Error fetching join codes:", err);
+      console.error("Error fetching invite links:", err);
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ export function useJoinCodes(): UseJoinCodesResult {
       (org) => org.organizationId === data.organizationId
     );
     if (!userOrg || userOrg.role !== "owner") {
-      throw new Error("Only organization owners can generate join codes");
+      throw new Error("Only organization owners can generate invite links");
     }
 
     // Additional server-side validation using our safe function
@@ -118,7 +118,7 @@ export function useJoinCodes(): UseJoinCodesResult {
 
     if (accessError || !hasAccess) {
       throw new Error(
-        "Access denied: Cannot generate join codes for this organization"
+        "Access denied: Cannot generate invite links for this organization"
       );
     }
 
@@ -138,7 +138,7 @@ export function useJoinCodes(): UseJoinCodesResult {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiresInHours);
 
-      // Insert the join code
+      // Insert the invite code record
       const { data: joinCode, error: insertError } = await supabase
         .from("join_codes")
         .insert({
@@ -182,7 +182,7 @@ export function useJoinCodes(): UseJoinCodesResult {
       return newJoinCode;
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to generate join code";
+        err instanceof Error ? err.message : "Failed to generate invite link";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -207,10 +207,10 @@ export function useJoinCodes(): UseJoinCodesResult {
       // Remove from local state
       setJoinCodes((prev) => prev.filter((code) => code.id !== codeId));
 
-      toast.success("Join code revoked successfully");
+      toast.success("Invite link revoked successfully");
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to revoke join code";
+        err instanceof Error ? err.message : "Failed to revoke invite link";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -240,7 +240,7 @@ export function useJoinCodes(): UseJoinCodesResult {
       console.log("validateJoinCode", { data, error });
 
       if (error) {
-        console.error("Error validating join code:", error);
+      console.error("Error validating invite code:", error);
         return { isValid: false };
       }
 
@@ -264,7 +264,7 @@ export function useJoinCodes(): UseJoinCodesResult {
         usedBy: result.usedBy,
       };
     } catch (err) {
-      console.error("Error validating join code:", err);
+      console.error("Error validating invite code:", err);
       return { isValid: false };
     }
   };
@@ -273,14 +273,14 @@ export function useJoinCodes(): UseJoinCodesResult {
     if (!user) throw new Error("User not authenticated");
 
     const normalized = code.trim().toUpperCase();
-    console.log("Using join code", normalized);
+    console.log("Using invite code", normalized);
     try {
       // First validate the code and get organization info
       const validation = await validateJoinCode(normalized);
 
       console.log("validation", validation);
       if (!validation.isValid || !validation.organizationId) {
-        throw new Error("Invalid or expired join code");
+        throw new Error("Invalid or expired invite code");
       }
 
       // Check if user is already in this organization
@@ -303,7 +303,7 @@ export function useJoinCodes(): UseJoinCodesResult {
 
       if (memberError) throw memberError;
 
-      // Mark the join code as used
+      // Mark the invite code as used
       const { data: updatedRow, error: updateError } = await supabase
         .from("join_codes")
         .update({
@@ -320,13 +320,13 @@ export function useJoinCodes(): UseJoinCodesResult {
       if (updateError) {
         // Friendly message for potential race condition / already used
         throw new Error(
-          "This join code may have just been used. Please request a new code from the admin."
+          "This invite code may have just been used. Please request a new one from the admin."
         );
       }
 
       if (!updatedRow) {
         throw new Error(
-          "This join code has already been used. Please request a new one."
+          "This invite code has already been used. Please request a new one."
         );
       }
 
@@ -334,7 +334,7 @@ export function useJoinCodes(): UseJoinCodesResult {
       // Do not reload here; caller will refresh auth and navigate
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to use join code";
+        err instanceof Error ? err.message : "Failed to use invite code";
       throw new Error(errorMessage);
     }
   };
@@ -343,7 +343,7 @@ export function useJoinCodes(): UseJoinCodesResult {
     await fetchJoinCodes();
   };
 
-  // Load join codes when user or organization changes
+  // Load invite codes when user or organization changes
   useEffect(() => {
     if (user?.organizationId) {
       fetchJoinCodes();
