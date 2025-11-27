@@ -48,12 +48,6 @@ export function Sidebar() {
 
   return (
     <div className="flex w-40 flex-col border-r h-screen">
-      <Link to="/" className="">
-        <div className="flex h-14 items-center px-4 py-2 gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Setlify</h2>
-        </div>
-      </Link>
-      <Separator />
       <ScrollArea className="flex-1 px-2 py-4">
         <SidebarNav items={NAV_ITEMS} />
       </ScrollArea>

@@ -32,40 +32,61 @@ export function MobileNav() {
 
   const renderedNavItems = useMemo(() => {
     return NAV_ITEMS.map((item) => {
-      let isActive;
-      if (item.name === "Dashboard") {
-        isActive =
-          pathname === "/" ||
-          pathname === item.href ||
-          pathname.startsWith(item.href + "/");
-      } else {
-        isActive =
-          pathname === item.href ||
-          (item.href !== "/" && pathname.startsWith(item.href + "/"));
-      }
+      const isActive =
+        item.name === "Dashboard"
+          ? pathname === "/" ||
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/")
+          : pathname === item.href || pathname.startsWith(item.href + "/");
       return (
         <Link
           key={item.href}
           to={item.href}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center space-y-1 p-2 text-xs font-medium transition-colors",
-            isActive
-              ? "text-primary"
-              : "text-muted-foreground hover:text-primary"
+            "group relative flex flex-col items-center justify-center gap-0.5 px-4 py-2 transition-all duration-300",
+            isActive ? "text-white" : "text-white/50 hover:text-white/80"
           )}
         >
-          <item.icon
-            className={cn("h-5 w-5", isActive ? "stroke-current" : "")}
+          {/* Active indicator pill */}
+          <span
+            className={cn(
+              "absolute inset-0 rounded-full transition-all duration-300",
+              isActive
+                ? "bg-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
+                : "bg-transparent group-hover:bg-white/5"
+            )}
           />
-          <span>{item.name}</span>
+          <item.icon
+            className={cn(
+              "relative z-10 h-5 w-5 transition-transform duration-300",
+              isActive ? "scale-110" : "group-hover:scale-105"
+            )}
+            strokeWidth={isActive ? 2.5 : 2}
+          />
+          <span
+            className={cn(
+              "relative z-10 text-[10px] font-medium tracking-wide transition-all duration-300",
+              isActive ? "opacity-100" : "opacity-70 group-hover:opacity-90"
+            )}
+          >
+            {item.name}
+          </span>
         </Link>
       );
     });
   }, [pathname]);
 
   return (
-    <nav className="flex h-14 w-full items-center justify-around">
-      <div className="flex h-full w-full items-center justify-around">
+    <nav className="mx-3 mb-3">
+      <div
+        className={cn(
+          "flex items-center justify-between rounded-full py-1 px-1",
+          "bg-gradient-to-b from-white/10 to-white/5",
+          "backdrop-blur-xl backdrop-saturate-150",
+          "border border-white/10",
+          "shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]"
+        )}
+      >
         {renderedNavItems}
       </div>
     </nav>

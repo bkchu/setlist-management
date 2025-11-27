@@ -148,13 +148,14 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
         >
           <GripVertical className="h-5 w-5" />
         </div>
-
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square shrink-0">
           {index + 1}
         </div>
         <div className="space-y-1 flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium truncate">{song.song.title}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm font-medium truncate flex-1 w-1">
+              {song.song.title}
+            </p>
             <div className="flex items-center gap-1 shrink-0">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/40 border border-black/80 text-[10px] font-medium text-muted-foreground/80 whitespace-nowrap">
                 {hasKey ? selectedKey : "no key"}
@@ -184,7 +185,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           size="icon"
           onClick={() => onReorder(song.id, "up")}
           disabled={index === 0}
-          className="h-8 flex-1 md:flex-none md:w-8"
+          className="h-8 flex-1 md:flex-none"
         >
           <span className="sr-only">Move up</span>
           <ArrowUpIcon className="h-3.5 w-3.5" />
@@ -193,7 +194,7 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           variant="ghost"
           size="icon"
           onClick={() => onReorder(song.id, "down")}
-          className="h-8 flex-1 md:flex-none md:w-8"
+          className="h-8 flex-1 md:flex-none"
         >
           <span className="sr-only">Move down</span>
           <ArrowDownIcon className="h-3.5 w-3.5" />
@@ -202,14 +203,14 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           variant="ghost"
           size="icon"
           onClick={() => onEdit(song)}
-          className="h-8 flex-1 md:flex-none md:w-8"
+          className="h-8 flex-1 md:flex-none"
         >
           <EditIcon className="h-3.5 w-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 flex-1 md:flex-none md:w-8 text-destructive hover:text-destructive"
+          className="h-8 flex-1 md:flex-none text-destructive hover:text-destructive"
           onClick={() => onRemove(song.id)}
         >
           <XIcon className="h-3.5 w-3.5" />

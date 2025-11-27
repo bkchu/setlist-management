@@ -5,7 +5,13 @@ import { useSongs } from "@/hooks/use-songs";
 import { useFileSlides } from "@/hooks/use-file-slides";
 import { toast } from "sonner";
 import { SetlistSong, Setlist, Song } from "@/types";
-import { FilesIcon, PlusIcon, GripVertical, Loader2 } from "lucide-react";
+import {
+  FilesIcon,
+  PlusIcon,
+  GripVertical,
+  Loader2,
+  Pencil as EditIcon,
+} from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import React from "react";
 import { AddSongDialog } from "@/components/setlists/AddSongDialog";
@@ -547,30 +553,30 @@ export default function SetlistPage() {
           <Breadcrumb items={breadcrumbItems} />
         </div>
 
-        {/* Minimal setlist summary (no card) */}
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <div className="min-w-0 flex items-center gap-3 text-muted-foreground">
-            <div className="truncate font-medium text-foreground">
+        {/* Minimal setlist summary */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-semibold tracking-tight truncate">
               {setlist.name}
-            </div>
-            {setlist.date && (
-              <div className="flex items-center gap-1">
+            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              {setlist.date && (
                 <span>{format(new Date(setlist.date), "MMM d, yyyy")}</span>
-              </div>
-            )}
-            <span className="opacity-50">•</span>
-            <div>
-              {setlist.songs.length}{" "}
-              {setlist.songs.length === 1 ? "song" : "songs"}
+              )}
+              <span>
+                {setlist.songs.length}{" "}
+                {setlist.songs.length === 1 ? "song" : "songs"}
+              </span>
             </div>
           </div>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={handleShowEditMetadata}
-            className="h-8 px-2"
+            className="h-8 w-8 shrink-0"
           >
-            Edit
+            <EditIcon className="h-4 w-4" />
+            <span className="sr-only">Edit setlist</span>
           </Button>
         </div>
 
