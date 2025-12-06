@@ -8,6 +8,7 @@ import { useGetSongsByOrganization } from "@/api/songs/list";
 import { useCreateSong } from "@/api/songs/post";
 import { useUpdateSong } from "@/api/songs/put";
 import { useDeleteSong } from "@/api/songs/delete";
+import { AppLayout } from "@/components/layout/app-layout";
 
 export default function Songs() {
   const { user } = useAuth();
@@ -71,19 +72,17 @@ export default function Songs() {
   };
 
   return (
-    <>
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        <SongList
-          songs={songs}
-          onAddSong={handleAddSong}
-          onEditSong={(id, data) => {
-            setSelectedSong(songs.find((s) => s.id === id) || null);
-            setIsEditing(true);
-            return handleEditSong(id, data);
-          }}
-          onDeleteSong={handleDeleteSong}
-        />
-      </main>
+    <AppLayout title="Songs" subtitle="Manage your song library">
+      <SongList
+        songs={songs}
+        onAddSong={handleAddSong}
+        onEditSong={(id, data) => {
+          setSelectedSong(songs.find((s) => s.id === id) || null);
+          setIsEditing(true);
+          return handleEditSong(id, data);
+        }}
+        onDeleteSong={handleDeleteSong}
+      />
 
       {/* Edit Song Dialog */}
       {selectedSong && (
@@ -94,6 +93,6 @@ export default function Songs() {
           onSubmit={(songData) => handleEditSong(selectedSong.id, songData)}
         />
       )}
-    </>
+    </AppLayout>
   );
 }

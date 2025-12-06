@@ -1,0 +1,62 @@
+---
+alwaysApply: true
+---
+
+# Setlify Brand & Domain Guidelines
+
+rule "brand-guidelines" {
+  description = "Domain knowledge and terminology for consistent naming across Setlify"
+  alwaysApply = true
+
+  ## Product Identity
+
+  - **App Name**: Setlify
+  - **Tagline**: Simplify your worship planning
+  - **Audience**: Worship teams, church musicians, worship leaders
+  - **Context**: Users plan setlists for Sunday services and recurring worship events
+
+  ## Domain Terminology
+
+  ### Core Concepts
+
+  | Concept         | User-Facing Term             | Description                                               | Avoid                                     |
+  | --------------- | ---------------------------- | --------------------------------------------------------- | ----------------------------------------- |
+  | Setlist         | **Setlist**                  | An ordered list of songs for a specific service/event     | "Playlist", "Set", "Song list"            |
+  | Song            | **Song**                     | A song with metadata (title, artist, key, notes)          | "Track", "Item"                           |
+  | Song collection | **Song Library**             | All songs belonging to the organization                   | "Catalog", "Database", "Repository"       |
+  | Pinned songs    | **Quick Access Songs**       | Up to 3 frequently-used songs accessible from anywhere    | "One Touch Songs", "Favorites", "Starred" |
+  | Team            | **Team** or **Organization** | A group that shares setlists and songs                    | "Workspace", "Account", "Group"           |
+  | Documents       | **Files**                    | Sheet music, chord charts, lyrics, PDFs attached to songs | "Attachments", "Documents", "Assets"      |
+  | Musical key     | **Key**                      | The musical key (G, C, D, etc.)                           | "Pitch", "Tone"                           |
+  | Past keys       | **Key History**              | Record of keys used in previous setlists                  | "Play history", "Usage history"           |
+
+  ### Secondary Concepts
+
+  | Concept               | Term                         | Description                                   |
+  | --------------------- | ---------------------------- | --------------------------------------------- |
+  | Active use            | **Live session**             | Actively viewing files during a service       |
+  | Event date            | **Service date** or **Date** | When the setlist is scheduled                 |
+  | Invite link           | **Join code**                | Code to invite members to the team            |
+  | Quick access position | **Slot**                     | One of the 3 positions for quick access songs |
+
+  ## Quick Access Songs
+
+  This feature lets users pin up to 3 go-to songs for instant access:
+  
+  - **Purpose**: Pull up frequently-used songs during spontaneous worship moments
+  - **Location**: Floating button on setlist pages; configured in Settings
+  - **Behavior**: Tapping opens the song's files directly
+  - **Internal name**: `oneTouchSongs` (in code) → **Quick Access Songs** (in UI)
+
+  ## User Roles
+
+  - **Worship leader**: Plans setlists, leads the team
+  - **Team member**: Musicians who view and follow setlists
+
+  ## Voice Guidelines
+
+  - Supportive, not corporate
+  - Brief and action-oriented
+  - Use "you/your" (second person)
+  - Verb-first for actions: "Add song", "Create setlist"
+}

@@ -66,7 +66,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Welcome to Setlify!</h1>
@@ -76,7 +76,7 @@ export default function Onboarding() {
           </p>
         </div>
 
-        <Card>
+        <Card className="border-white/10 bg-card/90 backdrop-blur-xl">
           <CardHeader>
             <CardTitle>Get Started</CardTitle>
             <CardDescription>
@@ -89,7 +89,7 @@ export default function Onboarding() {
               onValueChange={(value) => setChoice(value as OnboardingChoice)}
             >
               <div className="space-y-4">
-                <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="flex items-start space-x-3 p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors">
                   <RadioGroupItem value="create" id="create" className="mt-1" />
                   <Label htmlFor="create" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
@@ -105,7 +105,7 @@ export default function Onboarding() {
                   </Label>
                 </div>
 
-                <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="flex items-start space-x-3 p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors">
                   <RadioGroupItem value="join" id="join" className="mt-1" />
                   <Label htmlFor="join" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">

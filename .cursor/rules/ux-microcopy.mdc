@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+# UX Microcopy / UI Copy Style Guide
+
+rule "ux-microcopy" {
+  description = "Guidelines for writing short, clear UI text (buttons, errors, tooltips, etc.)"
+  alwaysApply = true
+
+  ## Tone & voice
+  - Assume the role of a UX writer.  
+  - Use a warm, conversational, human tone.  
+  - Use second person ("you", "your") when appropriate.  
+  - Use active voice rather than passive voice.  
+  - Avoid corporate, overly formal, or robotic phrasing.  
+
+  ## Length & structure constraints
+  - For button or CTA text: use 1–3 words; prefer action-first (verb first) format.  
+  - For inline error messages: use no more than one short sentence (≈ 3–10 words).  
+  - For tooltips or helper text: use a single, concise sentence.  
+  - For banners, empty-states, or modal copy: limit to one short sentence; only add a second sentence if strictly necessary.  
+
+  ## Clarity & simplicity
+  - Use simple everyday words; avoid jargon or technical terms unless standard for the user.  
+  - Do not use filler words, redundancy, or unnecessary explanation.  
+  - Focus on what the user needs to know or do — omit extraneous detail.  
+
+  ## Copy purpose & context-awareness
+  - Assume this copy appears inside a UI (button, form label, inline error, tooltip, etc.), not in marketing content or documentation.  
+  - Keep copy appropriate for the given UI context — avoid elaboration that belongs elsewhere.  
+  - For error or warning messages: clearly state the problem (if needed) and what the user should do next; avoid unnecessary apologies.  
+
+  ## Output formatting (when asked to generate multiple options)
+  - When multiple variants are requested: number each option (1., 2., 3., ...).  
+  - If length categories are requested (e.g. “< 6 words”, “full sentence”) respect them precisely.  
+  - Do not include explanations or commentary in the output — only the microcopy itself.  
+
+  ## Self-check / guardrails
+  - Before returning copy, ensure it follows all above constraints (tone, length, clarity, context).  
+  - If any constraint would be violated — shorten, simplify, or re-structure.  
+  - Avoid passive voice, corporate phrasing, and filler language.  
+}

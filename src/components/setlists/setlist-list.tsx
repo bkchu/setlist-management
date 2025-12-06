@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Setlist } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,6 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
 import { SetlistForm } from "./setlist-form";
 import { format, isToday, isTomorrow, isYesterday, startOfDay } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,6 +28,7 @@ import { Link } from "react-router-dom";
 import { SetlistSearchCombobox } from "./setlist-search-combobox";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface SetlistListProps {
   setlists: Setlist[];
@@ -120,49 +120,81 @@ export function SetlistList({
   const renderActionButtons = (setlist: Setlist) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-        <Button variant="ghost" size="icon">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem onSelect={() => handleOpenEditForm(setlist)}>
-          Edit
+          Edit Details
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
+          className="text-destructive focus:text-destructive focus:bg-destructive/10"
           onSelect={() => onDeleteSetlist(setlist.id)}
         >
-          Delete
+          Delete Setlist
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="text-lg font-semibold">Setlists</h2>
-        <div className="flex items-center gap-2">
+    <div className="space-y-6">
+      {/* Enhanced Toolbar: Single row on mobile/desktop */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
           <SetlistSearchCombobox setlists={setlists} />
-          <Button size="sm" onClick={handleOpenAddForm}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Setlist
-          </Button>
         </div>
+
+        {/* Desktop: Full Button */}
+        <Button
+          onClick={handleOpenAddForm}
+          className="hidden sm:flex shadow-glow-sm gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          New Setlist
+        </Button>
+
+        {/* Mobile: Icon Button */}
+        <Button
+          onClick={handleOpenAddForm}
+          size="icon"
+          className="sm:hidden shadow-glow-sm shrink-0 h-10 w-10 rounded-lg"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
       </div>
 
       {sortedSetlists.length === 0 ? (
-        <div className="rounded-md border border-dashed p-8 text-center">
-          <ListMusicIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-          <h3 className="mt-2 text-sm font-medium">No setlists found</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create your first setlist to get started
-          </p>
-        </div>
+        <Card className="border-dashed border-white/10 bg-white/5">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-4 rounded-full bg-white/5 p-4">
+              <ListMusicIcon className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground">
+              No setlists yet
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+              Create your first setlist to start organizing your worship
+              service.
+            </p>
+            <Button
+              onClick={handleOpenAddForm}
+              variant="outline"
+              className="mt-6"
+            >
+              Create Setlist
+            </Button>
+          </div>
+        </Card>
       ) : (
         <AnimatePresence>
           {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-4">
             {sortedSetlists.map((setlist) => {
               const upcoming = isUpcoming(setlist.date);
               const { label: dateLabel, isRelative } = formatRelativeDate(
@@ -172,78 +204,77 @@ export function SetlistList({
               return (
                 <motion.div
                   key={setlist.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   className={cn(
-                    "relative rounded-lg border bg-card p-4 pr-12",
-                    upcoming
-                      ? "border-l-4 border-l-primary"
-                      : "border-l-4 border-l-muted opacity-75"
+                    "group relative overflow-hidden rounded-xl border border-white/10 bg-card/50 p-4 shadow-sm backdrop-blur-md transition-all",
+                    upcoming && "shadow-glow-sm border-primary/20"
                   )}
                 >
-                  {/* Action button - absolute positioned */}
-                  <div className="absolute top-2 right-2">
-                    {renderActionButtons(setlist)}
-                  </div>
+                  <Link to={`/setlist/${setlist.id}`} className="block">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg leading-tight text-foreground">
+                          {setlist.name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          <span
+                            className={cn(
+                              isRelative &&
+                                upcoming &&
+                                "text-primary font-medium"
+                            )}
+                          >
+                            {dateLabel}
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* Title and song preview - tightly grouped */}
-                  <div className="space-y-0.5">
-                    <Link
-                      to={`/setlist/${setlist.id}`}
-                      className="block font-medium hover:underline line-clamp-1"
-                    >
-                      {setlist.name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {getSongPreview(setlist)}
-                    </p>
-                  </div>
-
-                  {/* Date and badges */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-3">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-3 w-3" />
-                      <span
-                        className={cn(
-                          isRelative && upcoming && "text-primary font-medium"
-                        )}
-                      >
-                        {dateLabel}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
                       {upcoming && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] font-semibold tracking-wide px-2 py-0.5 border-transparent uppercase"
-                        >
+                        <Badge className="bg-primary/10 text-primary border-primary/20 pointer-events-none">
                           Upcoming
                         </Badge>
                       )}
-                      <Badge
-                        variant="secondary"
-                        className="text-[11px] font-semibold tracking-wide px-2 py-0.5 border-transparent uppercase"
-                      >
-                        {setlist.songs.length}{" "}
-                        {setlist.songs.length === 1 ? "song" : "songs"}
-                      </Badge>
                     </div>
-                  </div>
+
+                    <div className="mt-4 space-y-3">
+                      <div className="text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed">
+                        {getSongPreview(setlist)}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-medium"
+                        >
+                          {setlist.songs.length}{" "}
+                          {setlist.songs.length === 1 ? "song" : "songs"}
+                        </Badge>
+                        {/* Mobile Actions trigger needs to be handled carefully to not conflict with Link */}
+                        <div onClick={(e) => e.preventDefault()}>
+                          {renderActionButtons(setlist)}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
                 </motion.div>
               );
             })}
           </div>
 
           {/* Desktop Table Layout */}
-          <div className="hidden md:block rounded-md border">
+          <div className="hidden md:block rounded-xl border border-white/10 bg-card/50 backdrop-blur-xl shadow-glass overflow-hidden">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Songs</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
+              <TableHeader className="bg-white/5">
+                <TableRow className="hover:bg-transparent border-white/5">
+                  <TableHead className="w-[40%] pl-6">Setlist Name</TableHead>
+                  <TableHead className="w-[20%]">Date</TableHead>
+                  <TableHead className="w-[30%]">Preview</TableHead>
+                  <TableHead className="w-[10%] text-right pr-6">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,29 +291,45 @@ export function SetlistList({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       className={cn(
-                        "group hover:bg-muted/50",
-                        !upcoming && "opacity-60"
+                        "group border-white/5 transition-colors hover:bg-white/5",
+                        !upcoming && "opacity-60 hover:opacity-100"
                       )}
                     >
-                      <TableCell>
+                      <TableCell className="pl-6 font-medium">
                         <Link
                           to={`/setlist/${setlist.id}`}
-                          className="block font-medium hover:underline"
+                          className="flex items-center gap-3 py-2"
                         >
-                          {setlist.name}
+                          <div
+                            className={cn(
+                              "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
+                              upcoming
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-white/10 bg-white/5 text-muted-foreground"
+                            )}
+                          >
+                            <ListMusicIcon className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <span className="block text-foreground group-hover:text-primary transition-colors">
+                              {setlist.name}
+                            </span>
+                            {upcoming && (
+                              <span className="text-[10px] uppercase tracking-wider font-semibold text-primary/80">
+                                Upcoming
+                              </span>
+                            )}
+                          </div>
                         </Link>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {getSongPreview(setlist)}
-                        </p>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center">
-                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <CalendarIcon className="h-4 w-4" />
                           <span
                             className={cn(
                               isRelative &&
                                 upcoming &&
-                                "text-primary font-medium"
+                                "text-foreground font-medium"
                             )}
                           >
                             {dateLabel}
@@ -290,25 +337,21 @@ export function SetlistList({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {upcoming && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[11px] font-semibold tracking-wide px-2 py-0.5 border-transparent uppercase"
-                            >
-                              Upcoming
-                            </Badge>
-                          )}
-                          <Badge
-                            variant="secondary"
-                            className="text-[11px] font-semibold tracking-wide px-2 py-0.5 border-transparent uppercase"
-                          >
+                        <div className="max-w-[300px]">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {getSongPreview(setlist)}
+                          </p>
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">
                             {setlist.songs.length}{" "}
                             {setlist.songs.length === 1 ? "song" : "songs"}
-                          </Badge>
+                          </p>
                         </div>
                       </TableCell>
-                      <TableCell>{renderActionButtons(setlist)}</TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex justify-end">
+                          {renderActionButtons(setlist)}
+                        </div>
+                      </TableCell>
                     </motion.tr>
                   );
                 })}

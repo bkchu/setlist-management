@@ -12,7 +12,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogClose,
@@ -26,9 +26,10 @@ import {
   KeyedSongFiles,
 } from "@/types";
 import { useCallback, useEffect, useState } from "react";
-import { FileIcon, Loader2Icon, TrashIcon, UploadIcon } from "lucide-react";
+import { FileIcon, Loader2Icon, Music2Icon, PencilIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface SongFormProps {
   open?: boolean;
@@ -265,51 +266,81 @@ export function SongForm({
     }
   };
 
+  const isEditing = Boolean(song);
+  const isMobile = useIsMobile();
+
   const formBody = (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+      {/* Title field */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label 
+          htmlFor="title"
+          className="text-xs sm:text-sm font-medium text-foreground/90"
+        >
+          Title
+        </Label>
         <Input
           id="title"
           name="title"
           value={formData.title}
           onChange={handleChange}
-          placeholder="Enter song title"
+          placeholder="Amazing Grace"
+          className="h-10 sm:h-11"
           required
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="artist">Artist</Label>
+
+      {/* Artist field */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label 
+          htmlFor="artist"
+          className="text-xs sm:text-sm font-medium text-foreground/90"
+        >
+          Artist
+        </Label>
         <Input
           id="artist"
           name="artist"
           value={formData.artist}
           onChange={handleChange}
-          placeholder="Enter artist name"
+          placeholder="John Newton"
+          className="h-10 sm:h-11"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
+
+      {/* Notes field */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label 
+          htmlFor="notes"
+          className="text-xs sm:text-sm font-medium text-foreground/90"
+        >
+          Notes
+        </Label>
         <Textarea
           id="notes"
           name="notes"
           value={formData.notes}
           onChange={handleChange}
           placeholder="Add notes about the song (optional)"
-          rows={4}
+          rows={3}
+          className="text-sm resize-none"
         />
       </div>
-      <div className="space-y-2">
-        <Label>Chord Sheets by Key</Label>
-        <div className="rounded-lg border border-dashed p-4 space-y-4">
-          {/* Key selector */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Label htmlFor="key-select" className="text-sm font-medium">
+
+      {/* Chord Sheets by Key */}
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label className="text-xs sm:text-sm font-medium text-foreground/90">
+          Chord Sheets by Key
+        </Label>
+        <div className="rounded-xl border border-white/10 bg-background/30 p-3 sm:p-4 space-y-4">
+          {/* Key selector and upload */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor="key-select" className="text-xs text-muted-foreground">
                 Select Key
               </Label>
               <Select value={selectedKey} onValueChange={setSelectedKey}>
-                <SelectTrigger className="w-full max-w-48">
+                <SelectTrigger className="w-full h-10 sm:h-9">
                   <SelectValue placeholder="Select a key" />
                 </SelectTrigger>
                 <SelectContent>
@@ -323,8 +354,8 @@ export function SongForm({
             </div>
 
             {/* File upload for selected key */}
-            <div className="flex-1">
-              <Label className="text-sm font-medium">Upload Files</Label>
+            <div className="flex-1 space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Upload Files</Label>
               <div>
                 <input
                   type="file"
@@ -337,14 +368,16 @@ export function SongForm({
                 />
                 <label
                   htmlFor="files"
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
+                  className="flex h-10 sm:h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-card px-4 text-sm font-medium text-[#f8faf8] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] transition-colors hover:border-white/20"
                 >
                   {isUploading ? (
                     <Loader2Icon className="h-4 w-4 animate-spin" />
                   ) : (
                     <UploadIcon className="h-4 w-4" />
                   )}
-                  {isUploading ? "Uploading..." : `Upload for ${selectedKey}`}
+                  <span className="truncate">
+                    {isUploading ? "Uploading..." : isMobile ? `${selectedKey}` : `Upload for ${selectedKey}`}
+                  </span>
                 </label>
               </div>
             </div>
@@ -353,26 +386,27 @@ export function SongForm({
           {/* Display files for selected key */}
           {getCurrentFiles().length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">
-                Files for Key {selectedKey} ({getCurrentFiles().length}):
+              <p className="text-xs font-medium text-muted-foreground">
+                Files for {selectedKey} ({getCurrentFiles().length})
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {getCurrentFiles().map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-md border bg-card p-2 text-sm"
+                    className="flex items-center justify-between rounded-lg border border-white/8 bg-background/40 px-3 py-2 text-sm"
                   >
-                    <div className="flex items-center gap-2">
-                      <FileIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{file.name}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-foreground/90">{file.name}</span>
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => handleRemoveFile(file)}
                     >
-                      <TrashIcon className="h-4 w-4 text-destructive" />
+                      <TrashIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -390,27 +424,27 @@ export function SongForm({
               if (keysWithFiles.length === 0) return null;
 
               return (
-                <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-3">
-                    File Summary ({keysWithFiles.length} key
-                    {keysWithFiles.length !== 1 ? "s" : ""} with files):
+                <div className="pt-3 border-t border-white/8">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Summary · {keysWithFiles.length} key{keysWithFiles.length !== 1 ? "s" : ""}
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-xs">
                     {keysWithFiles.map(([key, files]) => (
-                      <div
+                      <button
+                        type="button"
                         key={key}
-                        className={`flex justify-between items-center p-2 rounded border cursor-pointer transition-colors ${
+                        className={`flex justify-between items-center px-2.5 py-1.5 rounded-md border transition-colors ${
                           selectedKey === key
-                            ? "bg-primary/10 border-primary"
-                            : "bg-muted/30 border-border hover:bg-muted/50"
+                            ? "bg-primary/15 border-primary/30 text-primary"
+                            : "bg-background/30 border-white/8 text-foreground/70 hover:bg-background/50 hover:border-white/15"
                         }`}
                         onClick={() => setSelectedKey(key)}
                       >
                         <span className="font-medium">{key}</span>
-                        <span className="text-muted-foreground">
-                          {files!.length} file(s)
+                        <span className="text-[10px] opacity-70">
+                          {files!.length}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -419,21 +453,49 @@ export function SongForm({
         </div>
       </div>
 
+      {/* Actions */}
       {variant === "dialog" ? (
-        <DialogFooter>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-2">
           <DialogClose asChild>
-            <Button type="button" variant="outline" disabled={isSubmitting}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              disabled={isSubmitting}
+              className="h-10 sm:h-9"
+            >
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="h-10 sm:h-9"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : isEditing ? (
+              "Save Changes"
+            ) : (
+              "Add Song"
+            )}
           </Button>
-        </DialogFooter>
+        </div>
       ) : (
-        <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : song ? "Update" : "Save"}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="submit" disabled={isSubmitting} className="h-10 sm:h-9">
+            {isSubmitting ? (
+              <>
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : isEditing ? (
+              "Save Changes"
+            ) : (
+              "Add Song"
+            )}
           </Button>
         </div>
       )}
@@ -443,11 +505,39 @@ export function SongForm({
   if (variant === "dialog") {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{song ? "Edit Song" : "Add Song"}</DialogTitle>
-          </DialogHeader>
-          {formBody}
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[85vh] overflow-hidden p-0">
+          {/* Decorative header gradient */}
+          <div className="absolute inset-x-0 top-0 h-24 sm:h-32 bg-gradient-to-b from-primary/8 via-primary/4 to-transparent pointer-events-none" />
+          <div className="absolute top-4 sm:top-6 right-12 sm:right-16 w-16 sm:w-20 h-16 sm:h-20 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
+            <DialogHeader className="space-y-3">
+              {/* Icon badge - stacks on mobile, inline on desktop */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
+                  {isEditing ? (
+                    <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  ) : (
+                    <Music2Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  )}
+                </div>
+                <div className="space-y-0.5 sm:space-y-1">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold tracking-tight">
+                    {isEditing ? "Edit Song" : "New Song"}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                    {isEditing 
+                      ? "Update song details and chord sheets" 
+                      : "Add a song to your library"}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+
+          <div className="relative px-4 sm:px-6 pb-5 sm:pb-6 overflow-y-auto max-h-[calc(85vh-120px)]">
+            {formBody}
+          </div>
         </DialogContent>
       </Dialog>
     );

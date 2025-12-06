@@ -9,18 +9,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ListMusicIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface SetlistFormProps {
   open: boolean;
@@ -109,46 +110,97 @@ export function SetlistForm({
     onOpenChange(newOpen);
   };
 
+  const isEditing = Boolean(setlist);
+  const isMobile = useIsMobile();
+
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {setlist ? "Edit Setlist" : "Create New Setlist"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-hidden p-0">
+        {/* Decorative header gradient */}
+        <div className="absolute inset-x-0 top-0 h-24 sm:h-32 bg-gradient-to-b from-primary/8 via-primary/4 to-transparent pointer-events-none" />
+        <div className="absolute top-4 sm:top-6 right-12 sm:right-16 w-16 sm:w-20 h-16 sm:h-20 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
+          <DialogHeader className="space-y-3">
+            {/* Icon badge - stacks on mobile, inline on desktop */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
+                {isEditing ? (
+                  <ListMusicIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                ) : (
+                  <SparklesIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                )}
+              </div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <DialogTitle className="text-lg sm:text-xl font-semibold tracking-tight">
+                  {isEditing ? "Edit Setlist" : "New Setlist"}
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                  {isEditing 
+                    ? "Update your setlist details" 
+                    : "Create a setlist for your next event"}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
+
+        <form onSubmit={handleSubmit} className="relative px-4 sm:px-6 pb-5 sm:pb-6 space-y-4 sm:space-y-5">
+          {/* Name field */}
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label 
+              htmlFor="name" 
+              className="text-xs sm:text-sm font-medium text-foreground/90"
+            >
+              Name
+            </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter setlist name"
+              placeholder="Sunday Morning Set"
+              className="h-10 sm:h-11"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
+
+          {/* Date field */}
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label 
+              htmlFor="date"
+              className="text-xs sm:text-sm font-medium text-foreground/90"
+            >
+              Date
+            </Label>
             <Popover
               open={isCalendarOpen}
               onOpenChange={setIsCalendarOpen}
               modal={true}
             >
               <PopoverTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="outline"
+                  id="date"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
+                    "flex h-10 sm:h-11 w-full items-center gap-2 sm:gap-3 rounded-lg border border-white/10 bg-card px-3 text-sm text-[#f8faf8] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] transition-colors",
+                    "hover:border-white/20",
+                    "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary",
+                    !date && "text-muted-foreground/60"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  {date ? format(date, "PPP") : "Select a date"}
-                </Button>
+                  <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className={cn("truncate", date && "text-foreground")}>
+                    {date 
+                      ? format(date, isMobile ? "EEE, MMM d, yyyy" : "EEEE, MMMM d, yyyy") 
+                      : "Pick a date"}
+                  </span>
+                </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent 
+                className="w-auto p-0" 
+                align={isMobile ? "center" : "start"}
+                side={isMobile ? "bottom" : "bottom"}
+              >
                 <Calendar
                   mode="single"
                   selected={date}
@@ -162,16 +214,36 @@ export function SetlistForm({
             </Popover>
           </div>
 
-          <DialogFooter>
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-2">
             <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isSubmitting}>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                disabled={isSubmitting}
+                className="h-10 sm:h-9"
+              >
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : setlist ? "Update" : "Create"}
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              size="default"
+              className="h-10 sm:h-9"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : isEditing ? (
+                "Save Changes"
+              ) : (
+                "Create Setlist"
+              )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

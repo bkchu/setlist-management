@@ -27,6 +27,7 @@ import JoinOrganization from "@/pages/join-organization";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import ResetPasswordPage from "@/pages/reset-password";
 // import { useUserOrganizations } from "@/api/organizations/get";
 
@@ -161,7 +162,7 @@ function AppContent() {
       <div className="hidden md:block fixed left-0 top-0">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col min-h-0 md:ml-40">
+      <div className="flex-1 flex flex-col min-h-0 md:ml-56">
         <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -186,17 +187,19 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SongProvider>
-            <SettingsProvider>
-              <Router>
-                <ToastOnJoin />
-                <AppContent />
-                <Toaster position="bottom-right" richColors />
-              </Router>
-            </SettingsProvider>
-          </SongProvider>
-        </AuthProvider>
+        <TooltipProvider delayDuration={300}>
+          <AuthProvider>
+            <SongProvider>
+              <SettingsProvider>
+                <Router>
+                  <ToastOnJoin />
+                  <AppContent />
+                  <Toaster position="bottom-right" richColors />
+                </Router>
+              </SettingsProvider>
+            </SongProvider>
+          </AuthProvider>
+        </TooltipProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </ThemeProvider>

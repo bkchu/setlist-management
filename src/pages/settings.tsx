@@ -1,16 +1,10 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/header";
+import { AppLayout } from "@/components/layout/app-layout";
 import { useSettings } from "@/hooks/use-settings";
 import { useSongs } from "@/hooks/use-songs";
 import { toast } from "sonner";
 import { Song } from "@/types";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   DndContext,
@@ -27,10 +21,127 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { OneTouchSongItem } from "@/components/settings/one-touch-song-item";
+import { OneTouchSongItem as QuickAccessSongItem } from "@/components/settings/one-touch-song-item";
 import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { JoinCodeManager } from "@/components/organization/join-code-manager";
-import { PlusIcon, StarIcon, XIcon } from "lucide-react";
+import {
+  PlusIcon,
+  ZapIcon,
+  SparklesIcon,
+  GripVerticalIcon,
+  UsersIcon,
+} from "lucide-react";
+
+const MAX_QUICK_ACCESS_SONGS = 3;
+
+function QuickAccessSongSlot({
+  index,
+  song,
+  onRemove,
+  onAdd,
+  songs,
+  existingSongIds,
+  isLoading,
+}: {
+  index: number;
+  song?: Song;
+  onRemove?: () => void;
+  onAdd: (songId: string) => void;
+  songs: Song[];
+  existingSongIds: string[];
+  isLoading: boolean;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+
+  const availableSongs = songs.filter(
+    (s) => !existingSongIds.includes(s.id) || s.id === song?.id
+  );
+
+  const handleAddSong = (songId: string) => {
+    onAdd(songId);
+    setIsAdding(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 animate-pulse">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
+          <span className="text-sm font-semibold text-muted-foreground">
+            {index + 1}
+          </span>
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-32 rounded bg-white/5" />
+          <div className="h-3 w-24 rounded bg-white/5" />
+        </div>
+      </div>
+    );
+  }
+
+  // Empty slot - show add UI
+  if (!song) {
+    if (isAdding) {
+      return (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 transition-all duration-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30">
+              <span className="text-sm font-semibold text-primary">
+                {index + 1}
+              </span>
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              Choose a song
+            </span>
+          </div>
+          <SongSearchCombobox
+            songs={availableSongs}
+            onSelect={handleAddSong}
+            placeholder="Search songs..."
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-muted-foreground"
+            onClick={() => setIsAdding(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => setIsAdding(true)}
+        className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-left transition-all duration-200 hover:border-primary/30 hover:bg-primary/5"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition-colors group-hover:bg-primary/10 group-hover:ring-2 group-hover:ring-primary/30">
+          <span className="text-sm font-semibold text-muted-foreground transition-colors group-hover:text-primary">
+            {index + 1}
+          </span>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+            Add song to slot {index + 1}
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Click to search your library
+          </p>
+        </div>
+        <PlusIcon className="h-5 w-5 text-muted-foreground/40 transition-all group-hover:scale-110 group-hover:text-primary" />
+      </button>
+    );
+  }
+
+  // Filled slot - show sortable item
+  return (
+    <QuickAccessSongItem
+      song={song}
+      index={index}
+      onRemove={onRemove!}
+    />
+  );
+}
 
 export default function Settings() {
   const {
@@ -39,10 +150,9 @@ export default function Settings() {
     isLoading: isSettingsLoading,
   } = useSettings();
   const { songs } = useSongs();
-  const [isAdding, setIsAdding] = useState(false);
 
-  // Get the actual song objects for the one-touch songs
-  const oneTouchSongs = settings.oneTouchSongs.songIds
+  // Get the actual song objects for the quick access songs
+  const quickAccessSongs = settings.oneTouchSongs.songIds
     .map((id) => songs.find((song) => song.id === id))
     .filter((song) => song !== undefined) as Song[];
 
@@ -58,176 +168,184 @@ export default function Settings() {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = oneTouchSongs.findIndex((song) => song.id === active.id);
-      const newIndex = oneTouchSongs.findIndex((song) => song.id === over.id);
+      const oldIndex = quickAccessSongs.findIndex((song) => song.id === active.id);
+      const newIndex = quickAccessSongs.findIndex((song) => song.id === over.id);
 
-      const newOrder = arrayMove(oneTouchSongs, oldIndex, newIndex);
+      const newOrder = arrayMove(quickAccessSongs, oldIndex, newIndex);
       updateOneTouchSongs(newOrder.map((song) => song.id))
         .then(() => {
-          toast.success("Songs reordered", {
-            description: "Your One-Touch Songs have been reordered",
+          toast.success("Reordered", {
+            description: "Quick access order updated",
           });
         })
         .catch(() => {
-          toast.error("Error", {
-            description: "Failed to reorder songs",
+          toast.error("Failed to reorder", {
+            description: "Please try again",
           });
         });
     }
   };
 
-  const handleAddSong = (songId: string) => {
+  const handleAddSong = (songId: string, slotIndex: number) => {
     if (!songId) return;
 
     // Check if song is already in the list
     if (settings.oneTouchSongs.songIds.includes(songId)) {
-      toast.error("Song already added", {
-        description: "This song is already in your One-Touch Songs",
+      toast.error("Already added", {
+        description: "This song is already in your quick access list",
       });
       return;
     }
 
-    // Add the song to the list (limited to 3)
-    const newSongIds = [...settings.oneTouchSongs.songIds, songId].slice(0, 3);
+    // Insert at the correct position
+    const newSongIds = [...settings.oneTouchSongs.songIds];
+    newSongIds.splice(slotIndex, 0, songId);
 
-    updateOneTouchSongs(newSongIds)
+    updateOneTouchSongs(newSongIds.slice(0, MAX_QUICK_ACCESS_SONGS))
       .then(() => {
-        toast.success("Song added", {
-          description: "Song added to your One-Touch Songs",
+        const song = songs.find((s) => s.id === songId);
+        toast.success("Added to quick access", {
+          description: song ? `"${song.title}" is now in slot ${slotIndex + 1}` : "Song added",
         });
-        setIsAdding(false);
       })
       .catch(() => {
-        toast.error("Error", {
-          description: "Failed to add song",
+        toast.error("Failed to add", {
+          description: "Please try again",
         });
       });
   };
 
   const handleRemoveSong = (songId: string) => {
+    const song = songs.find((s) => s.id === songId);
     const newSongIds = settings.oneTouchSongs.songIds.filter(
       (id) => id !== songId
     );
 
     updateOneTouchSongs(newSongIds)
       .then(() => {
-        toast.success("Song removed", {
-          description: "Song removed from your One-Touch Songs",
+        toast.success("Removed", {
+          description: song ? `"${song.title}" removed from quick access` : "Song removed",
         });
       })
       .catch(() => {
-        toast.error("Error", {
-          description: "Failed to remove song",
+        toast.error("Failed to remove", {
+          description: "Please try again",
         });
       });
   };
 
+  // Create slots array - filled slots + empty slots up to MAX
+  const slots = Array.from({ length: MAX_QUICK_ACCESS_SONGS }, (_, i) => {
+    return quickAccessSongs[i] || null;
+  });
+
   return (
-    <>
-      <Header title="Settings" />
+    <AppLayout title="Settings">
+      <div className="mx-auto max-w-3xl space-y-8">
+        {/* Quick Access Songs Section */}
+        <section className="space-y-4">
+          {/* Section Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-1 ring-amber-500/30">
+              <ZapIcon className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Quick Access Songs</h2>
+              <p className="text-sm text-muted-foreground">
+                Instantly jump to your go-to songs from anywhere
+              </p>
+            </div>
+          </div>
 
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="grid gap-6">
-          <JoinCodeManager />
+          {/* Main Card */}
+          <Card className="border-white/10 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+            <CardContent className="p-0">
+              {/* Info Banner */}
+              <div className="flex items-start gap-3 border-b border-white/5 bg-white/[0.02] p-4 rounded-t-xl">
+                <SparklesIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  These songs appear in the sidebar for quick access during live sessions. 
+                  <span className="text-foreground font-medium"> Drag to reorder</span> your favorites.
+                </p>
+              </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <StarIcon className="h-5 w-5 text-yellow-500" />
-                One-Touch Songs
-              </CardTitle>
-              <CardDescription>
-                Add up to three songs that you can quickly access from anywhere
-                in the app
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isSettingsLoading ? (
-                <div className="flex justify-center p-4">
-                  <div className="animate-pulse">Loading...</div>
-                </div>
-              ) : (
-                <>
-                  {oneTouchSongs.length === 0 && !isAdding ? (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        No One-Touch Songs added yet
-                      </p>
-                      <Button
-                        onClick={() => setIsAdding(true)}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <PlusIcon className="h-4 w-4" />
-                        Add Your First Song
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {oneTouchSongs.length > 0 && (
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleDragEnd}
-                        >
-                          <SortableContext
-                            items={oneTouchSongs.map((song) => song.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="space-y-2">
-                              {oneTouchSongs.map((song, index) => (
-                                <OneTouchSongItem
-                                  key={song.id}
-                                  song={song}
-                                  index={index}
-                                  onRemove={() => handleRemoveSong(song.id)}
-                                />
-                              ))}
-                            </div>
-                          </SortableContext>
-                        </DndContext>
-                      )}
-
-                      {isAdding ? (
-                        <div className="pt-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-sm font-medium">Add a song</h3>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => setIsAdding(false)}
-                            >
-                              <XIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <SongSearchCombobox
+              {/* Slots List */}
+              <div className="p-4 space-y-3">
+                {quickAccessSongs.length > 0 ? (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={quickAccessSongs.map((song) => song.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {slots.map((song, index) => (
+                          <QuickAccessSongSlot
+                            key={song?.id || `empty-${index}`}
+                            index={index}
+                            song={song || undefined}
+                            onRemove={song ? () => handleRemoveSong(song.id) : undefined}
+                            onAdd={(songId) => handleAddSong(songId, index)}
                             songs={songs}
-                            onSelect={handleAddSong}
-                            placeholder="Search for a song to add..."
+                            existingSongIds={settings.oneTouchSongs.songIds}
+                            isLoading={isSettingsLoading}
                           />
-                        </div>
-                      ) : (
-                        oneTouchSongs.length < 3 && (
-                          <Button
-                            onClick={() => setIsAdding(true)}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 mt-2"
-                          >
-                            <PlusIcon className="h-4 w-4" />
-                            Add Song ({oneTouchSongs.length}/3)
-                          </Button>
-                        )
-                      )}
-                    </div>
-                  )}
-                </>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="space-y-3">
+                    {slots.map((_, index) => (
+                      <QuickAccessSongSlot
+                        key={`empty-${index}`}
+                        index={index}
+                        onAdd={(songId) => handleAddSong(songId, index)}
+                        songs={songs}
+                        existingSongIds={[]}
+                        isLoading={isSettingsLoading}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Help Footer */}
+              {quickAccessSongs.length > 0 && (
+                <div className="flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-4 py-3 rounded-b-xl">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <GripVerticalIcon className="h-3.5 w-3.5" />
+                    <span>Drag songs to reorder</span>
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {quickAccessSongs.length}/{MAX_QUICK_ACCESS_SONGS} slots used
+                  </span>
+                </div>
               )}
             </CardContent>
           </Card>
-        </div>
-      </main>
-    </>
+        </section>
+
+        {/* Team Management Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 ring-1 ring-blue-500/30">
+              <UsersIcon className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Team Management</h2>
+              <p className="text-sm text-muted-foreground">
+                Invite members to collaborate on setlists
+              </p>
+            </div>
+          </div>
+
+          <JoinCodeManager />
+        </section>
+      </div>
+    </AppLayout>
   );
 }

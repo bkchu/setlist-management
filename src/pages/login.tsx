@@ -116,8 +116,10 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <div className="w-full max-w-md space-y-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(156,219,176,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.06),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 to-transparent" />
+      <div className="relative z-10 w-full max-w-md space-y-4">
         {hasPendingInvite && (
           <Alert>
             <AlertTitle>Finish joining your team</AlertTitle>
@@ -127,10 +129,10 @@ export default function Login() {
             </AlertDescription>
           </Alert>
         )}
-        <Card className="w-full">
+        <Card className="w-full border-white/10 bg-card/90 backdrop-blur-xl">
           <CardHeader className="space-y-2 text-center">
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-              <Music2Icon className="h-6 w-6 text-primary-foreground" />
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_12px_rgba(156,219,176,0.35)]">
+              <Music2Icon className="h-6 w-6" />
             </div>
             <CardTitle className="text-2xl">{getTitle()}</CardTitle>
             <CardDescription>{getDescription()}</CardDescription>
@@ -210,7 +212,7 @@ export default function Login() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                  <span className="bg-card px-2 text-muted-foreground">
                     Or continue with
                   </span>
                 </div>

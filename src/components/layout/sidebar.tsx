@@ -1,5 +1,4 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   MusicIcon,
   ListMusic,
@@ -16,8 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "react-router-dom";
-import { useMemo } from "react";
 
 // Static nav items - defined outside component to prevent recreation
 const NAV_ITEMS = [
@@ -47,12 +44,12 @@ export function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex w-40 flex-col border-r h-screen">
-      <ScrollArea className="flex-1 px-2 py-4">
+    <div className="flex h-screen w-56 flex-col bg-sidebar border-r border-white/10 backdrop-blur-xl shadow-glass">
+      <ScrollArea className="flex-1 px-4 py-5">
         <SidebarNav items={NAV_ITEMS} />
       </ScrollArea>
 
-      <div className="p-4">
+      <div className="p-4 border-t border-white/10 bg-sidebar/80 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Avatar as Dropdown Trigger */}
@@ -60,18 +57,16 @@ export function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label="User menu"
-                  className="h-8 w-8 rounded-full bg-accent flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-9 w-9 rounded-full bg-primary/15 border border-white/10 flex items-center justify-center text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 hover:shadow-[0_0_12px_rgba(156,219,176,0.35)]"
                   type="button"
                 >
-                  <span className="text-sm font-medium text-accent-foreground">
-                    {user?.name?.charAt(0) || "U"}
-                  </span>
+                  <span>{user?.name?.charAt(0) || "U"}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
                 sideOffset={8}
-                className="w-40"
+                className="w-44"
               >
                 <div className="px-2 py-1.5">
                   <span className="block text-sm font-medium truncate">

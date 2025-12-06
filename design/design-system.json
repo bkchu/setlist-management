@@ -1,0 +1,733 @@
+{
+  "$schema": "design-system-implementation-v1",
+  "version": "1.0.0",
+  "name": "Setlify Design System - Implementation Guide",
+  "description": "Comprehensive implementation guide for AI assistants building features in the Setlify app. This document provides exact Tailwind classes, component patterns, and code examples to ensure visual consistency across the application.",
+
+  "meta": {
+    "framework": "React + TypeScript",
+    "styling": "Tailwind CSS v4 with CSS variables",
+    "componentLibrary": "shadcn/ui (New York style)",
+    "iconLibrary": "Lucide React",
+    "fonts": ["Geist", "Geist Mono"],
+    "colorMode": "dark-first (supports light mode)"
+  },
+
+  "quickReference": {
+    "description": "Quick copy-paste reference for common patterns",
+    "primaryCTA": "bg-primary text-primary-foreground hover:bg-primary/90",
+    "secondaryCTA": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+    "ghostButton": "hover:bg-accent hover:text-accent-foreground",
+    "card": "rounded-xl border bg-card text-card-foreground shadow",
+    "input": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+    "glassmorphism": "bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl backdrop-saturate-150 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]",
+    "focusRing": "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+    "disabled": "disabled:cursor-not-allowed disabled:opacity-50"
+  },
+
+  "cssVariables": {
+    "description": "These CSS variables are defined in src/index.css and referenced throughout the app via Tailwind semantic classes.",
+    "dark": {
+      "--background": "oklch(0.14 0 285.86)",
+      "--foreground": "oklch(0.99 0 0)",
+      "--card": "oklch(0.21 0.01 285.93)",
+      "--card-foreground": "oklch(0.99 0 0)",
+      "--popover": "oklch(0.21 0.01 285.93)",
+      "--popover-foreground": "oklch(0.99 0 0)",
+      "--primary": "oklch(0.75 0.03 145.2)",
+      "--primary-foreground": "oklch(0.21 0.01 285.93)",
+      "--secondary": "oklch(0.27 0.01 286.1)",
+      "--secondary-foreground": "oklch(0.99 0 0)",
+      "--muted": "oklch(0.27 0.01 286.1)",
+      "--muted-foreground": "oklch(0.71 0.01 286.09)",
+      "--accent": "oklch(0.27 0.01 286.1)",
+      "--accent-foreground": "oklch(0.99 0 0)",
+      "--destructive": "oklch(0.7 0.19 22.23)",
+      "--border": "oklch(1 0 0 / 10%)",
+      "--input": "oklch(1 0 0 / 15%)",
+      "--ring": "oklch(0.55 0.02 285.93)",
+      "--radius": "0.625rem"
+    },
+    "semanticClasses": {
+      "bg-background": "Page/app background",
+      "bg-card": "Card surfaces, elevated content",
+      "bg-popover": "Dropdowns, tooltips, popovers",
+      "bg-primary": "Primary CTA buttons",
+      "bg-secondary": "Secondary buttons, muted actions",
+      "bg-muted": "Subtle backgrounds, disabled states",
+      "bg-accent": "Hover states, active nav items",
+      "bg-destructive": "Delete buttons, error states",
+      "text-foreground": "Primary text on backgrounds",
+      "text-card-foreground": "Text on cards",
+      "text-muted-foreground": "Secondary/helper text",
+      "text-primary": "Text using primary color (green)",
+      "border-border": "Default borders",
+      "border-input": "Form input borders"
+    }
+  },
+
+  "typography": {
+    "fontFamilies": {
+      "sans": {
+        "cssVariable": "--font-sans",
+        "value": "'Geist', 'Geist Fallback', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        "tailwindClass": "font-sans",
+        "usage": "All UI text"
+      },
+      "mono": {
+        "cssVariable": "--font-mono",
+        "value": "'Geist Mono', 'Geist Mono Fallback', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        "tailwindClass": "font-mono",
+        "usage": "Code, musical keys, technical data"
+      }
+    },
+    "scale": {
+      "xs": {
+        "tailwind": "text-xs",
+        "size": "12px",
+        "lineHeight": "16px",
+        "usage": "Badges, captions, helper text"
+      },
+      "sm": {
+        "tailwind": "text-sm",
+        "size": "14px",
+        "lineHeight": "20px",
+        "usage": "Form labels, secondary text, table cells, button text (default)"
+      },
+      "base": {
+        "tailwind": "text-base",
+        "size": "16px",
+        "lineHeight": "24px",
+        "usage": "Body text, paragraphs"
+      },
+      "lg": {
+        "tailwind": "text-lg",
+        "size": "18px",
+        "lineHeight": "28px",
+        "usage": "Card titles, lead paragraphs, modal titles"
+      },
+      "xl": {
+        "tailwind": "text-xl",
+        "size": "20px",
+        "lineHeight": "28px",
+        "usage": "Section headings"
+      },
+      "2xl": {
+        "tailwind": "text-2xl",
+        "size": "24px",
+        "lineHeight": "32px",
+        "usage": "Page titles"
+      },
+      "3xl": {
+        "tailwind": "text-3xl",
+        "size": "30px",
+        "lineHeight": "36px",
+        "usage": "Hero titles"
+      }
+    },
+    "weights": {
+      "regular": { "tailwind": "font-normal", "value": 400 },
+      "medium": { "tailwind": "font-medium", "value": 500 },
+      "semibold": { "tailwind": "font-semibold", "value": 600 },
+      "bold": { "tailwind": "font-bold", "value": 700 }
+    },
+    "patterns": {
+      "pageTitle": "text-2xl font-semibold tracking-tight",
+      "sectionTitle": "text-xl font-semibold",
+      "cardTitle": "font-semibold leading-none tracking-tight",
+      "cardDescription": "text-sm text-muted-foreground",
+      "label": "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+      "helperText": "text-xs text-muted-foreground",
+      "link": "text-primary underline-offset-4 hover:underline"
+    }
+  },
+
+  "spacing": {
+    "description": "Tailwind spacing scale. Use consistently for padding, margin, and gaps.",
+    "scale": {
+      "0": "0px",
+      "0.5": "2px",
+      "1": "4px",
+      "1.5": "6px",
+      "2": "8px",
+      "2.5": "10px",
+      "3": "12px",
+      "4": "16px",
+      "5": "20px",
+      "6": "24px",
+      "8": "32px",
+      "10": "40px",
+      "12": "48px",
+      "16": "64px"
+    },
+    "guidelines": {
+      "componentGap": {
+        "tight": "gap-1 (4px)",
+        "default": "gap-2 (8px)",
+        "relaxed": "gap-4 (16px)"
+      },
+      "cardPadding": "p-6 (24px)",
+      "sectionPadding": "py-8 (32px) or py-12 (48px)",
+      "inputPadding": "px-3 py-1 or px-3 py-2",
+      "buttonPadding": "px-4 py-2 (default), px-3 for sm, px-8 for lg",
+      "stackSpacing": "space-y-1.5 (6px) for tight, space-y-4 (16px) for default"
+    }
+  },
+
+  "borderRadius": {
+    "scale": {
+      "none": { "tailwind": "rounded-none", "value": "0" },
+      "sm": { "tailwind": "rounded-sm", "value": "calc(var(--radius) - 4px)" },
+      "md": { "tailwind": "rounded-md", "value": "calc(var(--radius) - 2px)" },
+      "DEFAULT": {
+        "tailwind": "rounded-lg",
+        "value": "var(--radius) = 0.625rem = 10px"
+      },
+      "xl": { "tailwind": "rounded-xl", "value": "12px" },
+      "2xl": { "tailwind": "rounded-2xl", "value": "16px" },
+      "full": { "tailwind": "rounded-full", "value": "9999px" }
+    },
+    "usage": {
+      "buttons": "rounded-md",
+      "inputs": "rounded-md",
+      "cards": "rounded-xl",
+      "dialogs": "sm:rounded-lg",
+      "badges": "rounded-md",
+      "avatars": "rounded-full",
+      "pills": "rounded-full",
+      "tabs": "rounded-lg (container), rounded-md (triggers)"
+    }
+  },
+
+  "shadows": {
+    "tailwind": {
+      "shadow-sm": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      "shadow": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "shadow-md": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+      "shadow-lg": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
+    },
+    "usage": {
+      "buttons": "shadow-sm (secondary), shadow (primary)",
+      "cards": "shadow",
+      "dropdowns": "shadow-md",
+      "modals": "shadow-lg"
+    },
+    "darkModeNotes": "On dark backgrounds, shadows are less visible. Prefer border highlights and glassmorphism effects."
+  },
+
+  "components": {
+    "Button": {
+      "location": "@/components/ui/button",
+      "import": "import { Button } from '@/components/ui/button'",
+      "baseClasses": "cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+      "variants": {
+        "default": {
+          "classes": "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+          "usage": "Primary CTAs - Add setlist, Save, Submit"
+        },
+        "destructive": {
+          "classes": "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "usage": "Delete, Remove actions"
+        },
+        "outline": {
+          "classes": "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "usage": "Secondary actions, Cancel buttons"
+        },
+        "secondary": {
+          "classes": "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+          "usage": "Alternative actions"
+        },
+        "ghost": {
+          "classes": "hover:bg-accent hover:text-accent-foreground",
+          "usage": "Icon buttons, subtle actions, navigation items"
+        },
+        "link": {
+          "classes": "text-primary underline-offset-4 hover:underline",
+          "usage": "Inline text links"
+        }
+      },
+      "sizes": {
+        "default": "h-9 px-4 py-2",
+        "sm": "h-8 rounded-md px-3 text-xs",
+        "lg": "h-10 rounded-md px-8",
+        "xl": "h-12 rounded-md px-12",
+        "icon": "h-9 w-9"
+      },
+      "defaultVariant": "default",
+      "defaultSize": "sm",
+      "examples": {
+        "primary": "<Button>Save Setlist</Button>",
+        "secondary": "<Button variant=\"secondary\">Cancel</Button>",
+        "destructive": "<Button variant=\"destructive\">Delete</Button>",
+        "icon": "<Button variant=\"ghost\" size=\"icon\"><PlusIcon className=\"h-4 w-4\" /></Button>",
+        "withIcon": "<Button><PlusIcon className=\"mr-2 h-4 w-4\" /> Add Song</Button>"
+      }
+    },
+
+    "Input": {
+      "location": "@/components/ui/input",
+      "import": "import { Input } from '@/components/ui/input'",
+      "classes": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+      "usage": "Text inputs, search fields, form fields",
+      "patterns": {
+        "withLabel": "<div className=\"space-y-2\">\n  <Label htmlFor=\"name\">Name</Label>\n  <Input id=\"name\" placeholder=\"Enter name\" />\n</div>",
+        "withIcon": "<div className=\"relative\">\n  <SearchIcon className=\"absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground\" />\n  <Input className=\"pl-10\" placeholder=\"Search...\" />\n</div>"
+      }
+    },
+
+    "Textarea": {
+      "location": "@/components/ui/textarea",
+      "import": "import { Textarea } from '@/components/ui/textarea'",
+      "classes": "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+    },
+
+    "Label": {
+      "location": "@/components/ui/label",
+      "import": "import { Label } from '@/components/ui/label'",
+      "classes": "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+    },
+
+    "Card": {
+      "location": "@/components/ui/card",
+      "import": "import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'",
+      "components": {
+        "Card": {
+          "classes": "rounded-xl border bg-card text-card-foreground shadow"
+        },
+        "CardHeader": {
+          "classes": "flex flex-col space-y-1.5 p-6"
+        },
+        "CardTitle": {
+          "classes": "font-semibold leading-none tracking-tight"
+        },
+        "CardDescription": {
+          "classes": "text-sm text-muted-foreground"
+        },
+        "CardContent": {
+          "classes": "p-6 pt-0"
+        },
+        "CardFooter": {
+          "classes": "flex items-center p-6 pt-0"
+        }
+      },
+      "example": "<Card>\n  <CardHeader>\n    <CardTitle>Setlist Name</CardTitle>\n    <CardDescription>Created on Dec 6, 2025</CardDescription>\n  </CardHeader>\n  <CardContent>\n    <p>Content here</p>\n  </CardContent>\n  <CardFooter>\n    <Button>Edit</Button>\n  </CardFooter>\n</Card>"
+    },
+
+    "Badge": {
+      "location": "@/components/ui/badge",
+      "import": "import { Badge } from '@/components/ui/badge'",
+      "baseClasses": "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "variants": {
+        "default": "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+        "secondary": "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        "destructive": "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+        "outline": "text-foreground"
+      },
+      "usage": "Status indicators, tags, categories, musical keys"
+    },
+
+    "Avatar": {
+      "location": "@/components/ui/avatar",
+      "import": "import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'",
+      "components": {
+        "Avatar": "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+        "AvatarImage": "aspect-square h-full w-full",
+        "AvatarFallback": "flex h-full w-full items-center justify-center rounded-full bg-muted"
+      },
+      "sizes": {
+        "sm": "h-8 w-8",
+        "default": "h-10 w-10",
+        "lg": "h-12 w-12"
+      },
+      "example": "<Avatar>\n  <AvatarImage src=\"/avatar.jpg\" alt=\"User\" />\n  <AvatarFallback>JD</AvatarFallback>\n</Avatar>"
+    },
+
+    "Dialog": {
+      "location": "@/components/ui/dialog",
+      "import": "import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'",
+      "components": {
+        "DialogOverlay": "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "DialogContent": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg",
+        "DialogHeader": "flex flex-col space-y-1.5 text-center sm:text-left",
+        "DialogTitle": "text-lg font-semibold leading-none tracking-tight",
+        "DialogDescription": "text-sm text-muted-foreground",
+        "DialogFooter": "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2"
+      },
+      "animation": "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      "pattern": "<Dialog>\n  <DialogTrigger asChild>\n    <Button>Open</Button>\n  </DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Title</DialogTitle>\n      <DialogDescription>Description</DialogDescription>\n    </DialogHeader>\n    <div>Content</div>\n    <DialogFooter>\n      <Button variant=\"outline\">Cancel</Button>\n      <Button>Save</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>"
+    },
+
+    "DropdownMenu": {
+      "location": "@/components/ui/dropdown-menu",
+      "import": "import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'",
+      "components": {
+        "DropdownMenuContent": "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        "DropdownMenuItem": "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "DropdownMenuSeparator": "-mx-1 my-1 h-px bg-muted",
+        "DropdownMenuLabel": "px-2 py-1.5 text-sm font-semibold"
+      },
+      "pattern": "<DropdownMenu>\n  <DropdownMenuTrigger asChild>\n    <Button variant=\"ghost\" size=\"icon\">\n      <MoreVerticalIcon className=\"h-4 w-4\" />\n    </Button>\n  </DropdownMenuTrigger>\n  <DropdownMenuContent align=\"end\">\n    <DropdownMenuLabel>Actions</DropdownMenuLabel>\n    <DropdownMenuSeparator />\n    <DropdownMenuItem>Edit</DropdownMenuItem>\n    <DropdownMenuItem className=\"text-destructive\">Delete</DropdownMenuItem>\n  </DropdownMenuContent>\n</DropdownMenu>"
+    },
+
+    "Select": {
+      "location": "@/components/ui/select",
+      "import": "import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'",
+      "components": {
+        "SelectTrigger": "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "SelectContent": "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
+        "SelectItem": "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+      },
+      "pattern": "<Select>\n  <SelectTrigger>\n    <SelectValue placeholder=\"Select key\" />\n  </SelectTrigger>\n  <SelectContent>\n    <SelectItem value=\"C\">C Major</SelectItem>\n    <SelectItem value=\"G\">G Major</SelectItem>\n    <SelectItem value=\"D\">D Major</SelectItem>\n  </SelectContent>\n</Select>"
+    },
+
+    "Tabs": {
+      "location": "@/components/ui/tabs",
+      "import": "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'",
+      "components": {
+        "TabsList": "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+        "TabsTrigger": "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+        "TabsContent": "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      }
+    },
+
+    "Table": {
+      "location": "@/components/ui/table",
+      "import": "import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'",
+      "components": {
+        "Table": "w-full caption-bottom text-sm",
+        "TableHeader": "[&_tr]:border-b",
+        "TableBody": "[&_tr:last-child]:border-0",
+        "TableRow": "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        "TableHead": "h-10 px-2 text-left align-middle font-medium text-muted-foreground",
+        "TableCell": "p-2 align-middle"
+      }
+    },
+
+    "Checkbox": {
+      "location": "@/components/ui/checkbox",
+      "import": "import { Checkbox } from '@/components/ui/checkbox'",
+      "classes": "peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+    },
+
+    "Switch": {
+      "location": "@/components/ui/switch",
+      "import": "import { Switch } from '@/components/ui/switch'",
+      "classes": "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+    },
+
+    "Progress": {
+      "location": "@/components/ui/progress",
+      "import": "import { Progress } from '@/components/ui/progress'",
+      "container": "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
+      "indicator": "h-full w-full flex-1 bg-primary transition-all"
+    },
+
+    "Skeleton": {
+      "location": "@/components/ui/skeleton",
+      "import": "import { Skeleton } from '@/components/ui/skeleton'",
+      "classes": "animate-pulse rounded-md bg-primary/10"
+    },
+
+    "Tooltip": {
+      "location": "@/components/ui/tooltip",
+      "import": "import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'",
+      "content": "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95",
+      "note": "Wrap app with TooltipProvider"
+    },
+
+    "Alert": {
+      "location": "@/components/ui/alert",
+      "import": "import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'",
+      "base": "relative w-full rounded-lg border px-4 py-3 text-sm",
+      "variants": {
+        "default": "bg-background text-foreground",
+        "destructive": "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive"
+      }
+    },
+
+    "Separator": {
+      "location": "@/components/ui/separator",
+      "import": "import { Separator } from '@/components/ui/separator'",
+      "classes": "shrink-0 bg-border",
+      "horizontal": "h-[1px] w-full",
+      "vertical": "h-full w-[1px]"
+    },
+
+    "ScrollArea": {
+      "location": "@/components/ui/scroll-area",
+      "import": "import { ScrollArea } from '@/components/ui/scroll-area'",
+      "root": "relative overflow-hidden",
+      "thumb": "relative flex-1 rounded-full bg-border"
+    },
+
+    "Popover": {
+      "location": "@/components/ui/popover",
+      "import": "import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'",
+      "content": "bg-popover text-popover-foreground z-50 w-72 rounded-md border p-4 shadow-md outline-hidden"
+    }
+  },
+
+  "patterns": {
+    "navigation": {
+      "sidebar": {
+        "description": "Desktop sidebar navigation pattern",
+        "container": "flex w-40 flex-col border-r h-screen",
+        "scrollArea": "flex-1 px-2 py-4",
+        "navItem": {
+          "base": "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+          "inactive": "text-muted-foreground hover:text-foreground hover:bg-accent",
+          "active": "text-foreground bg-accent"
+        },
+        "userSection": "p-4",
+        "avatarTrigger": "h-8 w-8 rounded-full bg-accent flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-ring"
+      },
+      "mobileNav": {
+        "description": "Bottom navigation bar for mobile",
+        "container": "mx-3 mb-3",
+        "bar": "flex items-center justify-between rounded-full py-1 px-1 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl backdrop-saturate-150 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]",
+        "navItem": {
+          "base": "group relative flex flex-col items-center justify-center gap-0.5 px-4 py-2 transition-all duration-300",
+          "inactive": "text-white/50 hover:text-white/80",
+          "active": "text-white"
+        },
+        "activePill": "bg-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]",
+        "inactivePill": "bg-transparent group-hover:bg-white/5",
+        "icon": {
+          "base": "relative z-10 h-5 w-5 transition-transform duration-300",
+          "active": "scale-110",
+          "inactive": "group-hover:scale-105"
+        },
+        "label": "relative z-10 text-[10px] font-medium tracking-wide"
+      }
+    },
+
+    "forms": {
+      "fieldStack": "space-y-2",
+      "fieldGroup": "grid gap-4",
+      "twoColumn": "grid grid-cols-2 gap-4",
+      "labeledField": "<div className=\"space-y-2\">\n  <Label htmlFor=\"field\">Field Label</Label>\n  <Input id=\"field\" />\n</div>",
+      "fieldWithHelper": "<div className=\"space-y-2\">\n  <Label htmlFor=\"field\">Field Label</Label>\n  <Input id=\"field\" />\n  <p className=\"text-xs text-muted-foreground\">Helper text here</p>\n</div>",
+      "fieldWithError": "<div className=\"space-y-2\">\n  <Label htmlFor=\"field\">Field Label</Label>\n  <Input id=\"field\" className=\"border-destructive\" />\n  <p className=\"text-xs text-destructive\">Error message here</p>\n</div>"
+    },
+
+    "lists": {
+      "stackedList": "divide-y divide-border",
+      "listItem": "py-4 first:pt-0 last:pb-0",
+      "listItemWithActions": "flex items-center justify-between py-4",
+      "gridList": "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    },
+
+    "emptyState": {
+      "container": "flex flex-col items-center justify-center py-12 text-center",
+      "icon": "h-12 w-12 text-muted-foreground mb-4",
+      "title": "text-lg font-semibold",
+      "description": "text-sm text-muted-foreground mt-2",
+      "action": "mt-4"
+    },
+
+    "loading": {
+      "spinner": "animate-spin h-4 w-4",
+      "skeletonCard": "<Card>\n  <CardHeader>\n    <Skeleton className=\"h-4 w-[200px]\" />\n    <Skeleton className=\"h-3 w-[150px]\" />\n  </CardHeader>\n  <CardContent>\n    <Skeleton className=\"h-20 w-full\" />\n  </CardContent>\n</Card>",
+      "skeletonList": "<div className=\"space-y-4\">\n  {[...Array(3)].map((_, i) => (\n    <Skeleton key={i} className=\"h-12 w-full\" />\n  ))}\n</div>"
+    },
+
+    "sectionHeader": {
+      "description": "Section headers with icon badges for settings pages and feature sections",
+      "container": "flex items-center gap-3",
+      "iconBadge": {
+        "base": "flex h-10 w-10 items-center justify-center rounded-xl ring-1",
+        "variants": {
+          "amber": "bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-amber-500/30",
+          "blue": "bg-gradient-to-br from-blue-500/20 to-indigo-500/20 ring-blue-500/30",
+          "primary": "bg-gradient-to-br from-primary/20 to-primary/10 ring-primary/30",
+          "purple": "bg-gradient-to-br from-purple-500/20 to-pink-500/20 ring-purple-500/30"
+        },
+        "icon": "h-5 w-5"
+      },
+      "title": "text-lg font-semibold tracking-tight",
+      "description": "text-sm text-muted-foreground",
+      "example": "<div className=\"flex items-center gap-3\">\n  <div className=\"flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-1 ring-amber-500/30\">\n    <ZapIcon className=\"h-5 w-5 text-amber-400\" />\n  </div>\n  <div>\n    <h2 className=\"text-lg font-semibold tracking-tight\">Section Title</h2>\n    <p className=\"text-sm text-muted-foreground\">Section description</p>\n  </div>\n</div>"
+    },
+
+    "slotList": {
+      "description": "Numbered slot-based UI for limited-item lists (e.g., quick access songs, favorites)",
+      "emptySlot": {
+        "container": "group flex w-full items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-left transition-all duration-200 hover:border-primary/30 hover:bg-primary/5",
+        "numberBadge": {
+          "base": "flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition-colors",
+          "hover": "group-hover:bg-primary/10 group-hover:ring-2 group-hover:ring-primary/30",
+          "text": "text-sm font-semibold text-muted-foreground transition-colors group-hover:text-primary"
+        },
+        "addIcon": "h-5 w-5 text-muted-foreground/40 transition-all group-hover:scale-110 group-hover:text-primary"
+      },
+      "filledSlot": {
+        "container": "group flex items-center gap-3 rounded-xl border border-white/10 bg-card/80 p-4 shadow-sm transition-all duration-200 hover:border-white/20 hover:bg-card",
+        "numberBadge": "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30",
+        "numberText": "text-sm font-bold text-primary"
+      },
+      "activeAddState": "rounded-xl border border-primary/30 bg-primary/5 p-4 transition-all duration-200"
+    },
+
+    "infoBanner": {
+      "description": "Contextual info banner inside cards to explain features",
+      "container": "flex items-start gap-3 border-b border-white/5 bg-white/[0.02] p-4",
+      "icon": "mt-0.5 h-4 w-4 flex-shrink-0 text-primary",
+      "text": "text-sm text-muted-foreground leading-relaxed",
+      "highlight": "text-foreground font-medium",
+      "example": "<div className=\"flex items-start gap-3 border-b border-white/5 bg-white/[0.02] p-4\">\n  <SparklesIcon className=\"mt-0.5 h-4 w-4 flex-shrink-0 text-primary\" />\n  <p className=\"text-sm text-muted-foreground leading-relaxed\">\n    Explanation text. <span className=\"text-foreground font-medium\">Highlighted action</span> more text.\n  </p>\n</div>"
+    },
+
+    "cardFooterStats": {
+      "description": "Footer bar for cards showing helper text and statistics",
+      "container": "flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-4 py-3",
+      "helperText": "flex items-center gap-2 text-xs text-muted-foreground",
+      "stats": "text-xs font-medium text-muted-foreground",
+      "example": "<div className=\"flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-4 py-3\">\n  <div className=\"flex items-center gap-2 text-xs text-muted-foreground\">\n    <GripVerticalIcon className=\"h-3.5 w-3.5\" />\n    <span>Drag to reorder</span>\n  </div>\n  <span className=\"text-xs font-medium text-muted-foreground\">2/3 slots used</span>\n</div>"
+    },
+
+    "draggableItem": {
+      "description": "Drag-and-drop item states for sortable lists",
+      "base": "transition-all duration-200",
+      "idle": "hover:border-white/20 hover:bg-card",
+      "dragging": "z-50 scale-[1.02] shadow-lg shadow-black/20 ring-2 ring-primary/50",
+      "dragHandle": {
+        "base": "flex h-8 w-8 cursor-grab items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground",
+        "active": "cursor-grabbing"
+      }
+    }
+  },
+
+  "layout": {
+    "pageContainer": {
+      "description": "Standard page layout wrapper",
+      "desktop": "p-6 lg:p-8",
+      "withSidebar": "flex h-screen overflow-hidden",
+      "mainContent": "flex-1 overflow-auto"
+    },
+    "maxWidths": {
+      "sm": "max-w-sm (24rem / 384px)",
+      "md": "max-w-md (28rem / 448px)",
+      "lg": "max-w-lg (32rem / 512px)",
+      "xl": "max-w-xl (36rem / 576px)",
+      "2xl": "max-w-2xl (42rem / 672px)",
+      "4xl": "max-w-4xl (56rem / 896px)",
+      "full": "max-w-full"
+    },
+    "responsiveGrid": {
+      "twoColumn": "grid gap-4 md:grid-cols-2",
+      "threeColumn": "grid gap-4 md:grid-cols-2 lg:grid-cols-3",
+      "fourColumn": "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    }
+  },
+
+  "animations": {
+    "transitions": {
+      "default": "transition-colors",
+      "all": "transition-all",
+      "transform": "transition-transform",
+      "opacity": "transition-opacity"
+    },
+    "durations": {
+      "fast": "duration-100",
+      "default": "duration-200",
+      "slow": "duration-300"
+    },
+    "keyframes": {
+      "animate-in": "Enter animation",
+      "animate-out": "Exit animation",
+      "fade-in-0": "Fade from 0 opacity",
+      "fade-out-0": "Fade to 0 opacity",
+      "zoom-in-95": "Zoom from 95%",
+      "zoom-out-95": "Zoom to 95%",
+      "slide-in-from-*": "Slide in from direction",
+      "slide-out-to-*": "Slide out to direction"
+    },
+    "customEffects": {
+      "buttonPress": "active:scale-[0.98]",
+      "cardHover": "hover:-translate-y-0.5",
+      "pulse": "animate-pulse",
+      "dragLift": "scale-[1.02] shadow-lg shadow-black/20 ring-2 ring-primary/50"
+    }
+  },
+
+  "icons": {
+    "library": "lucide-react",
+    "import": "import { IconName } from 'lucide-react'",
+    "sizes": {
+      "xs": "h-3 w-3",
+      "sm": "h-4 w-4",
+      "default": "h-5 w-5",
+      "lg": "h-6 w-6",
+      "xl": "h-8 w-8"
+    },
+    "inButton": "mr-2 h-4 w-4",
+    "standalone": "h-5 w-5 text-muted-foreground",
+    "commonIcons": {
+      "add": "PlusIcon",
+      "edit": "PencilIcon",
+      "delete": "TrashIcon",
+      "close": "XIcon",
+      "menu": "MenuIcon",
+      "search": "SearchIcon",
+      "settings": "SettingsIcon",
+      "user": "UserIcon",
+      "music": "MusicIcon",
+      "list": "ListMusicIcon",
+      "home": "HomeIcon",
+      "logout": "LogOutIcon",
+      "more": "MoreVerticalIcon",
+      "check": "CheckIcon",
+      "chevronDown": "ChevronDownIcon",
+      "chevronRight": "ChevronRightIcon"
+    }
+  },
+
+  "accessibility": {
+    "focusVisible": "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+    "focusRingOffset": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "screenReaderOnly": "sr-only",
+    "touchTarget": "min-h-[44px] min-w-[44px]",
+    "reducedMotion": "motion-reduce:transition-none motion-reduce:animate-none",
+    "ariaPatterns": {
+      "button": "Use native <button> or asChild with Button",
+      "dialog": "DialogTitle and DialogDescription are required for screen readers",
+      "dropdown": "DropdownMenuTrigger should have aria-label if icon-only",
+      "loading": "Use aria-busy=\"true\" on loading containers"
+    }
+  },
+
+  "bestPractices": {
+    "doThis": [
+      "Use semantic color classes (bg-primary, text-muted-foreground) not raw colors",
+      "Import components from @/components/ui/*",
+      "Use the cn() utility for conditional classes",
+      "Follow the established component patterns",
+      "Use space-y-* or gap-* for consistent spacing",
+      "Wrap interactive elements in proper focus handling",
+      "Use variants and sizes from component props, not custom classes",
+      "Keep dark mode in mind - test both themes"
+    ],
+    "avoidThis": [
+      "Don't use arbitrary color values - use CSS variables",
+      "Don't create new components when existing ones work",
+      "Don't use inline styles - use Tailwind classes",
+      "Don't forget loading and error states",
+      "Don't skip accessibility (labels, aria attributes)",
+      "Don't use fixed pixel values - use the spacing scale",
+      "Don't override component internals - extend via className prop"
+    ],
+    "cnUtility": {
+      "import": "import { cn } from '@/lib/utils'",
+      "usage": "cn('base-classes', condition && 'conditional-class', className)",
+      "example": "className={cn(\n  'base styles here',\n  isActive && 'active styles',\n  isDisabled && 'disabled styles',\n  className\n)}"
+    }
+  },
+
+  "codeExamples": {
+    "simpleForm": "```tsx\n<Card>\n  <CardHeader>\n    <CardTitle>Add Song</CardTitle>\n    <CardDescription>Add a new song to your library</CardDescription>\n  </CardHeader>\n  <CardContent>\n    <div className=\"space-y-4\">\n      <div className=\"space-y-2\">\n        <Label htmlFor=\"title\">Title</Label>\n        <Input id=\"title\" placeholder=\"Enter song title\" />\n      </div>\n      <div className=\"space-y-2\">\n        <Label htmlFor=\"artist\">Artist</Label>\n        <Input id=\"artist\" placeholder=\"Enter artist name\" />\n      </div>\n      <div className=\"space-y-2\">\n        <Label htmlFor=\"key\">Key</Label>\n        <Select>\n          <SelectTrigger>\n            <SelectValue placeholder=\"Select key\" />\n          </SelectTrigger>\n          <SelectContent>\n            <SelectItem value=\"C\">C</SelectItem>\n            <SelectItem value=\"G\">G</SelectItem>\n          </SelectContent>\n        </Select>\n      </div>\n    </div>\n  </CardContent>\n  <CardFooter className=\"justify-end gap-2\">\n    <Button variant=\"outline\">Cancel</Button>\n    <Button>Save Song</Button>\n  </CardFooter>\n</Card>\n```",
+
+    "listWithActions": "```tsx\n<div className=\"divide-y divide-border\">\n  {items.map((item) => (\n    <div key={item.id} className=\"flex items-center justify-between py-4\">\n      <div className=\"space-y-1\">\n        <p className=\"font-medium\">{item.title}</p>\n        <p className=\"text-sm text-muted-foreground\">{item.subtitle}</p>\n      </div>\n      <DropdownMenu>\n        <DropdownMenuTrigger asChild>\n          <Button variant=\"ghost\" size=\"icon\">\n            <MoreVerticalIcon className=\"h-4 w-4\" />\n          </Button>\n        </DropdownMenuTrigger>\n        <DropdownMenuContent align=\"end\">\n          <DropdownMenuItem>Edit</DropdownMenuItem>\n          <DropdownMenuItem className=\"text-destructive\">Delete</DropdownMenuItem>\n        </DropdownMenuContent>\n      </DropdownMenu>\n    </div>\n  ))}\n</div>\n```",
+
+    "confirmDialog": "```tsx\n<Dialog>\n  <DialogTrigger asChild>\n    <Button variant=\"destructive\">Delete</Button>\n  </DialogTrigger>\n  <DialogContent>\n    <DialogHeader>\n      <DialogTitle>Delete Song?</DialogTitle>\n      <DialogDescription>\n        This action cannot be undone. This will permanently delete the song from your library.\n      </DialogDescription>\n    </DialogHeader>\n    <DialogFooter>\n      <DialogClose asChild>\n        <Button variant=\"outline\">Cancel</Button>\n      </DialogClose>\n      <Button variant=\"destructive\" onClick={handleDelete}>Delete</Button>\n    </DialogFooter>\n  </DialogContent>\n</Dialog>\n```"
+  }
+}

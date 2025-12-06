@@ -252,7 +252,7 @@ export default function JoinOrganization() {
             </p>
           </div>
 
-          <Card>
+          <Card className="border-white/10 bg-card/90 backdrop-blur-xl">
             <CardHeader>
               <CardTitle>Get Started</CardTitle>
               <CardDescription>
@@ -311,8 +311,8 @@ export default function JoinOrganization() {
           <h1 className="text-3xl font-bold">Join Organization</h1>
         </div>
 
-        {(joinCode || validation !== null) && (
-          <Card>
+          {(joinCode || validation !== null) && (
+          <Card className="border-white/10 bg-card/90 backdrop-blur-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {validation?.isValid ? (
@@ -448,8 +448,8 @@ export default function JoinOrganization() {
           </div>
         )}
 
-        {!joinCode && (
-          <Card>
+          {!joinCode && (
+          <Card className="border-white/10 bg-card/90 backdrop-blur-xl">
             <CardHeader>
               <CardTitle>Have an invite link or code?</CardTitle>
               <CardDescription>Paste it below to validate.</CardDescription>

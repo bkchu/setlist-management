@@ -1,0 +1,1149 @@
+{
+  "$schema": "design-system-v1",
+  "name": "Setlify Design System",
+  "description": "A dark, sophisticated design system with neon green accents. Combines deep, rich dark backgrounds with electric green CTAs that command attention. The aesthetic is modern, musical, and premium—like a high-end audio interface or music production software.",
+
+  "designPrinciples": {
+    "philosophy": "Dark elegance meets electric energy. The interface should feel like a professional music tool—focused, refined, and alive with subtle energy.",
+    "principles": [
+      {
+        "name": "Dark Canvas",
+        "description": "Dark backgrounds create focus and reduce eye strain. Content floats on layers of dark with subtle elevation through transparency and soft borders."
+      },
+      {
+        "name": "Electric Accents",
+        "description": "The neon green primary color should pop against dark backgrounds. Use it sparingly for maximum impact—CTAs, active states, and key interactions."
+      },
+      {
+        "name": "Creamy Green Harmony",
+        "description": "Support the electric primary with softer, creamier greens for secondary elements, hover states, and backgrounds. This creates a cohesive green family."
+      },
+      {
+        "name": "Glassmorphic Layers",
+        "description": "Use semi-transparent whites and subtle borders to create depth. Cards and surfaces should feel like they float on glass layers."
+      },
+      {
+        "name": "Consistent Rhythm",
+        "description": "Maintain an 8px grid system. Spacing should feel intentional and musical—like well-timed beats."
+      },
+      {
+        "name": "Typography Clarity",
+        "description": "On dark backgrounds, ensure text has excellent contrast. Use weight and size to create hierarchy, not just color."
+      }
+    ]
+  },
+
+  "colors": {
+    "description": "A dark-first color system with neon green as the signature accent. The palette creates depth through layered darks and draws attention with electric green highlights.",
+
+    "palette": {
+      "primary": {
+        "50": "#ECFDF5",
+        "100": "#D1FAE5",
+        "200": "#A7F3D0",
+        "300": "#6EE7B7",
+        "400": "#34D399",
+        "500": "#10B981",
+        "600": "#059669",
+        "700": "#047857",
+        "800": "#065F46",
+        "900": "#064E3B",
+        "neon": "#39FF14",
+        "electric": "#00FF7F",
+        "glow": "#4ADE80",
+        "description": "Neon green primary. Use 'neon' (#39FF14) or 'electric' (#00FF7F) for CTAs that need to pop. Use 400-500 for less intense but still vibrant elements."
+      },
+      "cream": {
+        "50": "#F7FDF9",
+        "100": "#E8F8ED",
+        "200": "#D4F1DE",
+        "300": "#B8E6C7",
+        "400": "#9CDBB0",
+        "500": "#7FCF99",
+        "600": "#62C382",
+        "muted": "#A8D5BA",
+        "soft": "#C5E8D2",
+        "description": "Creamy, soft greens for backgrounds, hover states, and secondary elements. These complement the neon without competing."
+      },
+      "dark": {
+        "950": "#030706",
+        "900": "#0A0F0D",
+        "850": "#0D1410",
+        "800": "#111916",
+        "750": "#151F1B",
+        "700": "#1A2621",
+        "650": "#1F2D27",
+        "600": "#24342D",
+        "550": "#2A3B34",
+        "500": "#30433B",
+        "description": "Rich, deep darks with a subtle green undertone. Use 900-950 for backgrounds, 700-800 for cards, 500-600 for elevated surfaces."
+      },
+      "neutral": {
+        "50": "#FAFAFA",
+        "100": "#F5F5F5",
+        "200": "#E5E5E5",
+        "300": "#D4D4D4",
+        "400": "#A3A3A3",
+        "500": "#737373",
+        "600": "#525252",
+        "700": "#404040",
+        "800": "#262626",
+        "900": "#171717",
+        "950": "#0A0A0A",
+        "description": "Pure neutrals for text and borders when you need true gray without green undertones."
+      },
+      "success": {
+        "light": "#86EFAC",
+        "DEFAULT": "#22C55E",
+        "dark": "#16A34A",
+        "description": "Success states—use sparingly since the primary is already green. Consider using a brighter shade or adding a checkmark icon for differentiation."
+      },
+      "warning": {
+        "light": "#FDE68A",
+        "DEFAULT": "#FBBF24",
+        "dark": "#D97706",
+        "description": "Warnings and alerts. The amber stands out well against both dark backgrounds and green elements."
+      },
+      "error": {
+        "light": "#FCA5A5",
+        "DEFAULT": "#EF4444",
+        "dark": "#DC2626",
+        "description": "Errors and destructive actions. Red provides clear contrast against the green palette."
+      },
+      "info": {
+        "light": "#93C5FD",
+        "DEFAULT": "#3B82F6",
+        "dark": "#2563EB",
+        "description": "Informational elements. Blue works as a neutral accent that doesn't compete with the green system."
+      }
+    },
+
+    "semantic": {
+      "background": {
+        "base": "dark.900",
+        "elevated": "dark.800",
+        "surface": "dark.700",
+        "overlay": "rgba(0, 0, 0, 0.6)",
+        "description": "Layer backgrounds from darkest (base) to lighter (surface). Creates natural depth."
+      },
+      "text": {
+        "primary": "neutral.50",
+        "secondary": "neutral.400",
+        "tertiary": "neutral.500",
+        "muted": "neutral.600",
+        "inverse": "dark.900",
+        "accent": "primary.400",
+        "description": "High contrast text on dark. Primary for headings, secondary for body, tertiary for captions."
+      },
+      "border": {
+        "default": "rgba(255, 255, 255, 0.1)",
+        "strong": "rgba(255, 255, 255, 0.2)",
+        "subtle": "rgba(255, 255, 255, 0.05)",
+        "accent": "rgba(57, 255, 20, 0.3)",
+        "description": "Semi-transparent white borders create the glassmorphic effect. Use accent border for highlighted elements."
+      },
+      "interactive": {
+        "default": "primary.neon",
+        "hover": "primary.electric",
+        "active": "primary.500",
+        "disabled": "neutral.600",
+        "description": "CTAs use the neon green. Hover brightens, active slightly dims."
+      }
+    },
+
+    "cssVariables": {
+      "description": "Map these to your CSS custom properties for consistency with your current setup.",
+      "light": {
+        "--background": "oklch(0.98 0.01 145)",
+        "--foreground": "oklch(0.15 0.02 145)",
+        "--card": "oklch(1 0 0)",
+        "--card-foreground": "oklch(0.15 0.02 145)",
+        "--primary": "oklch(0.72 0.19 150)",
+        "--primary-foreground": "oklch(0.15 0.02 145)",
+        "--secondary": "oklch(0.95 0.02 145)",
+        "--muted": "oklch(0.92 0.02 145)",
+        "--muted-foreground": "oklch(0.45 0.02 145)",
+        "--accent": "oklch(0.92 0.04 145)",
+        "--border": "oklch(0.88 0.02 145)",
+        "--ring": "oklch(0.72 0.19 150)"
+      },
+      "dark": {
+        "--background": "oklch(0.12 0.02 155)",
+        "--foreground": "oklch(0.98 0 0)",
+        "--card": "oklch(0.18 0.02 155)",
+        "--card-foreground": "oklch(0.98 0 0)",
+        "--primary": "oklch(0.85 0.25 145)",
+        "--primary-foreground": "oklch(0.12 0.02 155)",
+        "--secondary": "oklch(0.22 0.02 155)",
+        "--muted": "oklch(0.25 0.02 155)",
+        "--muted-foreground": "oklch(0.65 0.02 155)",
+        "--accent": "oklch(0.25 0.03 150)",
+        "--border": "oklch(1 0 0 / 10%)",
+        "--ring": "oklch(0.85 0.25 145)"
+      }
+    }
+  },
+
+  "typography": {
+    "description": "Clean, modern typography optimized for dark backgrounds. Geist provides excellent readability and a technical, musical feel.",
+
+    "fontFamily": {
+      "sans": "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "mono": "'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace",
+      "description": "Geist is the primary typeface—modern, technical, and highly legible on dark backgrounds."
+    },
+
+    "fontWeight": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "description": "Use medium/semibold more liberally on dark backgrounds for better legibility."
+    },
+
+    "scale": {
+      "xs": {
+        "size": "12px",
+        "lineHeight": "16px",
+        "usage": "Captions, helper text, badges"
+      },
+      "sm": {
+        "size": "14px",
+        "lineHeight": "20px",
+        "usage": "Secondary text, table cells, form labels"
+      },
+      "base": {
+        "size": "16px",
+        "lineHeight": "24px",
+        "usage": "Body text, paragraphs, inputs"
+      },
+      "lg": {
+        "size": "18px",
+        "lineHeight": "28px",
+        "usage": "Lead paragraphs, card titles"
+      },
+      "xl": {
+        "size": "20px",
+        "lineHeight": "28px",
+        "usage": "Section headings, modal titles"
+      },
+      "2xl": {
+        "size": "24px",
+        "lineHeight": "32px",
+        "usage": "Page section titles"
+      },
+      "3xl": { "size": "30px", "lineHeight": "36px", "usage": "Page titles" },
+      "4xl": { "size": "36px", "lineHeight": "40px", "usage": "Hero headings" },
+      "5xl": { "size": "48px", "lineHeight": "48px", "usage": "Display text" }
+    },
+
+    "styles": {
+      "heading1": {
+        "size": "3xl",
+        "weight": "semibold",
+        "color": "text.primary",
+        "letterSpacing": "-0.02em"
+      },
+      "heading2": {
+        "size": "2xl",
+        "weight": "semibold",
+        "color": "text.primary",
+        "letterSpacing": "-0.01em"
+      },
+      "heading3": {
+        "size": "xl",
+        "weight": "semibold",
+        "color": "text.primary"
+      },
+      "heading4": { "size": "lg", "weight": "medium", "color": "text.primary" },
+      "body": {
+        "size": "base",
+        "weight": "regular",
+        "color": "text.secondary"
+      },
+      "bodySmall": {
+        "size": "sm",
+        "weight": "regular",
+        "color": "text.secondary"
+      },
+      "label": { "size": "sm", "weight": "medium", "color": "text.primary" },
+      "caption": {
+        "size": "xs",
+        "weight": "regular",
+        "color": "text.tertiary"
+      },
+      "link": {
+        "size": "inherit",
+        "weight": "medium",
+        "color": "primary.400",
+        "hoverColor": "primary.neon"
+      },
+      "code": {
+        "family": "mono",
+        "size": "sm",
+        "background": "dark.700",
+        "padding": "2px 6px",
+        "borderRadius": "4px"
+      }
+    }
+  },
+
+  "spacing": {
+    "description": "8px grid system. Generous spacing creates breathing room in dark interfaces.",
+
+    "scale": {
+      "0": "0px",
+      "0.5": "2px",
+      "1": "4px",
+      "1.5": "6px",
+      "2": "8px",
+      "2.5": "10px",
+      "3": "12px",
+      "3.5": "14px",
+      "4": "16px",
+      "5": "20px",
+      "6": "24px",
+      "7": "28px",
+      "8": "32px",
+      "9": "36px",
+      "10": "40px",
+      "12": "48px",
+      "14": "56px",
+      "16": "64px",
+      "20": "80px",
+      "24": "96px"
+    },
+
+    "guidelines": {
+      "componentPadding": {
+        "tight": "8px",
+        "default": "16px",
+        "relaxed": "24px"
+      },
+      "stackSpacing": {
+        "tight": "8px",
+        "default": "16px",
+        "relaxed": "24px",
+        "loose": "32px"
+      },
+      "sectionSpacing": {
+        "default": "32px",
+        "relaxed": "48px",
+        "loose": "64px"
+      }
+    }
+  },
+
+  "borderRadius": {
+    "description": "Rounded corners create a friendly, modern feel. Slightly larger radii work well with dark themes.",
+
+    "scale": {
+      "none": "0px",
+      "sm": "4px",
+      "md": "6px",
+      "DEFAULT": "8px",
+      "lg": "10px",
+      "xl": "12px",
+      "2xl": "16px",
+      "3xl": "24px",
+      "full": "9999px"
+    },
+
+    "usage": {
+      "buttons": "8px (DEFAULT) or full for pill buttons",
+      "inputs": "8px (DEFAULT)",
+      "cards": "12px (xl)",
+      "modals": "16px (2xl)",
+      "badges": "full for pills, 4px for rectangular",
+      "avatars": "full"
+    }
+  },
+
+  "shadows": {
+    "description": "On dark backgrounds, traditional shadows are less visible. Use glow effects and border highlights instead.",
+
+    "scale": {
+      "xs": "0 1px 2px 0 rgba(0, 0, 0, 0.3)",
+      "sm": "0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4)",
+      "DEFAULT": "0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4)",
+      "md": "0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4)",
+      "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5)",
+      "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
+      "2xl": "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+      "inner": "inset 0 2px 4px 0 rgba(0, 0, 0, 0.3)",
+      "glow-sm": "0 0 10px rgba(57, 255, 20, 0.3)",
+      "glow": "0 0 20px rgba(57, 255, 20, 0.4)",
+      "glow-lg": "0 0 30px rgba(57, 255, 20, 0.5)",
+      "glass": "inset 0 1px 1px rgba(255, 255, 255, 0.1)"
+    },
+
+    "usage": {
+      "cards": "Use border highlights (rgba(255,255,255,0.1)) more than shadows",
+      "cardsHover": "Add subtle glow-sm for interactive cards",
+      "dropdowns": "lg shadow with glass inset",
+      "modals": "xl shadow with backdrop blur",
+      "primaryButtons": "glow-sm on hover for that neon effect",
+      "focusRing": "glow effect instead of traditional ring"
+    }
+  },
+
+  "effects": {
+    "description": "Special effects for the dark theme aesthetic.",
+
+    "glassmorphism": {
+      "background": "rgba(255, 255, 255, 0.05)",
+      "border": "1px solid rgba(255, 255, 255, 0.1)",
+      "backdropBlur": "12px",
+      "description": "Frosted glass effect for cards, modals, and overlays."
+    },
+
+    "neonGlow": {
+      "subtle": "0 0 10px rgba(57, 255, 20, 0.2)",
+      "medium": "0 0 20px rgba(57, 255, 20, 0.4)",
+      "intense": "0 0 30px rgba(57, 255, 20, 0.6), 0 0 60px rgba(57, 255, 20, 0.3)",
+      "description": "Neon glow effects for primary CTAs and highlighted elements."
+    },
+
+    "gradient": {
+      "primaryToTransparent": "linear-gradient(180deg, rgba(57, 255, 20, 0.15) 0%, transparent 100%)",
+      "darkFade": "linear-gradient(180deg, rgba(10, 15, 13, 0) 0%, rgba(10, 15, 13, 1) 100%)",
+      "accentOverlay": "linear-gradient(135deg, rgba(57, 255, 20, 0.1) 0%, transparent 50%)",
+      "description": "Gradients for backgrounds, overlays, and visual interest."
+    }
+  },
+
+  "components": {
+    "description": "Component-specific design guidelines optimized for dark theme with neon green accents.",
+
+    "button": {
+      "description": "Buttons are the primary interactive elements. The neon green primary button should command attention.",
+      "variants": {
+        "primary": {
+          "background": "primary.neon (#39FF14)",
+          "backgroundHover": "primary.electric (#00FF7F)",
+          "text": "dark.900",
+          "border": "none",
+          "shadow": "glow-sm on hover",
+          "fontWeight": "600",
+          "usage": "Primary CTAs—one per section maximum. The neon green draws immediate attention."
+        },
+        "secondary": {
+          "background": "dark.700",
+          "backgroundHover": "dark.600",
+          "text": "neutral.100",
+          "border": "1px solid rgba(255, 255, 255, 0.15)",
+          "shadow": "glass inset",
+          "usage": "Secondary actions, pairs well with primary buttons."
+        },
+        "outline": {
+          "background": "transparent",
+          "backgroundHover": "rgba(57, 255, 20, 0.1)",
+          "text": "primary.400",
+          "border": "1px solid primary.400",
+          "borderHover": "1px solid primary.neon",
+          "usage": "Tertiary actions, less prominent than secondary."
+        },
+        "ghost": {
+          "background": "transparent",
+          "backgroundHover": "rgba(255, 255, 255, 0.05)",
+          "text": "neutral.300",
+          "textHover": "neutral.100",
+          "usage": "Icon buttons, navigation items, subtle actions."
+        },
+        "destructive": {
+          "background": "error.DEFAULT",
+          "backgroundHover": "error.dark",
+          "text": "white",
+          "usage": "Delete, remove, destructive actions."
+        },
+        "link": {
+          "background": "transparent",
+          "text": "primary.400",
+          "textHover": "primary.neon",
+          "decoration": "underline on hover",
+          "usage": "Inline text links."
+        }
+      },
+      "sizes": {
+        "sm": { "height": "32px", "paddingX": "12px", "fontSize": "13px" },
+        "md": { "height": "40px", "paddingX": "16px", "fontSize": "14px" },
+        "lg": { "height": "48px", "paddingX": "20px", "fontSize": "16px" },
+        "xl": { "height": "56px", "paddingX": "24px", "fontSize": "18px" }
+      },
+      "states": {
+        "disabled": { "opacity": "0.4", "cursor": "not-allowed" },
+        "loading": { "opacity": "0.7", "showSpinner": true }
+      }
+    },
+
+    "input": {
+      "description": "Form inputs optimized for dark backgrounds with clear focus states.",
+      "default": {
+        "height": "40px",
+        "paddingX": "12px",
+        "background": "dark.800",
+        "border": "1px solid rgba(255, 255, 255, 0.1)",
+        "borderRadius": "8px",
+        "fontSize": "14px",
+        "color": "neutral.100",
+        "placeholder": "neutral.500"
+      },
+      "states": {
+        "hover": {
+          "border": "1px solid rgba(255, 255, 255, 0.2)"
+        },
+        "focus": {
+          "border": "1px solid primary.400",
+          "ring": "0 0 0 3px rgba(57, 255, 20, 0.15)",
+          "description": "Subtle green glow on focus"
+        },
+        "error": {
+          "border": "1px solid error.DEFAULT",
+          "ring": "0 0 0 3px rgba(239, 68, 68, 0.15)"
+        },
+        "disabled": {
+          "background": "dark.850",
+          "opacity": "0.5"
+        }
+      },
+      "withIcon": {
+        "iconColor": "neutral.500",
+        "iconColorFocus": "primary.400"
+      }
+    },
+
+    "card": {
+      "description": "Cards use glassmorphism for depth on dark backgrounds.",
+      "default": {
+        "background": "dark.800",
+        "border": "1px solid rgba(255, 255, 255, 0.08)",
+        "borderRadius": "12px",
+        "padding": "24px",
+        "shadow": "glass inset"
+      },
+      "hover": {
+        "border": "1px solid rgba(255, 255, 255, 0.15)",
+        "background": "dark.750",
+        "transition": "all 200ms ease"
+      },
+      "variants": {
+        "elevated": {
+          "background": "dark.700",
+          "border": "1px solid rgba(255, 255, 255, 0.1)",
+          "shadow": "lg"
+        },
+        "glass": {
+          "background": "rgba(255, 255, 255, 0.03)",
+          "backdropBlur": "12px",
+          "border": "1px solid rgba(255, 255, 255, 0.08)"
+        },
+        "accent": {
+          "background": "dark.800",
+          "borderLeft": "3px solid primary.neon",
+          "description": "Highlighted card with accent border"
+        }
+      }
+    },
+
+    "badge": {
+      "description": "Badges for status and categorization. Softer colors on dark backgrounds.",
+      "default": {
+        "height": "22px",
+        "paddingX": "8px",
+        "fontSize": "12px",
+        "fontWeight": "500",
+        "borderRadius": "full"
+      },
+      "variants": {
+        "default": { "background": "dark.600", "text": "neutral.200" },
+        "primary": {
+          "background": "rgba(57, 255, 20, 0.15)",
+          "text": "primary.400"
+        },
+        "success": {
+          "background": "rgba(34, 197, 94, 0.15)",
+          "text": "#86EFAC"
+        },
+        "warning": {
+          "background": "rgba(251, 191, 36, 0.15)",
+          "text": "#FDE68A"
+        },
+        "error": { "background": "rgba(239, 68, 68, 0.15)", "text": "#FCA5A5" },
+        "info": { "background": "rgba(59, 130, 246, 0.15)", "text": "#93C5FD" },
+        "outline": {
+          "background": "transparent",
+          "border": "1px solid rgba(255,255,255,0.2)",
+          "text": "neutral.300"
+        }
+      }
+    },
+
+    "avatar": {
+      "description": "User avatars with status indicators.",
+      "sizes": {
+        "xs": { "size": "24px", "fontSize": "10px" },
+        "sm": { "size": "32px", "fontSize": "12px" },
+        "md": { "size": "40px", "fontSize": "14px" },
+        "lg": { "size": "48px", "fontSize": "16px" },
+        "xl": { "size": "64px", "fontSize": "20px" }
+      },
+      "default": {
+        "borderRadius": "full",
+        "background": "dark.600",
+        "border": "2px solid dark.800",
+        "fallbackText": "neutral.400"
+      },
+      "withStatus": {
+        "online": "primary.neon",
+        "offline": "neutral.500",
+        "busy": "error.DEFAULT"
+      }
+    },
+
+    "navigation": {
+      "sidebar": {
+        "description": "Dark sidebar with subtle hover states",
+        "width": { "collapsed": "64px", "expanded": "280px" },
+        "background": "dark.850",
+        "borderRight": "1px solid rgba(255, 255, 255, 0.08)",
+        "itemHeight": "40px",
+        "itemRadius": "8px",
+        "activeItem": {
+          "background": "rgba(255, 255, 255, 0.08)",
+          "text": "neutral.50",
+          "borderLeft": "2px solid primary.neon"
+        },
+        "hoverItem": {
+          "background": "rgba(255, 255, 255, 0.05)"
+        },
+        "icon": {
+          "size": "20px",
+          "color": "neutral.500",
+          "activeColor": "primary.400"
+        }
+      },
+      "tabs": {
+        "height": "40px",
+        "fontSize": "14px",
+        "fontWeight": "500",
+        "color": "neutral.500",
+        "activeColor": "neutral.50",
+        "indicator": {
+          "height": "2px",
+          "color": "primary.neon",
+          "position": "bottom"
+        }
+      },
+      "breadcrumb": {
+        "fontSize": "14px",
+        "separator": "/",
+        "separatorColor": "neutral.600",
+        "linkColor": "neutral.500",
+        "currentColor": "neutral.200"
+      }
+    },
+
+    "modal": {
+      "description": "Modals/dialogs with backdrop blur, glassmorphism, and responsive design. Modals should feel premium with subtle decorative elements while remaining functional across all screen sizes.",
+
+      "overlay": {
+        "background": "rgba(0, 0, 0, 0.7)",
+        "backdropBlur": "8px"
+      },
+
+      "container": {
+        "background": "dark.800 with 90% opacity for glass effect",
+        "border": "1px solid rgba(255, 255, 255, 0.1)",
+        "borderRadius": "16px",
+        "shadow": "2xl",
+        "backdropBlur": "24px"
+      },
+
+      "sizing": {
+        "description": "Modal widths should be responsive with max-width constraints",
+        "small": {
+          "maxWidth": "400px",
+          "usage": "Confirmations, simple forms"
+        },
+        "default": {
+          "maxWidth": "448px (28rem)",
+          "usage": "Standard forms, create/edit dialogs"
+        },
+        "large": {
+          "maxWidth": "640px",
+          "usage": "Complex forms, multi-step wizards"
+        },
+        "fullscreen": { "usage": "Mobile-first experiences, media viewers" }
+      },
+
+      "responsive": {
+        "description": "Mobile-first approach for modal responsiveness",
+        "mobile": {
+          "width": "calc(100vw - 2rem)",
+          "note": "Use viewport width (vw) not percentage since dialog uses transform-based centering",
+          "padding": { "x": "16px", "y": "20px" },
+          "headerLayout": "Vertical stack (icon above text)",
+          "footerLayout": "Stack buttons vertically (primary on top in reverse order)",
+          "dateFormat": "Short format: 'EEE, MMM d, yyyy'",
+          "inputHeight": "40px",
+          "fontSize": {
+            "title": "18px",
+            "description": "12px",
+            "label": "12px",
+            "body": "14px"
+          }
+        },
+        "desktop": {
+          "width": "auto",
+          "maxWidth": "Based on modal size variant",
+          "margin": "auto",
+          "padding": { "x": "24px", "y": "24px" },
+          "headerLayout": "Horizontal (icon inline with text)",
+          "footerLayout": "Horizontal row, buttons right-aligned",
+          "dateFormat": "Full format: 'EEEE, MMMM d, yyyy'",
+          "inputHeight": "44px",
+          "fontSize": {
+            "title": "20px",
+            "description": "14px",
+            "label": "14px",
+            "body": "14px"
+          }
+        },
+        "breakpoint": "640px (sm)"
+      },
+
+      "decorativeElements": {
+        "description": "Subtle visual flourishes that add polish without distraction",
+        "headerGradient": {
+          "background": "linear-gradient to bottom from primary/8% via primary/4% to transparent",
+          "height": { "mobile": "96px", "desktop": "128px" }
+        },
+        "glowOrb": {
+          "position": "top-right area",
+          "size": { "mobile": "64px", "desktop": "80px" },
+          "background": "primary/10%",
+          "blur": "2xl (24px)",
+          "usage": "Adds depth and visual interest"
+        }
+      },
+
+      "header": {
+        "_note": "Modal headers should establish context with icon + title + description",
+        "iconBadge": {
+          "size": { "mobile": "40px", "desktop": "44px" },
+          "borderRadius": "12px",
+          "background": "primary/15%",
+          "ring": "1px solid primary/20%",
+          "iconSize": { "mobile": "16px", "desktop": "20px" },
+          "iconColor": "primary"
+        },
+        "title": {
+          "size": { "mobile": "18px", "desktop": "20px" },
+          "weight": "600 (semibold)",
+          "color": "foreground",
+          "letterSpacing": "-0.01em"
+        },
+        "descriptionText": {
+          "size": { "mobile": "12px", "desktop": "14px" },
+          "color": "muted-foreground",
+          "usage": "Brief context about what the modal does"
+        },
+        "padding": {
+          "mobile": "16px horizontal, 20px top, 8px bottom",
+          "desktop": "24px horizontal, 24px top, 8px bottom"
+        }
+      },
+
+      "body": {
+        "padding": {
+          "mobile": "16px horizontal, 20px bottom",
+          "desktop": "24px horizontal, 24px bottom"
+        },
+        "spacing": {
+          "mobile": "16px between fields",
+          "desktop": "20px between fields"
+        },
+        "textColor": "neutral.300"
+      },
+
+      "formFields": {
+        "label": {
+          "size": { "mobile": "12px", "desktop": "14px" },
+          "weight": "500 (medium)",
+          "color": "foreground/90%",
+          "marginBottom": { "mobile": "6px", "desktop": "8px" }
+        },
+        "input": {
+          "height": { "mobile": "40px", "desktop": "44px" },
+          "background": "background/50%",
+          "border": "1px solid white/10%",
+          "hoverBorder": "white/20%",
+          "focusBorder": "primary",
+          "focusRing": "1px primary",
+          "focusBackground": "background/80%"
+        },
+        "placeholder": {
+          "color": "muted-foreground/60%",
+          "usage": "Contextual examples like 'Sunday Morning Set'"
+        }
+      },
+
+      "footer": {
+        "padding": {
+          "mobile": "8px top (within body padding)",
+          "desktop": "8px top (within body padding)"
+        },
+        "buttonGap": {
+          "mobile": "8px",
+          "desktop": "12px"
+        },
+        "layout": {
+          "mobile": "flex-col-reverse (primary button on top visually)",
+          "desktop": "flex-row justify-end"
+        },
+        "buttons": {
+          "cancel": {
+            "variant": "ghost",
+            "height": { "mobile": "40px", "desktop": "36px" }
+          },
+          "primary": {
+            "variant": "default",
+            "minWidth": "100px",
+            "height": { "mobile": "40px", "desktop": "36px" }
+          }
+        }
+      },
+
+      "patterns": {
+        "createDialog": {
+          "icon": "SparklesIcon or relevant creation icon",
+          "title": "New [Entity]",
+          "description": "Create a [entity] for your next [context]",
+          "primaryButton": "Create [Entity]"
+        },
+        "editDialog": {
+          "icon": "Entity-specific icon (e.g., ListMusicIcon for setlists)",
+          "title": "Edit [Entity]",
+          "description": "Update your [entity] details",
+          "primaryButton": "Save Changes"
+        },
+        "confirmDialog": {
+          "icon": "AlertTriangleIcon for destructive, InfoIcon for info",
+          "title": "Action-focused title",
+          "description": "Clear explanation of consequences",
+          "primaryButton": "Confirm / Delete / Continue"
+        }
+      },
+
+      "accessibility": {
+        "focusTrap": "Required - focus should be trapped within modal",
+        "escapeClose": "Required - Escape key should close modal",
+        "ariaLabelledby": "Title element",
+        "ariaDescribedby": "Description element",
+        "touchTargets": "Minimum 44px for mobile buttons"
+      }
+    },
+
+    "dropdown": {
+      "description": "Floating menus with glass effect",
+      "menu": {
+        "background": "dark.750",
+        "border": "1px solid rgba(255, 255, 255, 0.1)",
+        "borderRadius": "10px",
+        "shadow": "lg",
+        "backdropBlur": "12px",
+        "paddingY": "4px"
+      },
+      "item": {
+        "height": "36px",
+        "paddingX": "12px",
+        "fontSize": "14px",
+        "color": "neutral.300",
+        "hoverBackground": "rgba(255, 255, 255, 0.05)",
+        "hoverColor": "neutral.100"
+      },
+      "divider": {
+        "height": "1px",
+        "background": "rgba(255, 255, 255, 0.08)",
+        "marginY": "4px"
+      }
+    },
+
+    "table": {
+      "description": "Data tables for dark interfaces",
+      "header": {
+        "background": "dark.850",
+        "fontSize": "12px",
+        "fontWeight": "600",
+        "color": "neutral.400",
+        "textTransform": "uppercase",
+        "letterSpacing": "0.05em",
+        "height": "44px"
+      },
+      "row": {
+        "height": "52px",
+        "borderBottom": "1px solid rgba(255, 255, 255, 0.05)",
+        "hoverBackground": "rgba(255, 255, 255, 0.02)"
+      },
+      "cell": {
+        "fontSize": "14px",
+        "color": "neutral.200"
+      }
+    },
+
+    "tooltip": {
+      "background": "dark.600",
+      "text": "neutral.100",
+      "fontSize": "12px",
+      "padding": "6px 10px",
+      "borderRadius": "6px",
+      "border": "1px solid rgba(255, 255, 255, 0.1)"
+    },
+
+    "skeleton": {
+      "background": "dark.700",
+      "shimmer": "linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)",
+      "borderRadius": "6px"
+    },
+
+    "fileUpload": {
+      "dropzone": {
+        "border": "2px dashed rgba(255, 255, 255, 0.15)",
+        "borderRadius": "12px",
+        "background": "dark.850",
+        "padding": "32px"
+      },
+      "dropzoneActive": {
+        "border": "2px dashed primary.400",
+        "background": "rgba(57, 255, 20, 0.05)"
+      },
+      "fileItem": {
+        "background": "dark.750",
+        "border": "1px solid rgba(255, 255, 255, 0.08)",
+        "borderRadius": "8px",
+        "progressColor": "primary.neon"
+      }
+    },
+
+    "sectionHeader": {
+      "description": "Section headers with gradient icon badges. Used for settings pages and feature sections to create visual hierarchy.",
+      "iconBadge": {
+        "size": "40px",
+        "borderRadius": "12px",
+        "background": "Gradient from color/20% to color/10%",
+        "ring": "1px solid color/30%",
+        "iconSize": "20px",
+        "colorVariants": {
+          "amber": "from-amber-500 to-orange-500, icon text-amber-400",
+          "blue": "from-blue-500 to-indigo-500, icon text-blue-400",
+          "primary": "from-primary to-primary, icon text-primary",
+          "purple": "from-purple-500 to-pink-500, icon text-purple-400"
+        }
+      },
+      "title": {
+        "size": "18px",
+        "weight": "600",
+        "letterSpacing": "-0.01em"
+      },
+      "description": {
+        "size": "14px",
+        "color": "muted-foreground"
+      }
+    },
+
+    "slotList": {
+      "description": "Numbered slot-based UI pattern for limited-item selection (e.g., 3 quick access songs). Shows empty slots that invite interaction.",
+      "emptySlot": {
+        "background": "rgba(255, 255, 255, 0.02)",
+        "border": "1px dashed rgba(255, 255, 255, 0.1)",
+        "borderRadius": "12px",
+        "padding": "16px",
+        "hoverBackground": "rgba(primary, 0.05)",
+        "hoverBorder": "1px dashed rgba(primary, 0.3)",
+        "numberBadge": {
+          "size": "40px",
+          "background": "rgba(255, 255, 255, 0.05)",
+          "hoverBackground": "rgba(primary, 0.1)",
+          "hoverRing": "2px solid rgba(primary, 0.3)"
+        }
+      },
+      "filledSlot": {
+        "background": "card/80%",
+        "border": "1px solid rgba(255, 255, 255, 0.1)",
+        "borderRadius": "12px",
+        "padding": "16px",
+        "numberBadge": {
+          "size": "40px",
+          "background": "rgba(primary, 0.1)",
+          "ring": "2px solid rgba(primary, 0.3)",
+          "textColor": "primary",
+          "fontWeight": "700"
+        }
+      },
+      "maxItems": "Typically 3-5 items"
+    },
+
+    "infoBanner": {
+      "description": "Contextual information banner inside cards. Explains features without being intrusive.",
+      "background": "rgba(255, 255, 255, 0.02)",
+      "borderBottom": "1px solid rgba(255, 255, 255, 0.05)",
+      "padding": "16px",
+      "icon": {
+        "size": "16px",
+        "color": "primary",
+        "marginTop": "2px"
+      },
+      "text": {
+        "size": "14px",
+        "color": "muted-foreground",
+        "lineHeight": "relaxed"
+      },
+      "highlightText": {
+        "color": "foreground",
+        "fontWeight": "500"
+      }
+    },
+
+    "cardFooterStats": {
+      "description": "Footer bar showing helper hints and usage statistics",
+      "background": "rgba(255, 255, 255, 0.02)",
+      "borderTop": "1px solid rgba(255, 255, 255, 0.05)",
+      "padding": "12px 16px",
+      "layout": "flex justify-between items-center",
+      "helperText": {
+        "size": "12px",
+        "color": "muted-foreground",
+        "iconSize": "14px"
+      },
+      "stats": {
+        "size": "12px",
+        "fontWeight": "500",
+        "color": "muted-foreground"
+      }
+    },
+
+    "draggableItem": {
+      "description": "Visual states for drag-and-drop sortable items",
+      "idle": {
+        "transition": "all 200ms ease"
+      },
+      "hover": {
+        "borderColor": "rgba(255, 255, 255, 0.2)",
+        "background": "card"
+      },
+      "dragging": {
+        "scale": "1.02",
+        "shadow": "0 10px 25px rgba(0, 0, 0, 0.2)",
+        "ring": "2px solid rgba(primary, 0.5)",
+        "zIndex": "50"
+      },
+      "dragHandle": {
+        "size": "32px",
+        "borderRadius": "8px",
+        "cursor": "grab",
+        "cursorActive": "grabbing",
+        "hoverBackground": "rgba(255, 255, 255, 0.05)"
+      }
+    }
+  },
+
+  "layout": {
+    "description": "Page structure optimized for the dark theme",
+
+    "grid": {
+      "columns": 12,
+      "gutter": "24px",
+      "maxWidth": "1280px"
+    },
+
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    },
+
+    "patterns": {
+      "sidebarLayout": {
+        "sidebar": {
+          "width": "280px",
+          "collapsedWidth": "64px",
+          "background": "dark.850"
+        },
+        "main": { "background": "dark.900", "padding": "24px 32px" }
+      },
+      "cardGrid": {
+        "columns": { "sm": 1, "md": 2, "lg": 3 },
+        "gap": "24px"
+      }
+    }
+  },
+
+  "animation": {
+    "description": "Smooth, subtle animations that enhance without distracting",
+
+    "duration": {
+      "fast": "100ms",
+      "normal": "200ms",
+      "slow": "300ms"
+    },
+
+    "easing": {
+      "default": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "in": "cubic-bezier(0.4, 0, 1, 1)",
+      "out": "cubic-bezier(0, 0, 0.2, 1)"
+    },
+
+    "effects": {
+      "buttonPress": "scale(0.98)",
+      "cardHover": "translateY(-2px)",
+      "glowPulse": "Subtle pulsing glow on primary elements",
+      "fadeIn": {
+        "from": "opacity: 0",
+        "to": "opacity: 1",
+        "duration": "200ms"
+      },
+      "dragLift": {
+        "scale": "1.02",
+        "shadow": "Elevated shadow",
+        "ring": "Primary ring highlight",
+        "description": "Applied when dragging sortable items"
+      }
+    }
+  },
+
+  "iconography": {
+    "sizes": {
+      "xs": "12px",
+      "sm": "16px",
+      "md": "20px",
+      "lg": "24px",
+      "xl": "32px"
+    },
+    "colors": {
+      "default": "neutral.400",
+      "muted": "neutral.500",
+      "primary": "primary.400",
+      "active": "primary.neon"
+    },
+    "style": {
+      "strokeWidth": "1.5px",
+      "library": "Lucide Icons"
+    }
+  },
+
+  "accessibility": {
+    "colorContrast": {
+      "minimum": "WCAG AA (4.5:1)",
+      "note": "Neon green (#39FF14) on dark.900 exceeds 7:1 ratio"
+    },
+    "focusIndicator": {
+      "style": "Glow ring effect",
+      "color": "rgba(57, 255, 20, 0.4)"
+    },
+    "touchTarget": {
+      "minimum": "44px × 44px"
+    }
+  }
+}

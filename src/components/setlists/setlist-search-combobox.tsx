@@ -94,7 +94,7 @@ export function SetlistSearchCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="max-w-60 justify-between"
+            className="w-full justify-between bg-card/50 backdrop-blur-sm hover:bg-card/80"
           >
             {selectedName || "Search setlists..."}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -159,7 +159,7 @@ export function SetlistSearchCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="max-w-60 justify-between"
+          className="w-full justify-between bg-card/50 backdrop-blur-sm hover:bg-card/80"
         >
           {value
             ? setlists.find((setlist) => setlist.id === value)?.name

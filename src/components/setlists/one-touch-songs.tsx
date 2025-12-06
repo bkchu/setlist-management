@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/command";
 import { KeyPickerContent, KeyOption } from "@/components/songs/key-picker";
 
-interface OneTouchSongsProps {
+interface QuickAccessSongsProps {
   onSongSelect?: (songId: string) => void;
   onSaveNotes?: (songId: string, notes: string) => void;
   className?: string;
@@ -34,7 +34,7 @@ export function OneTouchSongs({
   onSaveNotes,
   className,
   asFloatingButton = false,
-}: OneTouchSongsProps) {
+}: QuickAccessSongsProps) {
   const { settings } = useSettings();
   const { songs } = useSongs();
   const navigate = useNavigate();
@@ -45,8 +45,8 @@ export function OneTouchSongs({
   const [anchorSongId, setAnchorSongId] = useState<string | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // Get the actual song objects for the one-touch songs
-  const oneTouchSongs = settings.oneTouchSongs.songIds
+  // Get the actual song objects for the quick access songs
+  const quickAccessSongs = settings.oneTouchSongs.songIds
     .map((id) => songs.find((song) => song.id === id))
     .filter((song) => song !== undefined) as Song[];
 
@@ -91,7 +91,7 @@ export function OneTouchSongs({
     navigate,
   ]);
 
-  if (oneTouchSongs.length === 0) {
+  if (quickAccessSongs.length === 0) {
     return null;
   }
 
@@ -170,8 +170,8 @@ export function OneTouchSongs({
       <Command>
         <CommandList>
           <CommandEmpty>No favorites yet.</CommandEmpty>
-          <CommandGroup heading="One-Touch Songs">
-            {oneTouchSongs.map((song) => {
+          <CommandGroup heading="Quick Access Songs">
+            {quickAccessSongs.map((song) => {
               const { keys } = getKeysWithFiles(song);
               const hasMultipleKeys = keys.length > 1;
               return (
@@ -235,7 +235,7 @@ export function OneTouchSongs({
               <div className="relative">
                 <StarIcon className="h-5 w-5 fill-current" />
               </div>
-              <span className="sr-only">One-Touch Songs</span>
+              <span className="sr-only">Quick Access Songs</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent side="top" align="end" className="p-0">
@@ -264,7 +264,7 @@ export function OneTouchSongs({
         <div className="flex items-center justify-between p-2 bg-muted/50 cursor-pointer">
           <div className="flex items-center gap-2">
             <StarIcon className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">One-Touch Songs</span>
+            <span className="text-sm font-medium">Quick Access Songs</span>
           </div>
         </div>
 

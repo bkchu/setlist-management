@@ -7,41 +7,10 @@ import {
 } from "@/hooks/use-join-codes";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-type InviteStatus = "active" | "used" | "expired";
-
-const STATUS_LABELS: Record<InviteStatus, string> = {
-  active: "Active",
-  used: "Used",
-  expired: "Expired",
-};
-
-const STATUS_ORDER: InviteStatus[] = ["active", "used", "expired"];
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  DataList,
-  DataListItem,
-  DataListLabel,
-  DataListValue,
-} from "@/components/ui/data-list";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,16 +35,354 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   CopyIcon,
-  MoreHorizontal,
+  MoreHorizontalIcon,
   PlusIcon,
   Loader2Icon,
   LinkIcon,
   TrashIcon,
-  UsersIcon,
+  UserIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon,
+  MailIcon,
+  RefreshCwIcon,
+  SparklesIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type InviteStatus = "active" | "used" | "expired";
+
+const STATUS_LABELS: Record<InviteStatus, string> = {
+  active: "Active",
+  used: "Used",
+  expired: "Expired",
+};
+
+const STATUS_ORDER: InviteStatus[] = ["active", "used", "expired"];
+
+// Status badge styling based on design.json
+function StatusBadge({ status }: { status: InviteStatus }) {
+  const styles = {
+    active: "bg-primary/15 text-primary border-primary/20",
+    used: "bg-white/5 text-muted-foreground border-white/10",
+    expired: "bg-destructive/15 text-destructive border-destructive/20",
+  };
+
+  const icons = {
+    active: <CheckCircleIcon className="h-3 w-3" />,
+    used: <UserIcon className="h-3 w-3" />,
+    expired: <XCircleIcon className="h-3 w-3" />,
+  };
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        styles[status]
+      )}
+    >
+      {icons[status]}
+      {STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+// Stat card component
+function StatCard({
+  value,
+  label,
+  icon: Icon,
+  variant = "default",
+}: {
+  value: number;
+  label: string;
+  icon: React.ElementType;
+  variant?: "default" | "primary" | "muted";
+}) {
+  const variantStyles = {
+    default: "text-foreground",
+    primary: "text-primary",
+    muted: "text-muted-foreground",
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className={cn("text-2xl font-bold", variantStyles[variant])}>
+            {value}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">{label}</p>
+        </div>
+        <div className="rounded-lg bg-white/5 p-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Filter pill button
+function FilterPill({
+  label,
+  count,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+        isActive
+          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+          : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+      )}
+    >
+      {label}
+      <span
+        className={cn(
+          "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+          isActive ? "bg-primary/20" : "bg-white/10"
+        )}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+// Invite row for table
+function InviteTableRow({
+  code,
+  status,
+  onCopy,
+  onCopyCode,
+  onEmail,
+  onCopyMessage,
+  onRevoke,
+}: {
+  code: JoinCode;
+  status: InviteStatus;
+  onCopy: () => void;
+  onCopyCode: () => void;
+  onEmail: () => void;
+  onCopyMessage: () => void;
+  onRevoke: () => void;
+}) {
+  const now = new Date();
+  const expiresAt = new Date(code.expiresAt);
+  const msRemaining = expiresAt.getTime() - now.getTime();
+  const hoursRemaining = Math.max(0, Math.floor(msRemaining / (1000 * 60 * 60)));
+  const minutesRemaining = Math.max(
+    0,
+    Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60))
+  );
+
+  return (
+    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
+      <td className="py-4 px-4">
+        <span className="font-mono text-sm font-medium text-foreground">
+          {code.code}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <StatusBadge status={status} />
+      </td>
+      <td className="py-4 px-4">
+        {status === "active" ? (
+          <span className="flex items-center gap-1.5 text-sm text-foreground">
+            <ClockIcon className="h-3.5 w-3.5 text-primary" />
+            {hoursRemaining}h {minutesRemaining}m
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="py-4 px-4">
+        <span className="text-sm text-muted-foreground">
+          {format(new Date(code.createdAt), "MMM d, h:mm a")}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <span className="text-sm text-muted-foreground">
+          {format(expiresAt, "MMM d, h:mm a")}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        {code.usedBy ? (
+          <span className="flex items-center gap-1.5 text-sm">
+            <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            {code.usedBy}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="py-4 px-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontalIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onCopy} className="gap-2">
+              <CopyIcon className="h-4 w-4" />
+              Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onCopyCode} className="gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Copy code only
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEmail} className="gap-2">
+              <MailIcon className="h-4 w-4" />
+              Email invite
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onCopyMessage} className="gap-2">
+              <CopyIcon className="h-4 w-4" />
+              Copy message
+            </DropdownMenuItem>
+            {status === "active" && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="gap-2 text-destructive focus:text-destructive"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    Revoke
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Revoke this invite?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This link will stop working immediately. This can't be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onRevoke}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Revoke
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
+  );
+}
+
+// Mobile invite card
+function InviteMobileCard({
+  code,
+  status,
+  onCopy,
+  onCopyCode,
+  onRevoke,
+}: {
+  code: JoinCode;
+  status: InviteStatus;
+  onCopy: () => void;
+  onCopyCode: () => void;
+  onRevoke: () => void;
+}) {
+  const now = new Date();
+  const expiresAt = new Date(code.expiresAt);
+  const msRemaining = expiresAt.getTime() - now.getTime();
+  const hoursRemaining = Math.max(0, Math.floor(msRemaining / (1000 * 60 * 60)));
+  const minutesRemaining = Math.max(
+    0,
+    Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60))
+  );
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-card/50 p-4 space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <span className="font-mono text-base font-semibold text-foreground">
+            {code.code}
+          </span>
+          {status === "active" && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+              <ClockIcon className="h-3 w-3 text-primary" />
+              {hoursRemaining}h {minutesRemaining}m remaining
+            </p>
+          )}
+        </div>
+        <StatusBadge status={status} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <p className="text-muted-foreground">Expires</p>
+          <p className="text-foreground mt-0.5">
+            {format(expiresAt, "MMM d, h:mm a")}
+          </p>
+        </div>
+        {code.usedBy && (
+          <div>
+            <p className="text-muted-foreground">Used by</p>
+            <p className="text-foreground mt-0.5 flex items-center gap-1">
+              <UserIcon className="h-3 w-3" />
+              {code.usedBy}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <Button variant="outline" size="sm" onClick={onCopy} className="flex-1 gap-1.5">
+          <CopyIcon className="h-3.5 w-3.5" />
+          Copy link
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCopyCode}>
+          Code
+        </Button>
+        {status === "active" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                <TrashIcon className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Revoke this invite?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This link will stop working immediately. This can't be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onRevoke}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Revoke
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function JoinCodeManager() {
   const { user } = useAuth();
@@ -103,15 +410,16 @@ export function JoinCodeManager() {
       });
 
       setLatestInvite(newCode);
-      toast.success("Invite link generated successfully!");
-
-      // Auto-copy the URL to clipboard
       const joinUrl = getJoinUrl(newCode.code);
       await navigator.clipboard.writeText(joinUrl);
-      toast.success("Invite link copied to clipboard!");
+      toast.success("Invite created & copied!", {
+        description: "Share the link with your teammate",
+      });
     } catch (error) {
       console.error("Failed to generate invite link:", error);
-      toast.error("Failed to generate invite link");
+      toast.error("Couldn't create invite", {
+        description: "Please try again",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -119,20 +427,19 @@ export function JoinCodeManager() {
 
   const handleCopyUrl = async (code: string) => {
     try {
-      const url = getJoinUrl(code);
-      await navigator.clipboard.writeText(url);
-      toast.success("Invite link copied to clipboard!");
+      await navigator.clipboard.writeText(getJoinUrl(code));
+      toast.success("Link copied!");
     } catch {
-      toast.error("Failed to copy invite link");
+      toast.error("Couldn't copy link");
     }
   };
 
   const handleCopyCodeOnly = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success("Invite code copied!");
+      toast.success("Code copied!");
     } catch {
-      toast.error("Failed to copy invite code");
+      toast.error("Couldn't copy code");
     }
   };
 
@@ -140,59 +447,43 @@ export function JoinCodeManager() {
     try {
       const joinUrl = getJoinUrl(code);
       const expiryText = expiresAt
-        ? ` (single-use, expires at ${format(
-            new Date(expiresAt),
-            "MMM d, yyyy 'at' h:mm a"
-          )})`
+        ? ` (expires ${format(new Date(expiresAt), "MMM d 'at' h:mm a")})`
         : "";
-      const message = `Join our Setlify organization: ${joinUrl}${expiryText}`;
+      const message = `Join our Setlify team: ${joinUrl}${expiryText}`;
       await navigator.clipboard.writeText(message);
-      toast.success("Invite message copied!");
+      toast.success("Message copied!");
     } catch {
-      toast.error("Failed to copy message");
+      toast.error("Couldn't copy message");
     }
   };
 
   const handleComposeEmailInvite = (code: string, expiresAt: string) => {
-    try {
-      const joinUrl = getJoinUrl(code);
-      const subject = encodeURIComponent(`Join our Setlify organization`);
-      const expiryText = expiresAt
-        ? format(new Date(expiresAt), "MMM d, yyyy 'at' h:mm a")
-        : null;
-      const body = encodeURIComponent(
-        `Hi!\n\nUse this link to join our organization on Setlify:\n${joinUrl}\n\nThe link is single-use${
-          expiryText ? ` and expires at ${expiryText}` : ""
-        }.\n\nThanks!`
-      );
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    } catch {
-      toast.error("Failed to open email composer");
-    }
+    const joinUrl = getJoinUrl(code);
+    const subject = encodeURIComponent("Join our Setlify team");
+    const expiryText = expiresAt
+      ? format(new Date(expiresAt), "MMM d 'at' h:mm a")
+      : null;
+    const body = encodeURIComponent(
+      `Hi!\n\nJoin our worship team on Setlify:\n${joinUrl}\n\n${
+        expiryText ? `This link expires ${expiryText}.` : ""
+      }\n\nSee you there!`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleRevokeCode = async (codeId: string) => {
     try {
       await revokeJoinCode(codeId);
-    } catch (error) {
-      console.error("Failed to revoke invite link:", error);
-      toast.error("Failed to revoke invite link");
+      toast.success("Invite revoked");
+    } catch {
+      toast.error("Couldn't revoke invite");
     }
   };
 
-  const getCodeStatus = (code: (typeof joinCodes)[0]) => {
-    if (code.usedAt) {
-      return { status: "used", variant: "secondary" as const };
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(code.expiresAt);
-
-    if (expiresAt < now) {
-      return { status: "expired", variant: "destructive" as const };
-    }
-
-    return { status: "active", variant: "default" as const };
+  const getCodeStatus = (code: JoinCode): InviteStatus => {
+    if (code.usedAt) return "used";
+    if (new Date(code.expiresAt) < new Date()) return "expired";
+    return "active";
   };
 
   const statusBuckets = useMemo(() => {
@@ -201,12 +492,9 @@ export function JoinCodeManager() {
       used: [],
       expired: [],
     };
-
     joinCodes.forEach((code) => {
-      const { status } = getCodeStatus(code);
-      buckets[status].push(code);
+      buckets[getCodeStatus(code)].push(code);
     });
-
     return buckets;
   }, [joinCodes]);
 
@@ -216,42 +504,19 @@ export function JoinCodeManager() {
     expired: statusBuckets.expired.length,
   };
 
-  const groupedJoinCodes = useMemo(() => {
+  const filteredCodes = useMemo(() => {
     if (statusFilter === "all") {
-      return STATUS_ORDER.map((status) => ({
-        status,
-        codes: statusBuckets[status],
-      })).filter((group) => group.codes.length > 0);
+      return STATUS_ORDER.flatMap((status) =>
+        statusBuckets[status].map((code) => ({ code, status }))
+      );
     }
-
-    const status = statusFilter as InviteStatus;
-    return statusBuckets[status].length
-      ? [{ status, codes: statusBuckets[status] }]
-      : [];
+    return statusBuckets[statusFilter].map((code) => ({
+      code,
+      status: statusFilter,
+    }));
   }, [statusBuckets, statusFilter]);
 
-  const activeCodesCount = statusCounts.active;
-  const filterOptions: Array<{
-    value: InviteStatus | "all";
-    label: string;
-    count: number;
-  }> = [
-    { value: "all", label: "All", count: joinCodes.length },
-    {
-      value: "active",
-      label: STATUS_LABELS.active,
-      count: statusCounts.active,
-    },
-    { value: "used", label: STATUS_LABELS.used, count: statusCounts.used },
-    {
-      value: "expired",
-      label: STATUS_LABELS.expired,
-      count: statusCounts.expired,
-    },
-  ];
-  const hasFilteredResults = groupedJoinCodes.length > 0;
-
-  // Check if user is owner (evaluated after hooks to keep consistent order)
+  // Check if user is owner
   const isOwner =
     user?.organizations.find(
       (org) => org.organizationId === user.organizationId
@@ -259,589 +524,249 @@ export function JoinCodeManager() {
 
   if (!isOwner) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Invite Links
-          </CardTitle>
-          <CardDescription>
-            Only organization owners can create or share invite links
-            (single-use join codes). Ask an owner to generate one if you need to
-            invite someone.
-          </CardDescription>
-        </CardHeader>
+      <Card className="border-white/10 bg-card/50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-xl bg-white/5 p-3">
+              <LinkIcon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Invite Links</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Only organization owners can create invite links. Ask an owner if you need to invite someone.
+              </p>
+            </div>
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Invite Link Management
-          </CardTitle>
-          <CardDescription>
-            Generate and manage single-use invite links for your organization
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {activeCodesCount}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Active Invites
-              </div>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">{statusCounts.used}</div>
-              <div className="text-sm text-muted-foreground">Used Invites</div>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold">{joinCodes.length}</div>
-              <div className="text-sm text-muted-foreground">Total Invites</div>
-            </div>
+      {/* Create Invite Card */}
+      <Card className="border-white/10 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <CardContent className="p-6">
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <StatCard
+              value={statusCounts.active}
+              label="Active"
+              icon={CheckCircleIcon}
+              variant="primary"
+            />
+            <StatCard
+              value={statusCounts.used}
+              label="Used"
+              icon={UserIcon}
+              variant="default"
+            />
+            <StatCard
+              value={joinCodes.length}
+              label="Total"
+              icon={LinkIcon}
+              variant="muted"
+            />
           </div>
 
-          {/* Guided invite creation */}
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Step 1 · Select expiration
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 sm:max-w-sm">
-                  <Label htmlFor="expiration">Expires in</Label>
-                  <Select
-                    value={expiresInHours}
-                    onValueChange={setExpiresInHours}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select expiration time" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="6">6 hours</SelectItem>
-                      <SelectItem value="24">24 hours (default)</SelectItem>
-                      <SelectItem value="72">3 days</SelectItem>
-                      <SelectItem value="168">1 week</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Create Section */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 sm:max-w-[200px]">
+                <Label htmlFor="expiration" className="text-xs text-muted-foreground mb-1.5 block">
+                  Expires in
+                </Label>
+                <Select value={expiresInHours} onValueChange={setExpiresInHours}>
+                  <SelectTrigger id="expiration" className="bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 hour</SelectItem>
+                    <SelectItem value="6">6 hours</SelectItem>
+                    <SelectItem value="24">24 hours</SelectItem>
+                    <SelectItem value="72">3 days</SelectItem>
+                    <SelectItem value="168">1 week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={handleGenerateCode}
+                  disabled={isGenerating}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <PlusIcon className="h-4 w-4" />
+                      Create Invite
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Step 2 · Create and share
-              </p>
-              <Button
-                onClick={handleGenerateCode}
-                disabled={isGenerating}
-                className="w-full sm:w-auto gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2Icon className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon className="h-4 w-4" />
-                    Create Invite Link
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Share the invite link with teammates. Each link is a single-use
-              join code that expires after the selected time.
-            </p>
-
+            {/* Latest invite success banner */}
             {latestInvite && (
-              <Alert className="border-primary/40 bg-primary/5">
-                <AlertTitle className="flex items-center gap-2 text-base">
-                  <LinkIcon className="h-4 w-4 text-primary" />
-                  Invite link ready
-                </AlertTitle>
-                <AlertDescription className="space-y-3">
-                  <div className="text-sm text-muted-foreground">
-                    Share this single-use link now
-                    {latestInvite.expiresAt
-                      ? ` — expires ${format(
-                          new Date(latestInvite.expiresAt),
-                          "MMM d, yyyy 'at' h:mm a"
-                        )}`
-                      : "."}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <SparklesIcon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1 text-sm font-mono">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground">Invite ready!</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Expires {format(new Date(latestInvite.expiresAt), "MMM d 'at' h:mm a")}
+                    </p>
+                  </div>
+                  <code className="hidden sm:block rounded-md bg-background/50 px-2 py-1 text-xs font-mono text-foreground">
                     {latestInvite.code}
-                  </div>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => handleCopyUrl(latestInvite.code)}
-                    >
-                      <CopyIcon className="h-4 w-4" />
-                      Copy invite link
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopyCodeOnly(latestInvite.code)}
-                    >
-                      Copy code
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        handleCopyInviteMessage(
-                          latestInvite.code,
-                          latestInvite.expiresAt
-                        )
-                      }
-                    >
-                      Copy message
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        handleComposeEmailInvite(
-                          latestInvite.code,
-                          latestInvite.expiresAt
-                        )
-                      }
-                    >
-                      Compose email
-                    </Button>
-                  </div>
-                </AlertDescription>
-              </Alert>
+                  </code>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleCopyUrl(latestInvite.code)}
+                    className="gap-1.5"
+                  >
+                    <CopyIcon className="h-3.5 w-3.5" />
+                    Copy link
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleComposeEmailInvite(latestInvite.code, latestInvite.expiresAt)}
+                    className="gap-1.5"
+                  >
+                    <MailIcon className="h-3.5 w-3.5" />
+                    Email
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleCopyCodeOnly(latestInvite.code)}
+                  >
+                    Copy code
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Invite Links Table */}
-      <Card>
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle>Invite Links</CardTitle>
-            <CardDescription>
-              Manage every invite link (join code) for your organization
-            </CardDescription>
-          </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <ToggleGroup
-              type="single"
-              value={statusFilter}
-              onValueChange={(value) => {
-                if (!value) return;
-                setStatusFilter(value as InviteStatus | "all");
-              }}
-              className="flex flex-wrap gap-2"
-            >
-              {filterOptions.map((option) => (
-                <ToggleGroupItem
+      {/* Invite Links Table Card */}
+      <Card className="border-white/10 bg-card/50 backdrop-blur-xl">
+        <CardContent className="p-0">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-white/5">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { value: "all" as const, label: "All", count: joinCodes.length },
+                { value: "active" as const, label: "Active", count: statusCounts.active },
+                { value: "used" as const, label: "Used", count: statusCounts.used },
+                { value: "expired" as const, label: "Expired", count: statusCounts.expired },
+              ].map((option) => (
+                <FilterPill
                   key={option.value}
-                  value={option.value}
-                  aria-label={`Filter ${option.label.toLowerCase()} invites`}
-                  className="gap-2 rounded-full px-3 py-1 text-xs font-medium"
-                >
-                  <span>{option.label}</span>
-                  <Badge
-                    variant="secondary"
-                    className="rounded-full px-2 text-[0.65rem] font-semibold"
-                  >
-                    {option.count}
-                  </Badge>
-                </ToggleGroupItem>
+                  label={option.label}
+                  count={option.count}
+                  isActive={statusFilter === option.value}
+                  onClick={() => setStatusFilter(option.value)}
+                />
               ))}
-            </ToggleGroup>
-            <Button variant="outline" size="sm" onClick={refreshJoinCodes}>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshJoinCodes}
+              className="gap-1.5 text-muted-foreground"
+            >
+              <RefreshCwIcon className="h-3.5 w-3.5" />
               Refresh
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+
+          {/* Content */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2Icon className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading invite links...</span>
+            <div className="flex items-center justify-center py-12">
+              <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : joinCodes.length === 0 ? (
-            <div className="text-center py-8">
-              <LinkIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <h3 className="font-medium mb-1">No invite links yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create your first invite link to bring teammates into your org
+            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+              <div className="rounded-xl bg-white/5 p-4 mb-4">
+                <LinkIcon className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-foreground">No invites yet</h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                Create your first invite link to bring teammates into your organization.
               </p>
             </div>
-          ) : !hasFilteredResults ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              No invite links match this filter.
+          ) : filteredCodes.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              No {statusFilter} invites found.
             </div>
           ) : (
             <>
-              {/* Mobile stacked list */}
-              <div className="md:hidden space-y-5">
-                {groupedJoinCodes.map(({ status, codes }) => (
-                  <div key={status} className="space-y-3">
-                    {statusFilter === "all" && (
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {STATUS_LABELS[status]}
-                      </p>
-                    )}
-                    {codes.map((code) => {
-                      const { status: codeStatus, variant } =
-                        getCodeStatus(code);
-                      const now = new Date();
-                      const expiresAt = new Date(code.expiresAt);
-                      const msRemaining = expiresAt.getTime() - now.getTime();
-                      const hoursRemaining = Math.max(
-                        0,
-                        Math.floor(msRemaining / (1000 * 60 * 60))
-                      );
-                      const minutesRemaining = Math.max(
-                        0,
-                        Math.floor(
-                          (msRemaining % (1000 * 60 * 60)) / (1000 * 60)
-                        )
-                      );
-
-                      return (
-                        <div
-                          key={code.id}
-                          className="rounded-lg border p-4 space-y-3"
-                          aria-label={`Invite link ${code.code}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-mono font-semibold text-base">
-                              {code.code}
-                            </div>
-                            <Badge variant={variant} className="capitalize">
-                              {codeStatus}
-                            </Badge>
-                          </div>
-                          <DataList className="space-y-2" size="sm">
-                            <DataListItem className="justify-between">
-                              <DataListLabel>Time Remaining</DataListLabel>
-                              <DataListValue>
-                                {codeStatus === "active" ? (
-                                  <span>
-                                    {hoursRemaining}h {minutesRemaining}m
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </DataListValue>
-                            </DataListItem>
-                            <DataListItem className="justify-between">
-                              <DataListLabel>Expires</DataListLabel>
-                              <DataListValue>
-                                {format(
-                                  new Date(code.expiresAt),
-                                  "MMM d, yyyy 'at' h:mm a"
-                                )}
-                              </DataListValue>
-                            </DataListItem>
-                            <DataListItem className="justify-between">
-                              <DataListLabel>Used By</DataListLabel>
-                              <DataListValue>
-                                {code.usedBy ? (
-                                  <span className="inline-flex items-center gap-1">
-                                    <UsersIcon className="h-3 w-3" />
-                                    {code.usedBy}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </DataListValue>
-                            </DataListItem>
-                            <DataListItem className="justify-between">
-                              <DataListLabel>Used At</DataListLabel>
-                              <DataListValue>
-                                {code.usedAt ? (
-                                  format(new Date(code.usedAt), "MMM d, yyyy")
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </DataListValue>
-                            </DataListItem>
-                          </DataList>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCopyUrl(code.code)}
-                            >
-                              Copy Invite Link
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCopyCodeOnly(code.code)}
-                            >
-                              Copy Invite Code
-                            </Button>
-                            {codeStatus === "active" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={(e) => e.preventDefault()}
-                                  >
-                                    Revoke
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Revoke Invite Link
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to revoke this
-                                      invite link? This action cannot be undone
-                                      and the code will no longer work.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleRevokeCode(code.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Revoke Link
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/[0.02]">
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Code
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Time Left
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Created
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Expires
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Used By
+                      </th>
+                      <th className="py-3 px-4 w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCodes.map(({ code, status }) => (
+                      <InviteTableRow
+                        key={code.id}
+                        code={code}
+                        status={status}
+                        onCopy={() => handleCopyUrl(code.code)}
+                        onCopyCode={() => handleCopyCodeOnly(code.code)}
+                        onEmail={() => handleComposeEmailInvite(code.code, code.expiresAt)}
+                        onCopyMessage={() => handleCopyInviteMessage(code.code, code.expiresAt)}
+                        onRevoke={() => handleRevokeCode(code.id)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              {/* Desktop table */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Time Remaining</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Expires</TableHead>
-                      <TableHead>Used By</TableHead>
-                      <TableHead>Used At</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {groupedJoinCodes.map(({ status, codes }) => (
-                      <Fragment key={status}>
-                        {statusFilter === "all" && (
-                          <TableRow>
-                            <TableCell
-                              colSpan={8}
-                              className="bg-muted/50 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                            >
-                              {STATUS_LABELS[status]}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {codes.map((code) => {
-                          const { status: codeStatus, variant } =
-                            getCodeStatus(code);
-                          const now = new Date();
-                          const expiresAt = new Date(code.expiresAt);
-                          const msRemaining =
-                            expiresAt.getTime() - now.getTime();
-                          const hoursRemaining = Math.max(
-                            0,
-                            Math.floor(msRemaining / (1000 * 60 * 60))
-                          );
-                          const minutesRemaining = Math.max(
-                            0,
-                            Math.floor(
-                              (msRemaining % (1000 * 60 * 60)) / (1000 * 60)
-                            )
-                          );
-
-                          return (
-                            <TableRow key={code.id}>
-                              <TableCell className="font-mono font-medium">
-                                {code.code}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={variant} className="capitalize">
-                                  {codeStatus}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {codeStatus === "active" ? (
-                                  <span className="text-sm">
-                                    {hoursRemaining}h {minutesRemaining}m
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {format(
-                                  new Date(code.createdAt),
-                                  "MMM d, yyyy 'at' h:mm a"
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {format(
-                                  new Date(code.expiresAt),
-                                  "MMM d, yyyy 'at' h:mm a"
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {code.usedBy ? (
-                                  <div className="flex items-center gap-1">
-                                    <UsersIcon className="h-3 w-3" />
-                                    <span className="text-sm">
-                                      {code.usedBy}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {code.usedAt ? (
-                                  format(new Date(code.usedAt), "MMM d, yyyy")
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => handleCopyUrl(code.code)}
-                                      className="gap-2"
-                                    >
-                                      <CopyIcon className="h-4 w-4" />
-                                      Copy Invite Link
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleComposeEmailInvite(
-                                          code.code,
-                                          code.expiresAt
-                                        )
-                                      }
-                                      className="gap-2"
-                                    >
-                                      <LinkIcon className="h-4 w-4" />
-                                      Compose Email Invite
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleCopyCodeOnly(code.code)
-                                      }
-                                      className="gap-2"
-                                    >
-                                      <CopyIcon className="h-4 w-4" />
-                                      Copy Invite Code
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleCopyInviteMessage(
-                                          code.code,
-                                          code.expiresAt
-                                        )
-                                      }
-                                      className="gap-2"
-                                    >
-                                      <CopyIcon className="h-4 w-4" />
-                                      Copy Invite Message
-                                    </DropdownMenuItem>
-                                    {codeStatus === "active" && (
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem
-                                            onSelect={(e) => e.preventDefault()}
-                                            className="gap-2 text-destructive focus:text-destructive"
-                                          >
-                                            <TrashIcon className="h-4 w-4" />
-                                            Revoke Link
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                              Revoke Invite Link
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to revoke
-                                              this invite link? This action
-                                              cannot be undone and the code will
-                                              no longer work.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>
-                                              Cancel
-                                            </AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() =>
-                                                handleRevokeCode(code.id)
-                                              }
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Revoke Link
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
+              {/* Mobile Cards */}
+              <div className="md:hidden p-4 space-y-3">
+                {filteredCodes.map(({ code, status }) => (
+                  <InviteMobileCard
+                    key={code.id}
+                    code={code}
+                    status={status}
+                    onCopy={() => handleCopyUrl(code.code)}
+                    onCopyCode={() => handleCopyCodeOnly(code.code)}
+                    onRevoke={() => handleRevokeCode(code.id)}
+                  />
+                ))}
               </div>
             </>
           )}

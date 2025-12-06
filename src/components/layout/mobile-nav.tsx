@@ -44,7 +44,7 @@ export function MobileNav() {
           to={item.href}
           className={cn(
             "group relative flex flex-col items-center justify-center gap-0.5 px-4 py-2 transition-all duration-300",
-            isActive ? "text-white" : "text-white/50 hover:text-white/80"
+            isActive ? "text-foreground" : "text-white/50 hover:text-white/80"
           )}
         >
           {/* Active indicator pill */}
@@ -52,7 +52,7 @@ export function MobileNav() {
             className={cn(
               "absolute inset-0 rounded-full transition-all duration-300",
               isActive
-                ? "bg-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
+                ? "border border-primary/30 bg-primary/15 shadow-[0_0_16px_rgba(156,219,176,0.25)]"
                 : "bg-transparent group-hover:bg-white/5"
             )}
           />

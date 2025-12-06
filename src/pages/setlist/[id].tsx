@@ -548,13 +548,13 @@ export default function SetlistPage() {
         onSubmit={handleEditSetlist}
       />
 
-      <div className="flex-1 space-y-8 overflow-auto p-4 md:p-8">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div className="flex-1 space-y-8 overflow-auto bg-background/90 p-4 md:p-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <Breadcrumb items={breadcrumbItems} />
         </div>
 
         {/* Minimal setlist summary */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold tracking-tight truncate">
               {setlist.name}
@@ -580,7 +580,7 @@ export default function SetlistPage() {
           </Button>
         </div>
 
-        <Card className="!mt-4">
+        <Card className="!mt-4 border border-white/10 bg-card/80 shadow-glass">
           <CardContent className="p-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">

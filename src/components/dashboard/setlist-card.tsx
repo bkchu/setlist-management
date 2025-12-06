@@ -36,20 +36,20 @@ function SetlistItem({
       to={`/setlist/${setlist.id}`}
       className={clsx(
         "group relative flex items-center justify-between gap-4 rounded-lg border px-3 py-2.5 transition-all duration-200",
-        "hover:shadow-sm hover:-translate-y-0.5",
+        "hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5 hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]",
         needsAttention
-          ? "border-red-500/20 bg-red-500/5 hover:border-red-500/30 hover:bg-red-500/10 dark:border-red-500/10 dark:bg-red-500/5 dark:hover:border-red-500/20 dark:hover:bg-red-500/10"
-          : "border-border/50 bg-background/50 hover:border-border hover:bg-accent/50"
+          ? "border-destructive/30 bg-destructive/5 hover:border-destructive/50 hover:bg-destructive/10"
+          : "border-transparent bg-transparent hover:border-white/10"
       )}
       aria-label={`Go to setlist ${setlist.name}`}
     >
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2">
-          <div className="font-semibold text-sm leading-none truncate tracking-tight">
+          <div className="font-semibold text-sm leading-none truncate tracking-tight text-foreground group-hover:text-primary transition-colors">
             {setlist.name}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 leading-none">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-muted-foreground/80 leading-none transition-colors">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 16 16"
@@ -63,21 +63,19 @@ function SetlistItem({
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         <Badge
-          variant={needsAttention ? "outline" : "secondary"}
+          variant={needsAttention ? "destructive" : "secondary"}
           className={clsx(
-            "text-[11px] font-semibold tracking-wide px-2 py-0.5",
-            needsAttention
-              ? "border-red-500/40 bg-red-500/10 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
-              : "border-transparent"
+            "px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-colors",
+            !needsAttention && "bg-white/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
           )}
         >
           {songCount === 0
-            ? "EMPTY"
-            : `${songCount} ${songCount === 1 ? "SONG" : "SONGS"}`}
+            ? "Empty"
+            : `${songCount} ${songCount === 1 ? "Song" : "Songs"}`}
         </Badge>
-        <ChevronRight className="w-4 h-4 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+        <ChevronRight className="w-4 h-4 text-muted-foreground/30 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
     </Link>
   );
@@ -98,45 +96,49 @@ export function SetlistCard({
   const displayedSetlists = maxItems ? setlists.slice(0, maxItems) : setlists;
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-3 border-b bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Icon
-            className={clsx(
-              "h-4 w-4 shrink-0",
-              showAttentionStyle
-                ? "text-red-500 dark:text-red-400"
-                : "text-muted-foreground"
-            )}
-          />
-          <CardTitle className="text-sm font-semibold tracking-tight">
+    <Card className="overflow-hidden border-white/10 bg-card/50 shadow-glass backdrop-blur-xl">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-white/5 bg-white/5 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className={clsx(
+            "flex h-8 w-8 items-center justify-center rounded-lg border bg-background/50 shadow-sm backdrop-blur-sm",
+            showAttentionStyle
+             ? "border-destructive/20 text-destructive"
+             : "border-white/10 text-primary"
+          )}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
             {title}
           </CardTitle>
         </div>
         {displayedSetlists.length > 0 && (
-          <div className="text-xs font-medium text-muted-foreground/60 tabular-nums">
+          <div className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             {displayedSetlists.length}
           </div>
         )}
       </CardHeader>
-      <CardContent className="p-3">
+      <CardContent className="p-4">
         {displayedSetlists.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="rounded-full bg-muted/50 p-3 mb-3">
-              <Icon className="h-5 w-5 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-3 rounded-full border border-white/10 bg-white/5 p-4 shadow-inner">
+              <Icon className="h-6 w-6 text-muted-foreground/40" />
             </div>
-            <div className="text-sm font-medium text-foreground/80 mb-3">
+            <p className="mb-4 text-sm font-medium text-muted-foreground">
               {emptyMessage}
-            </div>
+            </p>
             {emptyActionLabel && onEmptyAction && (
-              <Button onClick={onEmptyAction} size="sm" className="gap-2">
+              <Button 
+                onClick={onEmptyAction} 
+                size="sm" 
+                className="gap-2 shadow-glow-sm transition-transform hover:scale-105"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 {emptyActionLabel}
               </Button>
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {displayedSetlists.map((setlist) => (
               <SetlistItem
                 key={setlist.id}
@@ -145,14 +147,16 @@ export function SetlistCard({
               />
             ))}
             {showViewAll && setlists.length > displayedSetlists.length && (
-              <Link
-                to={viewAllLink}
-                className="group flex items-center justify-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors pt-2"
-                aria-label="View all setlists"
-              >
-                <span>View All ({setlists.length})</span>
-                <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+              <div className="pt-2 text-center">
+                <Link
+                  to={viewAllLink}
+                  className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="View all setlists"
+                >
+                  <span>View All ({setlists.length})</span>
+                  <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
             )}
           </div>
         )}

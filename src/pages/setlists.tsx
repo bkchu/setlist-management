@@ -7,6 +7,7 @@ import { useGetSetlistsByOrganization } from "@/api/setlists/list";
 import { useCreateSetlist } from "@/api/setlists/post";
 import { useUpdateSetlist } from "@/api/setlists/put";
 import { useDeleteSetlist } from "@/api/setlists/delete";
+import { AppLayout } from "@/components/layout/app-layout";
 
 export default function Setlists() {
   const { user } = useAuth();
@@ -70,13 +71,13 @@ export default function Setlists() {
   };
 
   return (
-    <main className="flex-1 overflow-auto p-4 md:p-6">
+    <AppLayout title="Setlists" subtitle="Manage your worship sets">
       <SetlistList
         setlists={setlists}
         onAddSetlist={handleAddSetlist}
         onEditSetlist={handleEditSetlist}
         onDeleteSetlist={handleDeleteSetlist}
       />
-    </main>
+    </AppLayout>
   );
 }

@@ -22,7 +22,9 @@ export function AppLayout({
         {headerChildren}
       </Header>
 
-      <main className="flex-1 px-4 py-4">{children}</main>
+      <main className="flex-1 bg-background/90 px-4 py-6 sm:px-6">
+        {children}
+      </main>
     </>
   );
 }
