@@ -148,140 +148,130 @@ export default function Dashboard() {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-8">
-        {/* Hero Section with Glassmorphism */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-card/50 to-background/50 p-6 shadow-glass backdrop-blur-xl md:p-8">
-          {/* Ambient Background Glow */}
-          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+        {/* Header Section */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+              Welcome back, {user?.name?.split(" ")[0] || "User"}
+            </h2>
+            <p className="text-muted-foreground">
+              Here's what's happening with your worship team.
+            </p>
+          </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-                Welcome back, {user?.name?.split(" ")[0] || "User"}
-              </h2>
-              <p className="text-muted-foreground">
-                Here's what's happening with your worship team.
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={() => setShowSetlistForm(true)}
+              size="lg"
+              className="gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              Create Setlist
+            </Button>
+            <Button
+              onClick={() => setShowSongForm(true)}
+              variant="secondary"
+              size="lg"
+              className="gap-2"
+            >
+              <MusicIcon className="h-5 w-5" />
+              Add Song
+            </Button>
+          </div>
+        </div>
+
+        {/* Next Up Featured Card */}
+        {nextSetlist ? (
+          <Link
+            to={`/setlist/${nextSetlist.id}`}
+            className="group flex items-center gap-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 transition-all duration-300 hover:border-primary/40 hover:from-primary/15 hover:via-primary/10 sm:p-5"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  Next Up
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="bg-white/10 px-1.5 py-0 text-[10px] font-medium"
+                >
+                  {nextSetlist.songs.length}{" "}
+                  {nextSetlist.songs.length === 1 ? "song" : "songs"}
+                </Badge>
+              </div>
+              <h3 className="mt-1 truncate text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                {nextSetlist.name}
+              </h3>
+              <div className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span>{format(new Date(nextSetlist.date), "EEEE, MMM d")}</span>
+              </div>
+            </div>
+
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/5 transition-all duration-300 group-hover:bg-primary/20">
+              <ChevronRightIcon className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 sm:p-5">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/5">
+              <CalendarIcon className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                No upcoming setlists
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground/60">
+                Create a setlist to see it here
               </p>
             </div>
-
-            {/* Quick Actions Toolbar */}
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => setShowSetlistForm(true)}
-                size="lg"
-                className="gap-2 shadow-glow-sm transition-all hover:scale-105"
-              >
-                <Plus className="h-5 w-5" />
-                Create Setlist
-              </Button>
-              <Button
-                onClick={() => setShowSongForm(true)}
-                variant="secondary"
-                size="lg"
-                className="gap-2 transition-all hover:bg-white/10"
-              >
-                <MusicIcon className="h-5 w-5" />
-                Add Song
-              </Button>
-            </div>
-          </div>
-
-          {/* Next Up Featured Card */}
-          {nextSetlist ? (
-            <Link
-              to={`/setlist/${nextSetlist.id}`}
-              className="group mt-8 flex items-center gap-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 transition-all duration-300 hover:border-primary/40 hover:from-primary/15 hover:via-primary/10 sm:p-5"
+            <Button
+              onClick={() => setShowSetlistForm(true)}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
             >
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    Next Up
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className="bg-white/10 px-1.5 py-0 text-[10px] font-medium"
-                  >
-                    {nextSetlist.songs.length}{" "}
-                    {nextSetlist.songs.length === 1 ? "song" : "songs"}
-                  </Badge>
-                </div>
-                <h3 className="mt-1 truncate text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                  {nextSetlist.name}
-                </h3>
-                <div className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  <span>
-                    {format(new Date(nextSetlist.date), "EEEE, MMM d")}
-                  </span>
-                </div>
-              </div>
+              <Plus className="h-3.5 w-3.5" />
+              Create
+            </Button>
+          </div>
+        )}
 
-              {/* Action Arrow */}
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/5 transition-all duration-300 group-hover:bg-primary/20">
-                <ChevronRightIcon className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
+        {/* Stats Grid */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          {stats.map((stat, i) => (
+            <Link
+              key={i}
+              to={stat.link || "#"}
+              className={cn(
+                "group relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.03] p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.06]",
+                !stat.link &&
+                  "cursor-default hover:border-white/5 hover:bg-white/[0.03]"
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-foreground">
+                      {stat.value}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground/80">
+                    {stat.subtext}
+                  </p>
+                </div>
+                <div
+                  className={cn("rounded-full bg-white/5 p-2.5", stat.color)}
+                >
+                  <stat.icon className="h-5 w-5" />
+                </div>
               </div>
             </Link>
-          ) : (
-            <div className="mt-8 flex items-center gap-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 sm:p-5">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/5">
-                <CalendarIcon className="h-6 w-6 text-muted-foreground/40" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  No upcoming setlists
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground/60">
-                  Create a setlist to see it here
-                </p>
-              </div>
-              <Button
-                onClick={() => setShowSetlistForm(true)}
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Create
-              </Button>
-            </div>
-          )}
-
-          {/* Glass Stats Grid */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {stats.map((stat, i) => (
-              <Link
-                key={i}
-                to={stat.link || "#"}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border border-white/5 bg-white/5 p-4 transition-all duration-200 hover:bg-white/10",
-                  !stat.link && "cursor-default hover:bg-white/5"
-                )}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {stat.label}
-                    </p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-foreground">
-                        {stat.value}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground/80">
-                      {stat.subtext}
-                    </p>
-                  </div>
-                  <div
-                    className={cn("rounded-full bg-white/5 p-2.5", stat.color)}
-                  >
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                </div>
-                {/* Hover Glow Effect */}
-                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/5 blur-xl transition-all duration-500 group-hover:bg-white/10" />
-              </Link>
-            ))}
-          </div>
+          ))}
         </div>
 
         {/* Main Content Grid */}

@@ -44,7 +44,7 @@ export function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex h-screen w-52 flex-col bg-sidebar border-r border-white/10 backdrop-blur-xl shadow-glass">
+    <div className="flex h-screen w-40 flex-col bg-sidebar border-r border-white/10 backdrop-blur-xl shadow-glass">
       <ScrollArea className="flex-1 px-4 py-5">
         <SidebarNav items={NAV_ITEMS} />
       </ScrollArea>
