@@ -14,6 +14,7 @@ interface UseFileSlidesOptions {
   songs: Song[];
   songFilter?: (song: Song) => boolean;
   keyResolver?: (song: Song) => string;
+  notesResolver?: (song: Song) => string;
   songOrderer?: (songs: Song[]) => Song[];
 }
 
@@ -25,6 +26,7 @@ export function useFileSlides({
   songs,
   songFilter,
   keyResolver = () => "",
+  notesResolver = () => "",
   songOrderer,
 }: UseFileSlidesOptions) {
   const [numPages, setNumPages] = useState<Record<string, number>>({});
@@ -44,14 +46,16 @@ export function useFileSlides({
       file: SongFile;
       song: Song;
       key: string;
+      notes?: string;
     }> = [];
 
     for (const song of filteredSongs) {
       const key = keyResolver(song);
       const relevantFiles = getFilesForKey(song, key);
+      const notes = notesResolver(song);
 
       for (const file of relevantFiles) {
-        fileList.push({ file, song, key });
+        fileList.push({ file, song, key, notes });
       }
     }
 
@@ -77,7 +81,7 @@ export function useFileSlides({
   const files: FileWithUrl[] = useMemo(() => {
     const result: FileWithUrl[] = [];
 
-    processedFiles.forEach(({ file, song, key }, index) => {
+    processedFiles.forEach(({ file, song, key, notes }, index) => {
       const query = queries[index];
 
       if (query.data) {
@@ -90,6 +94,7 @@ export function useFileSlides({
           created_at: file.createdAt || new Date().toISOString(),
           song_id: song.id,
           keyInfo: key,
+          notes,
         });
       }
     });
@@ -104,7 +109,7 @@ export function useFileSlides({
 
     files.forEach((file) => {
       if (isImage(file.name)) {
-        slides.push({ ...file, type: "image", key: file.path });
+        slides.push({ ...file, type: "image", key: file.path, notes: file.notes });
       } else if (isPDF(file.name)) {
         const num = numPages[file.path] || 1;
         for (let i = 1; i <= num; i++) {
@@ -118,6 +123,7 @@ export function useFileSlides({
             type: "pdf",
             pageNumber: i,
             key: `${file.path}__page_${i}`,
+            notes: file.notes,
           });
         }
       }

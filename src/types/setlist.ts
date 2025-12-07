@@ -40,6 +40,7 @@ export interface FileWithUrl {
   songTitle?: string;
   songArtist?: string;
   keyInfo?: string;
+  notes?: string;
 }
 
 export interface EditableSetlistSong extends Omit<SetlistSong, "song"> {
@@ -62,4 +63,5 @@ export interface SlideItem extends FileWithUrl {
   pageNumber?: number;
   songTitle?: string;
   song_id: string;
+  notes?: string;
 }

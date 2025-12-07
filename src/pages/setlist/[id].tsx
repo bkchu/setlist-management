@@ -26,10 +26,10 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {} from "@/components/ui/dialog";
@@ -106,7 +106,6 @@ export default function SetlistPage() {
   const [showCarousel, setShowCarousel] = useState(false);
   const [editingSong, setEditingSong] = useState<SetlistSong | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [showFilesPopover, setShowFilesPopover] = useState(false);
 
   const songsNotInSetlist = useMemo(
     () =>
@@ -166,12 +165,37 @@ export default function SetlistPage() {
     [setlist, songFilter]
   );
 
-  const { flattenedSlides, isLoading: isFileSlidesLoading } = useFileSlides({
+  const notesResolver = useCallback(
+    (song: Song) => {
+      const setlistSong = setlist?.songs.find((s) => s.songId === song.id);
+      return setlistSong?.notes || "";
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setlistSongsJson]
+  );
+
+  const {
+    flattenedSlides,
+    isLoading: isFileSlidesLoading,
+    setNumPages,
+  } = useFileSlides({
     songs,
     songFilter: stableSongFilter,
     keyResolver,
+    notesResolver,
     songOrderer,
   });
+
+  // Callback to update PDF page counts when FileViewer discovers them
+  const handlePdfPageCountDiscovered = useCallback(
+    (path: string, numPages: number) => {
+      setNumPages((prev) => {
+        if (prev[path] === numPages) return prev;
+        return { ...prev, [path]: numPages };
+      });
+    },
+    [setNumPages]
+  );
 
   // DnD Kit sensors for touch and keyboard support with mobile optimizations
   const sensors = useSensors(
@@ -522,7 +546,7 @@ export default function SetlistPage() {
           isOpen={showCarousel}
           onOpenChange={handleShowCarousel}
           slides={flattenedSlides}
-          onSaveNotes={handleSaveNotesInViewer}
+          onPdfPageCountDiscovered={handlePdfPageCountDiscovered}
         />
       )}
 
@@ -588,46 +612,36 @@ export default function SetlistPage() {
 
                 <div className="flex items-center gap-2">
                   {setlist.songs.length > 0 && (
-                    <Popover
-                      open={showFilesPopover}
-                      onOpenChange={setShowFilesPopover}
-                    >
-                      <PopoverTrigger asChild>
-                        <div>
-                          <Button
-                            variant="outline"
-                            onClick={(e) => {
-                              if (!hasSlides || isFileSlidesLoading) {
-                                e.preventDefault();
-                                setShowFilesPopover(true);
-                              } else {
-                                handleShowCarouselButton();
-                              }
-                            }}
-                            className={cn(
-                              "gap-2",
-                              (!hasSlides || isFileSlidesLoading) &&
-                                "opacity-50 cursor-not-allowed"
-                            )}
-                            aria-disabled={!hasSlides || isFileSlidesLoading}
-                          >
-                            <FilesIcon className="h-4 w-4" />
-                            View Files
-                          </Button>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        side="top"
-                        align="end"
-                        className="w-auto p-2 text-xs"
-                      >
-                        <p>
-                          {isFileSlidesLoading
-                            ? "Loading files..."
-                            : fileStatus.message || "No files available"}
-                        </p>
-                      </PopoverContent>
-                    </Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          onClick={
+                            hasSlides && !isFileSlidesLoading
+                              ? handleShowCarouselButton
+                              : undefined
+                          }
+                          className={cn(
+                            "gap-2",
+                            (!hasSlides || isFileSlidesLoading) &&
+                              "opacity-50 cursor-not-allowed"
+                          )}
+                          aria-disabled={!hasSlides || isFileSlidesLoading}
+                        >
+                          <FilesIcon className="h-4 w-4" />
+                          View Files
+                        </Button>
+                      </TooltipTrigger>
+                      {(!hasSlides || isFileSlidesLoading) && (
+                        <TooltipContent side="top" align="end">
+                          <p>
+                            {isFileSlidesLoading
+                              ? "Loading files..."
+                              : fileStatus.message || "No files available"}
+                          </p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
                   )}
                   <Button variant="secondary" onClick={handleShowAddModal}>
                     <PlusIcon className="mr-2 h-4 w-4" />

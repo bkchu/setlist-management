@@ -514,7 +514,7 @@ export function SongForm({
             <DialogHeader className="space-y-3">
               {/* Icon badge - stacks on mobile, inline on desktop */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 border border-primary/20">
                   {isEditing ? (
                     <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   ) : (

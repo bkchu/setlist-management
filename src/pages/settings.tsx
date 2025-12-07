@@ -26,7 +26,7 @@ import { SongSearchCombobox } from "@/components/songs/song-search-combobox";
 import { JoinCodeManager } from "@/components/organization/join-code-manager";
 import {
   PlusIcon,
-  ZapIcon,
+  StarIcon,
   SparklesIcon,
   GripVerticalIcon,
   UsersIcon,
@@ -246,8 +246,8 @@ export default function Settings() {
         <section className="space-y-4">
           {/* Section Header */}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-1 ring-amber-500/30">
-              <ZapIcon className="h-5 w-5 text-amber-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 ring-1 ring-yellow-500/30">
+              <StarIcon className="h-5 w-5 text-yellow-500" />
             </div>
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Quick Access Songs</h2>

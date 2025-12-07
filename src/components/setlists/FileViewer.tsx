@@ -1,11 +1,10 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Music2Icon, StickyNoteIcon, XIcon } from "lucide-react";
+import { Music2Icon } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SlideItem } from "@/types";
-import { NotesWindow } from "./notes-window";
+import { NotesBar } from "./notes-bar";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -13,16 +12,17 @@ interface FileViewerProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   slides: SlideItem[];
-  onSaveNotes: (songId: string, notes: string) => Promise<void>;
   initialSlide?: number;
+  onPdfPageCountDiscovered?: (path: string, numPages: number) => void;
+  onSaveNotes?: (songId: string, notes: string) => void;
 }
 
 export function FileViewer({
   isOpen,
   onOpenChange,
   slides,
-  onSaveNotes,
   initialSlide = 0,
+  onPdfPageCountDiscovered,
 }: FileViewerProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
@@ -30,11 +30,7 @@ export function FileViewer({
     startIndex: initialSlide,
   });
   const [currentSlideIndex, setCurrentSlideIndex] = useState(initialSlide);
-  const [numPages, setNumPages] = useState<Record<string, number>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isNotesWindowOpen, setIsNotesWindowOpen] = useState(false);
-  const [localNotes, setLocalNotes] = useState<string>("");
-  const [notesDirty, setNotesDirty] = useState(false);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({
@@ -42,6 +38,7 @@ export function FileViewer({
     height: 0,
   });
 
+  // Use slides directly - expansion is handled by the hook
   const currentSlide = slides[currentSlideIndex];
 
   const scrollPrev = useCallback(() => {
@@ -55,7 +52,8 @@ export function FileViewer({
   useEffect(() => {
     if (emblaApi) {
       const onSelect = () => {
-        setCurrentSlideIndex(emblaApi.selectedScrollSnap());
+        const newIndex = emblaApi.selectedScrollSnap();
+        setCurrentSlideIndex(newIndex);
       };
       emblaApi.on("select", onSelect);
       setCurrentSlideIndex(emblaApi.selectedScrollSnap());
@@ -74,6 +72,22 @@ export function FileViewer({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, scrollPrev, scrollNext]);
+
+  // Re-init embla when slides change (e.g., PDF pages expand)
+  const prevSlidesLengthRef = useRef(slides.length);
+  useEffect(() => {
+    if (!emblaApi || slides.length === 0) return;
+
+    // Only reinit if slides actually changed
+    if (prevSlidesLengthRef.current !== slides.length) {
+      prevSlidesLengthRef.current = slides.length;
+      emblaApi.reInit();
+      // Maintain position after reinit (clamp to valid range)
+      const safeIndex = Math.min(currentSlideIndex, slides.length - 1);
+      emblaApi.scrollTo(safeIndex, true); // instant scroll to maintain position
+      setCurrentSlideIndex(safeIndex);
+    }
+  }, [emblaApi, slides.length, currentSlideIndex]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -113,25 +127,14 @@ export function FileViewer({
     return () => window.removeEventListener("resize", updateDimensions);
   }, [isOpen]);
 
-  useEffect(() => {
-    if (currentSlide) {
-      // Need to get the notes for the current song
-      // This logic will need to be passed in from the parent for now.
-      // setLocalNotes(currentSlide.notes || "");
-    }
-  }, [currentSlide]);
-
   const onDocumentLoadSuccess = (
     { numPages }: { numPages: number },
     path: string
   ) => {
-    setNumPages((prev) => ({ ...prev, [path]: numPages }));
-  };
-
-  const handleSaveNotes = async () => {
-    if (!currentSlide) return;
-    await onSaveNotes(currentSlide.song_id, localNotes);
-    setNotesDirty(false);
+    // Notify the parent hook so it can expand slides
+    if (onPdfPageCountDiscovered) {
+      onPdfPageCountDiscovered(path, numPages);
+    }
   };
 
   return (
@@ -206,46 +209,10 @@ export function FileViewer({
               </div>
             </div>
 
-            {isFullscreen && (
-              <div className="absolute bottom-0 right-0 flex flex-col gap-2 p-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="w-auto px-4 gap-2 h-12 rounded-md bg-white/60 backdrop-blur-sm hover:bg-white/80"
-                  onClick={() => setIsNotesWindowOpen((prev) => !prev)}
-                >
-                  {isNotesWindowOpen ? (
-                    <XIcon className="h-6 w-6 text-black" />
-                  ) : (
-                    <StickyNoteIcon className="h-6 w-6 text-black" />
-                  )}
-                  <p className="text-black">
-                    {isNotesWindowOpen ? "Close" : "Open"} Notes
-                  </p>
-                </Button>
-              </div>
-            )}
-
-            {isFullscreen && currentSlide && (
-              <NotesWindow
-                isOpen={isNotesWindowOpen}
-                onOpenChange={setIsNotesWindowOpen}
-                notes={localNotes}
-                onNotesChange={(val) => {
-                  setLocalNotes(val);
-                  // Original notes need to be fetched and passed in.
-                  // setNotesDirty(val !== (setlist?.songs[currentSlideIndex]?.notes || ""));
-                }}
-                onSaveNotes={handleSaveNotes}
-                notesDirty={notesDirty}
+            {isFullscreen && currentSlide?.notes && (
+              <NotesBar
+                notes={currentSlide.notes}
                 songTitle={currentSlide.songTitle || ""}
-                pageNumber={currentSlide.pageNumber}
-                totalPages={
-                  currentSlide.type === "pdf"
-                    ? numPages[currentSlide.path]
-                    : undefined
-                }
-                containerRef={carouselContainerRef}
               />
             )}
           </div>

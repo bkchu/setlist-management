@@ -142,7 +142,7 @@ function FilterPill({
       className={cn(
         "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
         isActive
-          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+          ? "bg-primary/15 text-primary border border-primary/30"
           : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
       )}
     >

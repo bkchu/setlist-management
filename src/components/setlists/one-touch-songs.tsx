@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -65,11 +64,22 @@ export function OneTouchSongs({
   );
 
   // Get slides for the selected song
-  const { flattenedSlides, isLoading } = useFileSlides({
+  const { flattenedSlides, isLoading, setNumPages } = useFileSlides({
     songs,
     songFilter: selectedSongId ? songFilter : undefined,
     keyResolver,
   });
+
+  // Callback to update PDF page counts when FileViewer discovers them
+  const handlePdfPageCountDiscovered = useCallback(
+    (path: string, numPages: number) => {
+      setNumPages((prev) => {
+        if (prev[path] === numPages) return prev;
+        return { ...prev, [path]: numPages };
+      });
+    },
+    [setNumPages]
+  );
 
   // Handle case when no files are available - navigate to song page
   useEffect(() => {
@@ -223,20 +233,22 @@ export function OneTouchSongs({
       <>
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
-            <Button
-              size="lg"
+            <button
               className={cn(
-                "fixed bottom-20 right-6 z-[60] h-14 w-14 px-0 rounded-full shadow-lg transition-all hover:scale-110",
+                "fixed bottom-20 right-6 z-[60] h-14 w-14 rounded-full shadow-lg transition-all hover:scale-110",
                 "md:bottom-6",
                 "animate-in fade-in slide-in-from-bottom-4 duration-500",
+                "flex items-center justify-center",
+                "bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30",
+                "hover:from-yellow-500/30 hover:to-amber-500/30 hover:ring-yellow-500/50",
+                "hover:shadow-[0_0_20px_rgba(234,179,8,0.3)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/50",
                 className
               )}
             >
-              <div className="relative">
-                <StarIcon className="h-5 w-5 fill-current" />
-              </div>
+              <StarIcon className="h-6 w-6 text-yellow-500" />
               <span className="sr-only">Quick Access Songs</span>
-            </Button>
+            </button>
           </PopoverTrigger>
           <PopoverContent side="top" align="end" className="p-0">
             {songListContent}
@@ -250,6 +262,7 @@ export function OneTouchSongs({
             onOpenChange={handleFileViewerClose}
             slides={flattenedSlides}
             onSaveNotes={handleSaveNotesInViewer}
+            onPdfPageCountDiscovered={handlePdfPageCountDiscovered}
           />
         )}
       </>
@@ -278,6 +291,7 @@ export function OneTouchSongs({
           onOpenChange={handleFileViewerClose}
           slides={flattenedSlides}
           onSaveNotes={handleSaveNotesInViewer}
+          onPdfPageCountDiscovered={handlePdfPageCountDiscovered}
         />
       )}
     </>

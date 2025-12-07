@@ -4,12 +4,10 @@ import {
   CalendarIcon,
   ListMusicIcon,
   MusicIcon,
-  AlertTriangleIcon,
   Plus,
   ClockIcon,
   Music2Icon,
   ChevronRightIcon,
-  SparklesIcon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,7 +23,7 @@ import { useCreateSetlist } from "@/api/setlists/post";
 import { useCreateSong } from "@/api/songs/post";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -60,9 +58,8 @@ export default function Dashboard() {
   const displayedUpcomingSetlists = upcomingSetlists.slice(0, 5);
   const nextSetlist = upcomingSetlists[0];
 
-  // Helper function to find setlists needing attention
-  // Setlists happening this week that are empty or incomplete (< 3 songs)
-  function getSetlistsNeedingAttention() {
+  // Find empty setlists happening this week
+  function getEmptyUpcomingSetlists() {
     const oneWeekFromToday = new Date(today);
     oneWeekFromToday.setDate(oneWeekFromToday.getDate() + 7);
 
@@ -71,13 +68,11 @@ export default function Dashboard() {
       const isThisWeek =
         setlistDate >= today &&
         setlistDate <= normalizeToDateOnly(oneWeekFromToday);
-      const songCount = setlist.songs.length;
-      const needsAttention = isThisWeek && (songCount === 0 || songCount < 3);
-      return needsAttention;
+      return isThisWeek && setlist.songs.length === 0;
     });
   }
 
-  const setlistsNeedingAttention = getSetlistsNeedingAttention();
+  const emptyUpcomingSetlists = getEmptyUpcomingSetlists();
 
   const handleCreateSetlist = async (setlistData: Partial<Setlist>) => {
     try {
@@ -142,12 +137,11 @@ export default function Dashboard() {
       color: "text-purple-400",
     },
     {
-      label: "Needs Attention",
-      value: setlistsNeedingAttention.length,
-      subtext: "Requires action",
-      icon: AlertTriangleIcon,
-      color: "text-red-400",
-      link: setlistsNeedingAttention.length > 0 ? undefined : undefined, // Could link to filtered view
+      label: "Empty This Week",
+      value: emptyUpcomingSetlists.length,
+      subtext: "Setlists without songs",
+      icon: ListMusicIcon,
+      color: "text-muted-foreground",
     },
   ];
 
@@ -218,12 +212,6 @@ export default function Dashboard() {
                   <CalendarIcon className="h-3.5 w-3.5" />
                   <span>
                     {format(new Date(nextSetlist.date), "EEEE, MMM d")}
-                  </span>
-                  <span className="text-muted-foreground/50">•</span>
-                  <span className="text-primary/80">
-                    {formatDistanceToNow(new Date(nextSetlist.date), {
-                      addSuffix: true,
-                    })}
                   </span>
                 </div>
               </div>
@@ -313,14 +301,14 @@ export default function Dashboard() {
               maxItems={5}
             />
 
-            {/* Setlists Needing Attention */}
-            {setlistsNeedingAttention.length > 0 && (
+            {/* Empty Setlists This Week */}
+            {emptyUpcomingSetlists.length > 0 && (
               <SetlistCard
-                title="Action Required"
-                icon={AlertTriangleIcon}
-                setlists={setlistsNeedingAttention}
-                showAttentionStyle={true}
-                maxItems={setlistsNeedingAttention.length}
+                title="Still Planning"
+                icon={ListMusicIcon}
+                setlists={emptyUpcomingSetlists}
+                showEmptyStyle={true}
+                maxItems={emptyUpcomingSetlists.length}
               />
             )}
           </div>

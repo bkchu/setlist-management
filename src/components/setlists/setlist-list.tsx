@@ -2,14 +2,6 @@ import { useMemo, useState } from "react";
 import { Setlist } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -193,8 +185,7 @@ export function SetlistList({
         </Card>
       ) : (
         <AnimatePresence>
-          {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sortedSetlists.map((setlist) => {
               const upcoming = isUpcoming(setlist.date);
               const { label: dateLabel, isRelative } = formatRelativeDate(
@@ -212,7 +203,7 @@ export function SetlistList({
                     upcoming && "shadow-glow-sm border-primary/20"
                   )}
                 >
-                  <Link to={`/setlist/${setlist.id}`} className="block">
+                  <Link to={`/setlist/${setlist.id}`} className="block h-full">
                     <div className="flex justify-between items-start gap-4">
                       <div className="space-y-1">
                         <h3 className="font-semibold text-lg leading-tight text-foreground">
@@ -252,7 +243,6 @@ export function SetlistList({
                           {setlist.songs.length}{" "}
                           {setlist.songs.length === 1 ? "song" : "songs"}
                         </Badge>
-                        {/* Mobile Actions trigger needs to be handled carefully to not conflict with Link */}
                         <div onClick={(e) => e.preventDefault()}>
                           {renderActionButtons(setlist)}
                         </div>
@@ -262,101 +252,6 @@ export function SetlistList({
                 </motion.div>
               );
             })}
-          </div>
-
-          {/* Desktop Table Layout */}
-          <div className="hidden md:block rounded-xl border border-white/10 bg-card/50 backdrop-blur-xl shadow-glass overflow-hidden">
-            <Table>
-              <TableHeader className="bg-white/5">
-                <TableRow className="hover:bg-transparent border-white/5">
-                  <TableHead className="w-[40%] pl-6">Setlist Name</TableHead>
-                  <TableHead className="w-[20%]">Date</TableHead>
-                  <TableHead className="w-[30%]">Preview</TableHead>
-                  <TableHead className="w-[10%] text-right pr-6">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedSetlists.map((setlist) => {
-                  const upcoming = isUpcoming(setlist.date);
-                  const { label: dateLabel, isRelative } = formatRelativeDate(
-                    setlist.date
-                  );
-
-                  return (
-                    <motion.tr
-                      key={setlist.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className={cn(
-                        "group border-white/5 transition-colors hover:bg-white/5",
-                        !upcoming && "opacity-60 hover:opacity-100"
-                      )}
-                    >
-                      <TableCell className="pl-6 font-medium">
-                        <Link
-                          to={`/setlist/${setlist.id}`}
-                          className="flex items-center gap-3 py-2"
-                        >
-                          <div
-                            className={cn(
-                              "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-                              upcoming
-                                ? "border-primary/30 bg-primary/10 text-primary"
-                                : "border-white/10 bg-white/5 text-muted-foreground"
-                            )}
-                          >
-                            <ListMusicIcon className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <span className="block text-foreground group-hover:text-primary transition-colors">
-                              {setlist.name}
-                            </span>
-                            {upcoming && (
-                              <span className="text-[10px] uppercase tracking-wider font-semibold text-primary/80">
-                                Upcoming
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span
-                            className={cn(
-                              isRelative &&
-                                upcoming &&
-                                "text-foreground font-medium"
-                            )}
-                          >
-                            {dateLabel}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-[300px]">
-                          <p className="text-sm text-muted-foreground truncate">
-                            {getSongPreview(setlist)}
-                          </p>
-                          <p className="text-xs text-muted-foreground/60 mt-0.5">
-                            {setlist.songs.length}{" "}
-                            {setlist.songs.length === 1 ? "song" : "songs"}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex justify-end">
-                          {renderActionButtons(setlist)}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
-              </TableBody>
-            </Table>
           </div>
         </AnimatePresence>
       )}

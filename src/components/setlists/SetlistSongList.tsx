@@ -15,6 +15,7 @@ import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { SetlistSong } from "@/types";
+import { StickyNoteIcon } from "lucide-react";
 
 // Drop zone indicator component for the end of the list
 const EndDropZone = React.memo(function EndDropZone() {
@@ -103,11 +104,19 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
           {song.song.artist && (
             <p className="text-xs text-muted-foreground">{song.song.artist}</p>
           )}
-          <p className="text-xs text-muted-foreground">
-            {song.key && `Key: ${song.key}`}
-            {song.key && song.notes && " • "}
-            {song.notes}
-          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {song.key && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/15 text-primary border border-primary/30">
+                {song.key}
+              </span>
+            )}
+            {song.notes && (
+              <span className="flex items-center gap-1">
+                <StickyNoteIcon className="h-3 w-3" />
+                <span className="line-clamp-1">{song.notes}</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -151,31 +160,36 @@ const SetlistSongRow = React.memo(function SetlistSongRow({
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground aspect-square shrink-0">
           {index + 1}
         </div>
-        <div className="space-y-1 flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm font-medium truncate flex-1 w-1">
-              {song.song.title}
-            </p>
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/40 border border-black/80 text-[10px] font-medium text-muted-foreground/80 whitespace-nowrap">
-                {hasKey ? selectedKey : "no key"}
-              </span>
-              {hasKey && !hasFileForSelectedKey && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[4px] bg-black/40 border border-black/80 text-[10px] font-medium text-muted-foreground/80 whitespace-nowrap">
-                  no slides
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="space-y-0.5 flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{song.song.title}</p>
           {song.song.artist && (
             <p className="text-xs text-muted-foreground truncate">
               {song.song.artist}
             </p>
           )}
           {song.notes && (
-            <p className="text-xs text-muted-foreground truncate">
-              {song.notes}
-            </p>
+            <div className="flex items-start gap-1.5 mt-1">
+              <StickyNoteIcon className="h-3 w-3 text-primary/60 shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {song.notes}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap border ${
+              hasKey
+                ? "bg-primary/15 text-primary border-primary/30"
+                : "bg-white/5 text-muted-foreground/60 border-white/10"
+            }`}
+          >
+            {hasKey ? selectedKey : "no key"}
+          </span>
+          {hasKey && !hasFileForSelectedKey && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400/90 border border-amber-500/30 text-[10px] font-medium whitespace-nowrap">
+              no slides
+            </span>
           )}
         </div>
       </div>

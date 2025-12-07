@@ -162,7 +162,7 @@ function AppContent() {
       <div className="hidden md:block fixed left-0 top-0">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col min-h-0 md:ml-56">
+      <div className="flex-1 flex flex-col min-h-0 md:ml-52">
         <div className="flex-1 overflow-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
           <Routes>
             <Route path="/" element={<Dashboard />} />

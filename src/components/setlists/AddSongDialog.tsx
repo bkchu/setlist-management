@@ -392,17 +392,22 @@ export function AddSongDialog({
                   </Button>
                 </div>
                 {showNotes && (
-                  <Textarea
-                    value={addSongForm.notes || ""}
-                    onChange={(e) =>
-                      setAddSongForm((prev) => ({
-                        ...prev,
-                        notes: e.target.value,
-                      }))
-                    }
-                    placeholder="Add performance notes, cues, or other details"
-                    className="min-h-[120px] text-sm"
-                  />
+                  <div className="space-y-1.5">
+                    <Textarea
+                      value={addSongForm.notes || ""}
+                      onChange={(e) =>
+                        setAddSongForm((prev) => ({
+                          ...prev,
+                          notes: e.target.value,
+                        }))
+                      }
+                      placeholder="Add performance notes, cues, or other details"
+                      className="min-h-[120px] text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      These notes stay with this setlist song and show in fullscreen viewing.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

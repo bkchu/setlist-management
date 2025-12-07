@@ -1,12 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -186,8 +178,7 @@ export function SongList({
         </Card>
       ) : (
         <AnimatePresence>
-          {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {songs.map((song) => {
               const hasKeyHistory = song.keyHistory && song.keyHistory.length > 0;
               const isOneTouch = settings.oneTouchSongs.songIds.includes(song.id);
@@ -203,7 +194,7 @@ export function SongList({
                     isOneTouch && "shadow-glow-sm border-yellow-500/20"
                   )}
                 >
-                  <Link to={`/song/${song.id}`} className="block">
+                  <Link to={`/song/${song.id}`} className="block h-full">
                     <div className="flex justify-between items-start gap-4">
                       <div className="space-y-1 min-w-0">
                         <h3 className="font-semibold text-lg leading-tight text-foreground line-clamp-1">
@@ -230,7 +221,7 @@ export function SongList({
                       </p>
                     )}
 
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-white/5">
+                    <div className="mt-4 space-y-2">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {hasKeyHistory ? (
                           <>
@@ -253,119 +244,24 @@ export function SongList({
                           </span>
                         )}
                       </div>
-                      {/* Mobile Actions */}
-                      <div onClick={(e) => e.preventDefault()}>
-                        {renderActionButtons(song)}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        <span>Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MusicIcon className="h-3.5 w-3.5" />
+                          <span>{song.files?.length || 0} file(s)</span>
+                        </div>
+                        <div onClick={(e) => e.preventDefault()}>
+                          {renderActionButtons(song)}
+                        </div>
                       </div>
                     </div>
                   </Link>
                 </motion.div>
               );
             })}
-          </div>
-
-          {/* Desktop Table Layout */}
-          <div className="hidden md:block rounded-xl border border-white/10 bg-card/50 backdrop-blur-xl shadow-glass overflow-hidden">
-            <Table>
-              <TableHeader className="bg-white/5">
-                <TableRow className="hover:bg-transparent border-white/5">
-                  <TableHead className="w-[30%] pl-6">Song</TableHead>
-                  <TableHead className="w-[20%]">Artist</TableHead>
-                  <TableHead className="w-[20%]">Last Played</TableHead>
-                  <TableHead className="w-[20%]">Updated</TableHead>
-                  <TableHead className="w-[10%] text-right pr-6">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {songs.map((song) => {
-                  const hasKeyHistory =
-                    song.keyHistory && song.keyHistory.length > 0;
-                  const isOneTouch = settings.oneTouchSongs.songIds.includes(
-                    song.id
-                  );
-
-                  return (
-                    <motion.tr
-                      key={song.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="group border-white/5 transition-colors hover:bg-white/5"
-                    >
-                      <TableCell className="pl-6 font-medium">
-                        <Link
-                          to={`/song/${song.id}`}
-                          className="flex items-center gap-3 py-2"
-                        >
-                          <div
-                            className={cn(
-                              "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-                              isOneTouch
-                                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
-                                : "border-white/10 bg-white/5 text-muted-foreground"
-                            )}
-                          >
-                            {isOneTouch ? (
-                              <StarIcon className="h-4 w-4" />
-                            ) : (
-                              <MusicIcon className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="block text-foreground group-hover:text-primary transition-colors truncate">
-                              {song.title}
-                            </span>
-                            {song.notes && (
-                              <span className="text-xs text-muted-foreground/60 truncate block max-w-[200px]">
-                                {song.notes}
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {song.artist || "—"}
-                      </TableCell>
-                      <TableCell>
-                        {hasKeyHistory ? (
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="text-xs font-medium"
-                            >
-                              {song.keyHistory![0].key}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {format(
-                                new Date(song.keyHistory![0].playedAt),
-                                "MMM d"
-                              )}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/60">
-                            Never played
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                          <CalendarIcon className="h-3.5 w-3.5" />
-                          {format(new Date(song.updatedAt), "MMM d, yyyy")}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex justify-end">
-                          {renderActionButtons(song)}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
-              </TableBody>
-            </Table>
           </div>
         </AnimatePresence>
       )}

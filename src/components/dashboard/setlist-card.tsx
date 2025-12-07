@@ -11,7 +11,7 @@ interface SetlistCardProps {
   title: string;
   icon: LucideIcon;
   setlists: Setlist[];
-  showAttentionStyle?: boolean;
+  showEmptyStyle?: boolean;
   emptyMessage?: string;
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
@@ -22,14 +22,13 @@ interface SetlistCardProps {
 
 function SetlistItem({
   setlist,
-  showAttentionStyle = false,
+  showEmptyStyle = false,
 }: {
   setlist: Setlist;
-  showAttentionStyle?: boolean;
+  showEmptyStyle?: boolean;
 }) {
   const songCount = setlist.songs.length;
-  const isIncomplete = songCount === 0 || songCount < 3;
-  const needsAttention = showAttentionStyle || isIncomplete;
+  const isEmpty = songCount === 0;
 
   return (
     <Link
@@ -37,8 +36,8 @@ function SetlistItem({
       className={clsx(
         "group relative flex items-center justify-between gap-4 rounded-lg border px-3 py-2.5 transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5 hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]",
-        needsAttention
-          ? "border-destructive/30 bg-destructive/5 hover:border-destructive/50 hover:bg-destructive/10"
+        showEmptyStyle && isEmpty
+          ? "border-border/50 bg-muted/5"
           : "border-transparent bg-transparent hover:border-white/10"
       )}
       aria-label={`Go to setlist ${setlist.name}`}
@@ -65,13 +64,10 @@ function SetlistItem({
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <Badge
-          variant={needsAttention ? "destructive" : "secondary"}
-          className={clsx(
-            "px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-colors",
-            !needsAttention && "bg-white/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-          )}
+          variant="secondary"
+          className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-colors bg-white/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
         >
-          {songCount === 0
+          {isEmpty
             ? "Empty"
             : `${songCount} ${songCount === 1 ? "Song" : "Songs"}`}
         </Badge>
@@ -85,7 +81,7 @@ export function SetlistCard({
   title,
   icon: Icon,
   setlists,
-  showAttentionStyle = false,
+  showEmptyStyle = false,
   emptyMessage = "No setlists",
   emptyActionLabel,
   onEmptyAction,
@@ -99,12 +95,7 @@ export function SetlistCard({
     <Card className="overflow-hidden border-white/10 bg-card/50 shadow-glass backdrop-blur-xl">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-white/5 bg-white/5 px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className={clsx(
-            "flex h-8 w-8 items-center justify-center rounded-lg border bg-background/50 shadow-sm backdrop-blur-sm",
-            showAttentionStyle
-             ? "border-destructive/20 text-destructive"
-             : "border-white/10 text-primary"
-          )}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-background/50 text-primary shadow-sm backdrop-blur-sm">
             <Icon className="h-4 w-4" />
           </div>
           <CardTitle className="text-base font-semibold tracking-tight text-foreground">
@@ -143,7 +134,7 @@ export function SetlistCard({
               <SetlistItem
                 key={setlist.id}
                 setlist={setlist}
-                showAttentionStyle={showAttentionStyle}
+                showEmptyStyle={showEmptyStyle}
               />
             ))}
             {showViewAll && setlists.length > displayedSetlists.length && (

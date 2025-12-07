@@ -1,13 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import {
-  EditIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  XIcon,
-} from "lucide-react";
+import { EditIcon, ArrowUpIcon, ArrowDownIcon, XIcon } from "lucide-react";
 import { SetlistSong, Song } from "@/types";
 
 interface SetlistSongRowProps {
@@ -48,7 +42,15 @@ export const SetlistSongRow: React.FC<SetlistSongRowProps> = ({
         </div>
       </div>
       <div className="w-24">
-        <Badge variant="secondary">{setlistSong.key}</Badge>
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+            setlistSong.key
+              ? "bg-primary/15 text-primary border border-primary/30"
+              : "bg-white/5 text-muted-foreground/60 border border-white/10"
+          }`}
+        >
+          {setlistSong.key || "no key"}
+        </span>
       </div>
       <div className="w-48">
         <span className="text-sm">{setlistSong.notes}</span>
