@@ -53,6 +53,7 @@ export async function updateSetlistServer(
       order: number;
       key: string | null;
       notes: string | null;
+      section_order: unknown | null;
     }> = [];
 
     const newSongsToInsert: Array<{
@@ -61,6 +62,7 @@ export async function updateSetlistServer(
       order: number;
       key: string | null;
       notes: string | null;
+      section_order: unknown | null;
     }> = [];
 
     newSongs.forEach((song) => {
@@ -73,6 +75,7 @@ export async function updateSetlistServer(
           order: song.order,
           key: song.key || null,
           notes: song.notes || null,
+          section_order: song.sectionOrder || null,
         });
       } else {
         newSongsToInsert.push({
@@ -81,6 +84,7 @@ export async function updateSetlistServer(
           order: song.order,
           key: song.key || null,
           notes: song.notes || null,
+          section_order: song.sectionOrder || null,
         });
       }
     });

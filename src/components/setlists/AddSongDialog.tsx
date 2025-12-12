@@ -29,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SongForm } from "@/components/songs/song-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateSong } from "@/api/songs/post";
+import { SectionOrderEditor } from "@/components/songs/section-order-editor";
+import { SectionOrder } from "@/types/song";
 
 const KEY_OPTIONS = [
   "G",
@@ -72,6 +74,7 @@ export function AddSongDialog({
     songId: "",
     key: "",
     notes: "",
+    sectionOrder: [] as SectionOrder,
   });
   const [selectedSongInModal, setSelectedSongInModal] = useState<Song | null>(
     null
@@ -83,7 +86,7 @@ export function AddSongDialog({
   const navigate = useNavigate();
 
   const resetState = () => {
-    setAddSongForm({ songId: "", key: "", notes: "" });
+    setAddSongForm({ songId: "", key: "", notes: "", sectionOrder: [] });
     setSelectedSongInModal(null);
     setPreviewFileUrl(null);
     setIsPreviewLoading(false);
@@ -138,6 +141,7 @@ export function AddSongDialog({
         order: setlist.songs.length + 1,
         key: addSongForm.key,
         notes: addSongForm.notes,
+        sectionOrder: addSongForm.sectionOrder,
         title: song.title,
         artist: song.artist,
         song,
@@ -146,7 +150,7 @@ export function AddSongDialog({
       onSongAdded(newSong);
 
       // Close and reset form before showing toast to reduce perceived complexity
-      setAddSongForm({ songId: "", key: "", notes: "" });
+      setAddSongForm({ songId: "", key: "", notes: "", sectionOrder: [] });
       setSelectedSongInModal(null);
       setShowNotes(false);
       onOpenChange(false);
@@ -303,6 +307,7 @@ export function AddSongDialog({
                       songId,
                       key: selected?.default_key || "",
                       notes: "",
+                      sectionOrder: selected?.defaultSectionOrder || [],
                     }));
                     setShowNotes(false);
                   }}
@@ -339,6 +344,39 @@ export function AddSongDialog({
                   </div>
                 </div>
               )}
+              {addSongForm.songId && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Section order</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() =>
+                        setAddSongForm((prev) => ({
+                          ...prev,
+                          sectionOrder:
+                            selectedSongInModal?.defaultSectionOrder || [],
+                        }))
+                      }
+                      disabled={
+                        !selectedSongInModal?.defaultSectionOrder ||
+                        selectedSongInModal.defaultSectionOrder.length === 0
+                      }
+                    >
+                      Use default
+                    </Button>
+                  </div>
+                  <SectionOrderEditor
+                    value={addSongForm.sectionOrder}
+                    onChange={(sectionOrder) =>
+                      setAddSongForm((prev) => ({ ...prev, sectionOrder }))
+                    }
+                    hideHeader
+                  />
+                </div>
+              )}
+
               {addSongForm.songId && (
                 <div className="mt-4 border-t pt-3">
                   <div className="mb-2 text-xs text-muted-foreground font-medium">
@@ -405,7 +443,8 @@ export function AddSongDialog({
                       className="min-h-[120px] text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
-                      These notes stay with this setlist song and show in fullscreen viewing.
+                      These notes stay with this setlist song and show in
+                      fullscreen viewing.
                     </p>
                   </div>
                 )}

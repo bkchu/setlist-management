@@ -2,30 +2,48 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { songKeys } from "./keys";
 import { Song } from "@/types";
+import { Tables } from "@/types/supabase";
 
-function transformSong(row: any): Song {
+type SongKeyRow = {
+  id: string;
+  key: string;
+  played_at: string;
+  setlist_id: string;
+  setlists?: { name?: string } | null;
+};
+
+type SongRow = Tables<"songs"> & { song_keys?: SongKeyRow[] | null };
+
+function transformSong(row: SongRow): Song {
+  const files = (row.files as unknown as Song["files"]) || [];
+  const keyedFiles = (row.keyed_files as unknown as Song["keyedFiles"]) || {};
+  const defaultSectionOrder =
+    (row.default_section_order as unknown as Song["defaultSectionOrder"]) ||
+    undefined;
+
   return {
     id: row.id,
     title: row.title,
     artist: row.artist,
     notes: row.notes || "",
-    files: row.files || [],
-    keyedFiles: row.keyed_files || {},
+    files,
+    keyedFiles,
+    defaultSectionOrder,
     keyHistory:
       row.song_keys
-        ?.map((key: any) => ({
+        ?.map((key: SongKeyRow) => ({
           id: key.id,
           key: key.key,
           playedAt: key.played_at,
           setlistId: key.setlist_id,
-          setlistName: key.setlists?.name,
+          setlistName: key.setlists?.name ?? "",
         }))
         .sort(
-          (a: any, b: any) =>
+          (a, b) =>
             new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
         ) || [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
   };
 }
 

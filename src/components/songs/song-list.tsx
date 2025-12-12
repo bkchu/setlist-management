@@ -13,6 +13,7 @@ import {
   Plus,
   StarIcon,
   CalendarIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -24,6 +25,17 @@ import { useSettings } from "@/hooks/use-settings";
 import { toast } from "sonner";
 import { SongSearchCombobox } from "./song-search-combobox";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
 
 interface SongListProps {
   songs: Song[];
@@ -40,6 +52,8 @@ export function SongList({
 }: SongListProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [deletingSong, setDeletingSong] = useState<Song | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { settings, updateOneTouchSongs } = useSettings();
 
   const handleAddSubmit = async (songData: Partial<Song>) => {
@@ -64,6 +78,17 @@ export function SongList({
     setEditingSong(null);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingSong) return;
+    setIsDeleting(true);
+    try {
+      await Promise.resolve(onDeleteSong(deletingSong.id));
+    } finally {
+      setIsDeleting(false);
+      setDeletingSong(null);
+    }
+  };
+
   const toggleOneTouch = (song: Song, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,9 +100,7 @@ export function SongList({
     updateOneTouchSongs(newSongIds)
       .then(() => {
         toast(
-          isOneTouch
-            ? "Removed from Quick Access"
-            : "Added to Quick Access",
+          isOneTouch ? "Removed from Quick Access" : "Added to Quick Access",
           {
             description: isOneTouch
               ? `"${song.title}" removed`
@@ -121,7 +144,7 @@ export function SongList({
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive focus:bg-destructive/10"
-            onSelect={() => onDeleteSong(song.id)}
+            onSelect={() => setDeletingSong(song)}
           >
             Delete Song
           </DropdownMenuItem>
@@ -163,7 +186,9 @@ export function SongList({
             <div className="mb-4 rounded-full bg-white/5 p-4">
               <MusicIcon className="h-8 w-8 text-muted-foreground/50" />
             </div>
-            <h3 className="text-lg font-medium text-foreground">No songs yet</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              No songs yet
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground max-w-xs">
               Add your first song to start building your library.
             </p>
@@ -180,8 +205,11 @@ export function SongList({
         <AnimatePresence>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {songs.map((song) => {
-              const hasKeyHistory = song.keyHistory && song.keyHistory.length > 0;
-              const isOneTouch = settings.oneTouchSongs.songIds.includes(song.id);
+              const hasKeyHistory =
+                song.keyHistory && song.keyHistory.length > 0;
+              const isOneTouch = settings.oneTouchSongs.songIds.includes(
+                song.id
+              );
 
               return (
                 <motion.div
@@ -246,7 +274,10 @@ export function SongList({
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CalendarIcon className="h-3.5 w-3.5" />
-                        <span>Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}</span>
+                        <span>
+                          Updated{" "}
+                          {format(new Date(song.updatedAt), "MMM d, yyyy")}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-white/5">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -275,6 +306,43 @@ export function SongList({
         song={editingSong ?? undefined}
         onSubmit={editingSong ? handleEditSubmit : handleAddSubmit}
       />
+
+      <AlertDialog
+        open={Boolean(deletingSong)}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeletingSong(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete song?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the song from your Song Library. Setlists will no
+              longer show this song.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2Icon className="mr-2 h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

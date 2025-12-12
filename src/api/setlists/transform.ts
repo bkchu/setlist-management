@@ -1,4 +1,4 @@
-import { Setlist } from "@/types";
+import { SectionOrder, Setlist } from "@/types";
 import { Tables } from "@/types/supabase";
 
 type SupabaseSongRow = Tables<"songs">;
@@ -25,6 +25,8 @@ export function transformSetlist(data: SupabaseSetlistJoined): Setlist {
           key: item.key || "",
           notes: item.notes || "",
           order: item.order,
+          sectionOrder:
+            (item.section_order as SectionOrder | null) || undefined,
           song: {
             id: item.songs.id,
             title: item.songs.title,
@@ -32,6 +34,9 @@ export function transformSetlist(data: SupabaseSetlistJoined): Setlist {
             notes: item.songs.notes || "",
             createdAt: item.songs.created_at ?? "",
             updatedAt: item.songs.updated_at ?? "",
+            defaultSectionOrder:
+              (item.songs.default_section_order as SectionOrder | null) ||
+              undefined,
           },
         }))
         .sort((a, b) => a.order - b.order) || [],

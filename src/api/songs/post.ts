@@ -9,6 +9,7 @@ export type CreateSongPayload = {
   notes?: string;
   files?: Song["files"];
   keyedFiles?: Song["keyedFiles"];
+  defaultSectionOrder?: Song["defaultSectionOrder"];
   organizationId: string;
 };
 
@@ -24,6 +25,7 @@ export async function createSongServer(
         notes: payload.notes ?? "",
         files: payload.files ?? [],
         keyed_files: payload.keyedFiles ?? {},
+        default_section_order: payload.defaultSectionOrder ?? null,
         organization_id: payload.organizationId,
       },
     ])
@@ -51,6 +53,7 @@ export async function createSongServer(
     notes: data.notes || "",
     files: data.files || [],
     keyedFiles: data.keyed_files || {},
+    defaultSectionOrder: data.default_section_order || undefined,
     keyHistory:
       (data.song_keys || []).map(
         (key: {
@@ -83,8 +86,3 @@ export function useCreateSong() {
     },
   });
 }
-
-
-
-
-

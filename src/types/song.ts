@@ -45,6 +45,27 @@ export const AVAILABLE_KEYS = [
 
 export type MusicalKey = (typeof AVAILABLE_KEYS)[number];
 
+export type SectionType =
+  | "intro"
+  | "verse"
+  | "prechorus"
+  | "chorus"
+  | "bridge"
+  | "outro"
+  | "instrumental"
+  | "interlude"
+  | "tag";
+
+export interface SongSection {
+  id: string;
+  type: SectionType;
+  label?: string;
+  repeat?: number;
+  displayLabel?: string;
+}
+
+export type SectionOrder = SongSection[];
+
 export interface Song {
   id: string;
   title: string;
@@ -61,6 +82,7 @@ export interface Song {
   updatedAt: string;
   files?: SongFile[]; // Keep for backward compatibility during migration
   keyedFiles?: KeyedSongFiles; // New key-specific files structure
+  defaultSectionOrder?: SectionOrder;
   keyHistory?: Array<{
     id: string;
     key: string;
@@ -76,7 +98,11 @@ export interface SetlistSong
   songId: string;
   order: number;
   notes?: string;
-  song: Pick<Song, "id" | "title" | "artist" | "files" | "keyedFiles">;
+  sectionOrder?: SectionOrder;
+  song: Pick<
+    Song,
+    "id" | "title" | "artist" | "files" | "keyedFiles" | "defaultSectionOrder"
+  >;
 }
 
 // Helper function to get files for a specific key with NO fallback

@@ -1,13 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetSong } from "@/api/songs/get";
 import { useUpdateSong } from "@/api/songs/put";
+import { useDeleteSong } from "@/api/songs/delete";
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { SongForm } from "@/components/songs/song-form";
 import { SongKeyHistory } from "@/components/songs/SongKeyHistory";
-import { SongFileViewer } from "@/components/songs/SongFileViewer";
 import { format } from "date-fns";
 import {
   EditIcon,
@@ -15,16 +15,41 @@ import {
   CalendarIcon,
   ClockIcon,
   Loader2Icon,
+  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Song } from "@/types";
+import { KeyedSongFiles, SectionOrder, Song } from "@/types";
+import { SectionOrderEditor } from "@/components/songs/section-order-editor";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { SongFileManager } from "@/components/songs/SongFileManager";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function SongPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: song, isLoading: isSongLoading } = useGetSong({ songId: id });
   const updateSongMutation = useUpdateSong();
+  const deleteSongMutation = useDeleteSong();
   const [isEditing, setIsEditing] = useState(false);
+  const [sectionOrder, setSectionOrder] = useState<SectionOrder>([]);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (isSongLoading) return;
@@ -37,6 +62,14 @@ export default function SongPage() {
     }
   }, [song, isSongLoading, navigate]);
 
+  useEffect(() => {
+    if (song?.defaultSectionOrder) {
+      setSectionOrder(song.defaultSectionOrder);
+    } else {
+      setSectionOrder([]);
+    }
+  }, [song]);
+
   const handleEditSong = async (songData: Partial<Song>) => {
     if (!song) return;
 
@@ -48,6 +81,56 @@ export default function SongPage() {
       });
     } catch {
       toast.error("Couldn't save changes", {
+        description: "Please try again",
+      });
+    }
+  };
+
+  const handleSaveSectionOrder = async () => {
+    if (!song) return;
+    setIsSavingOrder(true);
+    try {
+      await updateSongMutation.mutateAsync({
+        id: song.id,
+        payload: { defaultSectionOrder: sectionOrder },
+      });
+      toast.success("Section order saved", {
+        description:
+          "Defaults will prefill when you add this song to a setlist",
+      });
+    } catch {
+      toast.error("Couldn't save section order", {
+        description: "Please try again",
+      });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  const handleFilesChange = async (keyedFiles: KeyedSongFiles) => {
+    if (!song) return;
+    try {
+      await updateSongMutation.mutateAsync({
+        id: song.id,
+        payload: { keyedFiles },
+      });
+      toast.success("Files updated");
+    } catch {
+      toast.error("Couldn't update files", {
+        description: "Please try again",
+      });
+    }
+  };
+
+  const handleDeleteSong = async () => {
+    if (!song) return;
+    try {
+      await deleteSongMutation.mutateAsync(song.id);
+      toast.success("Song deleted");
+      setIsDeleteDialogOpen(false);
+      navigate("/songs");
+    } catch {
+      toast.error("Couldn't delete song", {
         description: "Please try again",
       });
     }
@@ -104,15 +187,26 @@ export default function SongPage() {
                 </div>
               </div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditing(true)}
-                className="h-9 w-9 shrink-0"
-              >
-                <EditIcon className="h-4 w-4" />
-                <span className="sr-only">Edit song</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditing(true)}
+                  className="h-9 w-9 shrink-0"
+                >
+                  <EditIcon className="h-4 w-4" />
+                  <span className="sr-only">Edit song</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                  <span className="sr-only">Delete song</span>
+                </Button>
+              </div>
             </div>
 
             {/* Notes */}
@@ -128,23 +222,70 @@ export default function SongPage() {
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <CalendarIcon className="h-3.5 w-3.5" />
-                <span>Created {format(new Date(song.createdAt), "MMM d, yyyy")}</span>
+                <span>
+                  Created {format(new Date(song.createdAt), "MMM d, yyyy")}
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <ClockIcon className="h-3.5 w-3.5" />
-                <span>Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}</span>
+                <span>
+                  Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Files by key */}
+        <SongFileManager song={song} onFilesChange={handleFilesChange} />
+
+        {/* Default Section Order */}
+        <Card className="border-white/10 bg-white/5">
+          <CardHeader className="space-y-2">
+            <CardTitle className="text-lg font-semibold">
+              Default Section Order
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Prefill the song order whenever you add this song to a setlist.
+              You can override it per setlist if needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SectionOrderEditor
+              value={sectionOrder}
+              onChange={setSectionOrder}
+            />
+          </CardContent>
+          <CardFooter className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setSectionOrder([])}
+              className="h-10"
+              disabled={sectionOrder.length === 0 || isSavingOrder}
+            >
+              Clear
+            </Button>
+            <Button
+              onClick={handleSaveSectionOrder}
+              disabled={isSavingOrder}
+              className="h-10"
+            >
+              {isSavingOrder ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save order"
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+
         {/* Key History */}
         {song.keyHistory && song.keyHistory.length > 0 && (
           <SongKeyHistory keyHistory={song.keyHistory} />
         )}
-
-        {/* File Viewer */}
-        <SongFileViewer song={song} />
       </div>
 
       <SongForm
@@ -153,6 +294,42 @@ export default function SongPage() {
         song={song}
         onSubmit={handleEditSong}
       />
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleteSongMutation.isPending) setIsDeleteDialogOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete song?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the song and its files from your Song Library.
+              Setlists will no longer show this song.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSongMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteSong}
+              disabled={deleteSongMutation.isPending}
+            >
+              {deleteSongMutation.isPending ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

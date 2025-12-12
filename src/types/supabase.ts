@@ -123,6 +123,7 @@ export type Database = {
           id: string;
           key: string | null;
           notes: string | null;
+          section_order: Json | null;
           order: number;
           setlist_id: string;
           song_id: string;
@@ -132,6 +133,7 @@ export type Database = {
           id?: string;
           key?: string | null;
           notes?: string | null;
+          section_order?: Json | null;
           order: number;
           setlist_id: string;
           song_id: string;
@@ -141,6 +143,7 @@ export type Database = {
           id?: string;
           key?: string | null;
           notes?: string | null;
+          section_order?: Json | null;
           order?: number;
           setlist_id?: string;
           song_id?: string;
@@ -250,6 +253,7 @@ export type Database = {
           files: Json[] | null;
           id: string;
           keyed_files: Json | null;
+          default_section_order: Json | null;
           notes: string | null;
           organization_id: string;
           title: string;
@@ -261,6 +265,7 @@ export type Database = {
           files?: Json[] | null;
           id?: string;
           keyed_files?: Json | null;
+          default_section_order?: Json | null;
           notes?: string | null;
           organization_id: string;
           title: string;
@@ -272,6 +277,7 @@ export type Database = {
           files?: Json[] | null;
           id?: string;
           keyed_files?: Json | null;
+          default_section_order?: Json | null;
           notes?: string | null;
           organization_id?: string;
           title?: string;

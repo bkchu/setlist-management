@@ -63,11 +63,17 @@ export function OneTouchSongs({
     [selectedKey]
   );
 
+  const sectionOrderResolver = useCallback(
+    (song: Song) => song.defaultSectionOrder,
+    []
+  );
+
   // Get slides for the selected song
   const { flattenedSlides, isLoading, setNumPages } = useFileSlides({
     songs,
     songFilter: selectedSongId ? songFilter : undefined,
     keyResolver,
+    sectionOrderResolver,
   });
 
   // Callback to update PDF page counts when FileViewer discovers them

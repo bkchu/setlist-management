@@ -22,6 +22,7 @@ interface SupabaseSetlistSong {
   order: number;
   key?: string | null;
   notes?: string | null;
+  section_order?: unknown | null;
   songs: SupabaseSong;
 }
 
@@ -165,6 +166,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           order: number;
           key: string | null;
           notes: string | null;
+          section_order: unknown | null;
         }> = [];
 
         const newSongsToInsert: Array<{
@@ -173,6 +175,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
           order: number;
           key: string | null;
           notes: string | null;
+          section_order: unknown | null;
         }> = [];
 
         newSongs.forEach((song) => {
@@ -186,6 +189,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
               order: song.order,
               key: song.key || null,
               notes: song.notes || null,
+              section_order: song.sectionOrder || null,
             });
           } else {
             // This is a new song - don't include ID, let database generate it
@@ -195,6 +199,7 @@ export function SetlistProvider({ children }: { children: React.ReactNode }) {
               order: song.order,
               key: song.key || null,
               notes: song.notes || null,
+              section_order: song.sectionOrder || null,
             });
           }
         });

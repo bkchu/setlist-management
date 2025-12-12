@@ -209,12 +209,15 @@ export function FileViewer({
               </div>
             </div>
 
-            {isFullscreen && currentSlide?.notes && (
-              <NotesBar
-                notes={currentSlide.notes}
-                songTitle={currentSlide.songTitle || ""}
-              />
-            )}
+            {isFullscreen &&
+              currentSlide &&
+              (currentSlide.notes || currentSlide.sectionOrder?.length) && (
+                <NotesBar
+                  notes={currentSlide.notes}
+                  songTitle={currentSlide.songTitle || ""}
+                  sectionOrder={currentSlide.sectionOrder}
+                />
+              )}
           </div>
         </div>
       </DialogContent>

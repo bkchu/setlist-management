@@ -23,6 +23,9 @@ export type {
   SetlistSong,
   KeyedSongFiles,
   MusicalKey,
+  SectionOrder,
+  SongSection,
+  SectionType,
 } from "./song";
 
 export {

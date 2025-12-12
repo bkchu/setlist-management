@@ -174,6 +174,15 @@ export default function SetlistPage() {
     [setlistSongsJson]
   );
 
+  const sectionOrderResolver = useCallback(
+    (song: Song) => {
+      const setlistSong = setlist?.songs.find((s) => s.songId === song.id);
+      return setlistSong?.sectionOrder || setlistSong?.song.defaultSectionOrder;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setlistSongsJson]
+  );
+
   const {
     flattenedSlides,
     isLoading: isFileSlidesLoading,
@@ -183,6 +192,7 @@ export default function SetlistPage() {
     songFilter: stableSongFilter,
     keyResolver,
     notesResolver,
+    sectionOrderResolver,
     songOrderer,
   });
 

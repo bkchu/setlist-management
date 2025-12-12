@@ -1,4 +1,4 @@
-import { SetlistSong } from "./song";
+import { SectionOrder, SetlistSong } from "./song";
 
 export interface Setlist {
   id: string;
@@ -25,6 +25,7 @@ export interface SetlistSongsUpdateData {
     order: number;
     key?: string;
     notes?: string;
+    sectionOrder?: SectionOrder;
   }>;
 }
 
@@ -41,6 +42,7 @@ export interface FileWithUrl {
   songArtist?: string;
   keyInfo?: string;
   notes?: string;
+  sectionOrder?: SectionOrder;
 }
 
 export interface EditableSetlistSong extends Omit<SetlistSong, "song"> {
@@ -64,4 +66,5 @@ export interface SlideItem extends FileWithUrl {
   songTitle?: string;
   song_id: string;
   notes?: string;
+  sectionOrder?: SectionOrder;
 }

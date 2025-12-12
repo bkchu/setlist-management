@@ -13,7 +13,12 @@ import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
 import { signSongFilePath } from "@/lib/storage";
 import { isImage, isPDF } from "@/lib/utils";
-import { getFilesForKey, hasFilesForSpecificKey, SetlistSong } from "@/types";
+import {
+  getFilesForKey,
+  hasFilesForSpecificKey,
+  SetlistSong,
+  SectionOrder,
+} from "@/types";
 import {
   FileIcon,
   Loader2Icon,
@@ -21,6 +26,7 @@ import {
   StickyNoteIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SectionOrderEditor } from "@/components/songs/section-order-editor";
 
 const KEY_OPTIONS = [
   "G",
@@ -107,6 +113,7 @@ export function EditSongDialog({
           onSave(editableSong.id, {
             key: editableSong.key,
             notes: editableSong.notes,
+            sectionOrder: editableSong.sectionOrder,
           })
         );
         onOpenChange(false);
@@ -125,6 +132,21 @@ export function EditSongDialog({
   const handleNotesChange = (notes: string) => {
     if (editableSong) {
       setEditableSong((prev) => ({ ...prev, notes }));
+    }
+  };
+
+  const handleSectionOrderChange = (sectionOrder: SectionOrder) => {
+    if (editableSong) {
+      setEditableSong((prev) => ({ ...prev, sectionOrder }));
+    }
+  };
+
+  const handleResetSectionOrder = () => {
+    if (songInDb && editableSong) {
+      setEditableSong((prev) => ({
+        ...prev,
+        sectionOrder: songInDb.defaultSectionOrder || [],
+      }));
     }
   };
 
@@ -193,6 +215,33 @@ export function EditSongDialog({
               <p className="text-[11px] sm:text-xs text-muted-foreground">
                 Keys with files are marked with a dot
               </p>
+            </div>
+
+            {/* Section Order */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs sm:text-sm font-medium text-foreground/90">
+                  Section Order
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  disabled={
+                    !songInDb?.defaultSectionOrder ||
+                    songInDb.defaultSectionOrder.length === 0
+                  }
+                  onClick={handleResetSectionOrder}
+                >
+                  Reset to song default
+                </Button>
+              </div>
+              <SectionOrderEditor
+                value={editableSong.sectionOrder || []}
+                onChange={handleSectionOrderChange}
+                hideHeader
+              />
             </div>
 
             {/* Performance Notes */}

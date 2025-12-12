@@ -15,6 +15,7 @@ interface UseFileSlidesOptions {
   songFilter?: (song: Song) => boolean;
   keyResolver?: (song: Song) => string;
   notesResolver?: (song: Song) => string;
+  sectionOrderResolver?: (song: Song) => Song["defaultSectionOrder"];
   songOrderer?: (songs: Song[]) => Song[];
 }
 
@@ -27,6 +28,7 @@ export function useFileSlides({
   songFilter,
   keyResolver = () => "",
   notesResolver = () => "",
+  sectionOrderResolver = () => undefined,
   songOrderer,
 }: UseFileSlidesOptions) {
   const [numPages, setNumPages] = useState<Record<string, number>>({});
@@ -47,20 +49,29 @@ export function useFileSlides({
       song: Song;
       key: string;
       notes?: string;
+      sectionOrder?: Song["defaultSectionOrder"];
     }> = [];
 
     for (const song of filteredSongs) {
       const key = keyResolver(song);
       const relevantFiles = getFilesForKey(song, key);
       const notes = notesResolver(song);
+      const sectionOrder = sectionOrderResolver(song);
 
       for (const file of relevantFiles) {
-        fileList.push({ file, song, key, notes });
+        fileList.push({ file, song, key, notes, sectionOrder });
       }
     }
 
     return fileList;
-  }, [songs, songFilter, keyResolver, songOrderer]);
+  }, [
+    songs,
+    songFilter,
+    keyResolver,
+    notesResolver,
+    sectionOrderResolver,
+    songOrderer,
+  ]);
 
   // Use TanStack Query to fetch signed URLs for all files
   const queries = useQueries({
@@ -81,23 +92,26 @@ export function useFileSlides({
   const files: FileWithUrl[] = useMemo(() => {
     const result: FileWithUrl[] = [];
 
-    processedFiles.forEach(({ file, song, key, notes }, index) => {
-      const query = queries[index];
+    processedFiles.forEach(
+      ({ file, song, key, notes, sectionOrder }, index) => {
+        const query = queries[index];
 
-      if (query.data) {
-        result.push({
-          ...file,
-          url: query.data,
-          songTitle: song.title,
-          songArtist: song.artist,
-          id: file.id || `temp-${file.path}`,
-          created_at: file.createdAt || new Date().toISOString(),
-          song_id: song.id,
-          keyInfo: key,
-          notes,
-        });
+        if (query.data) {
+          result.push({
+            ...file,
+            url: query.data,
+            songTitle: song.title,
+            songArtist: song.artist,
+            id: file.id || `temp-${file.path}`,
+            created_at: file.createdAt || new Date().toISOString(),
+            song_id: song.id,
+            keyInfo: key,
+            notes,
+            sectionOrder,
+          });
+        }
       }
-    });
+    );
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +123,13 @@ export function useFileSlides({
 
     files.forEach((file) => {
       if (isImage(file.name)) {
-        slides.push({ ...file, type: "image", key: file.path, notes: file.notes });
+        slides.push({
+          ...file,
+          type: "image",
+          key: file.path,
+          notes: file.notes,
+          sectionOrder: file.sectionOrder,
+        });
       } else if (isPDF(file.name)) {
         const num = numPages[file.path] || 1;
         for (let i = 1; i <= num; i++) {
@@ -124,6 +144,7 @@ export function useFileSlides({
             pageNumber: i,
             key: `${file.path}__page_${i}`,
             notes: file.notes,
+            sectionOrder: file.sectionOrder,
           });
         }
       }

@@ -9,9 +9,11 @@ import { useCreateSong } from "@/api/songs/post";
 import { useUpdateSong } from "@/api/songs/put";
 import { useDeleteSong } from "@/api/songs/delete";
 import { AppLayout } from "@/components/layout/app-layout";
+import { useNavigate } from "react-router-dom";
 
 export default function Songs() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: songs = [] } = useGetSongsByOrganization(user?.organizationId);
   const createSong = useCreateSong();
   const updateSong = useUpdateSong();
@@ -30,9 +32,10 @@ export default function Songs() {
         keyedFiles: songData.keyedFiles,
         organizationId: user.organizationId,
       });
-      toast.success("Song added", {
-        description: `"${songData.title}" has been added to your library`,
+      toast.success("Song created", {
+        description: "Add chord sheets and set up the default section order.",
       });
+      navigate(`/song/${created.id}`);
     } catch (error) {
       toast.error("Error", {
         description:
