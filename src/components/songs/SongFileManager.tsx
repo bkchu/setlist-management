@@ -7,7 +7,6 @@ import {
   Loader2Icon,
   PlusIcon,
   TrashIcon,
-  UploadIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, isImage, isPDF } from "@/lib/utils";
@@ -224,50 +223,29 @@ export function SongFileManager({ song, onFilesChange }: SongFileManagerProps) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 p-4">
-        <div className="flex items-center gap-2">
-          <FileIcon className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Files by Key
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Upload chord sheets for each key. PDFs and images supported.
-            </p>
-          </div>
+      <div className="flex items-center gap-3 border-b border-white/10 p-4">
+        <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Files by Key</p>
+          <p className="text-xs text-muted-foreground">
+            Select a key, then upload chord sheets.
+          </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9"
-          onClick={handleUploadClick}
-          disabled={isUploading}
-        >
-          {isUploading ? (
-            <>
-              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <UploadIcon className="mr-2 h-4 w-4" />
-              Upload
-            </>
-          )}
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          multiple
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={handleFileUpload}
-          disabled={isUploading}
-        />
       </div>
 
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        multiple
+        accept=".pdf,.jpg,.jpeg,.png"
+        onChange={handleFileUpload}
+        disabled={isUploading}
+      />
+
       {/* Key pills */}
-      <div className="flex gap-1.5 overflow-x-auto border-b border-white/10 px-4 py-3">
+      <div className="flex flex-wrap gap-1.5 border-b border-white/10 px-4 py-3">
         {AVAILABLE_KEYS.map((key) => {
           const hasFiles = keysWithFiles.some(([k]) => k === key);
           return (
@@ -327,7 +305,7 @@ export function SongFileManager({ song, onFilesChange }: SongFileManagerProps) {
             </div>
           ))}
 
-          {currentFiles.length === 0 && (
+          {currentFiles.length === 0 ? (
             <div className="rounded-lg border border-dashed border-white/15 bg-white/5 p-4 text-center text-sm text-muted-foreground">
               No files for {selectedKey} yet.
               <div className="mt-3">
@@ -339,11 +317,41 @@ export function SongFileManager({ song, onFilesChange }: SongFileManagerProps) {
                   disabled={isUploading}
                   className="w-full"
                 >
-                  <PlusIcon className="mr-2 h-4 w-4" />
-                  Upload for {selectedKey}
+                  {isUploading ? (
+                    <>
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                      Upload for {selectedKey}
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              className="w-full justify-start text-muted-foreground hover:text-foreground"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Add file for {selectedKey}
+                </>
+              )}
+            </Button>
           )}
         </div>
 
