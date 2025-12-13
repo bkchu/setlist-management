@@ -696,6 +696,208 @@
     }
   },
 
+  "uxPreferences": {
+    "description": "Core UX preferences and patterns that define Setlify's approach to UI design. These emerged from iterative design sessions and should be followed consistently.",
+
+    "philosophy": {
+      "usefulMinimalism": {
+        "description": "Reduce visual noise while maintaining functionality. Every element should earn its place.",
+        "principles": [
+          "Remove unnecessary card wrappers when content can stand alone",
+          "Use progressive disclosure - show essentials first, let users expand for more",
+          "Prefer inline/expandable content over modals when possible",
+          "Avoid nested containers that create visual clutter"
+        ]
+      },
+      "contentFirst": {
+        "description": "Content should be the hero, not the containers around it.",
+        "principles": [
+          "Hero sections don't need card wrappers - let title/metadata breathe",
+          "Use subtle visual separators (spacing, borders) instead of heavy containers",
+          "Keep important actions visible but not dominant"
+        ]
+      },
+      "mobileFirst": {
+        "description": "Design for mobile constraints first, enhance for desktop.",
+        "principles": [
+          "Use dropdown menus for action groups on mobile to prevent overflow",
+          "Ensure touch targets are at least 44px",
+          "Test layouts at 320px width minimum"
+        ]
+      }
+    },
+
+    "detailPageLayout": {
+      "description": "Pattern for entity detail pages (songs, setlists, etc.)",
+      "heroSection": {
+        "description": "Title and metadata without card wrapper for clean, content-first appearance",
+        "container": "flex items-start justify-between gap-3",
+        "titleBlock": "min-w-0 space-y-1",
+        "title": "text-xl sm:text-2xl font-semibold tracking-tight text-foreground truncate",
+        "subtitle": "text-sm text-muted-foreground",
+        "meta": "text-xs text-muted-foreground/70",
+        "actions": "Use DropdownMenu with ghost icon button (MoreVerticalIcon) for Edit/Delete",
+        "actionsButton": "h-9 w-9 shrink-0",
+        "note": "Title block uses min-w-0 to allow truncation; actions button uses shrink-0 to prevent compression"
+      },
+      "notesSection": {
+        "description": "Display notes as subtle blockquote style, not in a card",
+        "classes": "border-l-2 border-primary/30 pl-3 text-sm text-muted-foreground italic"
+      },
+      "sectionOrder": [
+        "Breadcrumb",
+        "Hero (title, subtitle, meta, actions)",
+        "Notes (if present)",
+        "Key metadata (e.g., key history)",
+        "Primary content (e.g., files)",
+        "Secondary content (e.g., section order)"
+      ]
+    },
+
+    "fileManagement": {
+      "description": "Pattern for managing files associated with entities (songs, etc.)",
+      "layout": {
+        "description": "Compact file list with expandable inline previews",
+        "keyPills": {
+          "description": "Horizontal row of key buttons with file counts",
+          "container": "flex flex-wrap gap-1",
+          "pill": {
+            "base": "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+            "active": "bg-primary text-primary-foreground",
+            "hasFiles": "bg-white/10 text-foreground hover:bg-white/15",
+            "empty": "bg-white/5 text-muted-foreground hover:bg-white/10"
+          },
+          "count": "text-[10px] inline after key name"
+        },
+        "fileList": {
+          "description": "Expandable file rows - click to reveal inline preview",
+          "row": {
+            "container": "rounded-lg bg-white/5 overflow-hidden",
+            "header": "group flex items-center justify-between gap-2 px-3 py-2 cursor-pointer hover:bg-white/[0.08] transition-colors",
+            "chevron": "h-3.5 w-3.5 text-muted-foreground transition-transform (rotate-180 when expanded)",
+            "fileName": "truncate text-sm text-foreground",
+            "actions": "flex items-center gap-1 shrink-0"
+          },
+          "preview": {
+            "container": "border-t border-white/5 bg-black/20 p-3",
+            "imageMaxHeight": "max-h-64",
+            "pdfWidth": 280,
+            "pdfPagesShown": 1,
+            "note": "Preview only shows when row is expanded - keeps list compact"
+          }
+        },
+        "uploadAction": {
+          "description": "Upload button in section header, contextual to selected key",
+          "location": "flex justify-between in section header",
+          "button": "variant='ghost' size='sm' with dynamic label showing selected key"
+        }
+      },
+      "principles": [
+        "Key selection should come before upload action in visual hierarchy",
+        "Use expandable rows instead of always-visible large previews",
+        "Keep file list compact - one line per file until expanded",
+        "Preview should be contained (max-h-64 for images, single page for PDFs)",
+        "Empty state should invite action with inline upload link"
+      ]
+    },
+
+    "popoversAndTooltips": {
+      "description": "Ensure floating elements are always readable",
+      "background": {
+        "rule": "Always use solid bg-popover for HoverCard, Tooltip, and Popover content",
+        "avoid": "Never use semi-transparent backgrounds (bg-card/95, backdrop-blur) for popovers over content",
+        "reason": "Transparent backgrounds make text unreadable when overlapping other content"
+      },
+      "classes": {
+        "HoverCardContent": "bg-popover shadow-lg border-white/10",
+        "TooltipContent": "bg-popover",
+        "PopoverContent": "bg-popover"
+      }
+    },
+
+    "cardUsage": {
+      "description": "Guidelines for when to use Card wrappers vs content-first layouts",
+      "useCards": [
+        "Lists of discrete items (setlist cards, song cards in grid)",
+        "Forms with multiple fields",
+        "Grouped settings or configuration",
+        "Content that needs clear visual boundaries from siblings"
+      ],
+      "avoidCards": [
+        "Hero/header sections on detail pages",
+        "Single pieces of metadata (like notes)",
+        "Inline content that flows naturally (like key history badges)",
+        "When nesting would create card-within-card"
+      ],
+      "alternatives": {
+        "forSeparation": "Use space-y-6 or border-b border-white/10",
+        "forGrouping": "Use subtle bg-white/5 with rounded-lg",
+        "forEmphasis": "Use border-l-2 border-primary/30 (blockquote style)"
+      }
+    },
+
+    "responsiveActions": {
+      "description": "Pattern for action buttons that work on all screen sizes",
+      "singleAction": "Use Button directly - no wrapper needed",
+      "multipleActions": {
+        "approach": "Use DropdownMenu with MoreVerticalIcon trigger",
+        "trigger": "Button variant='ghost' size='icon' className='h-9 w-9 shrink-0'",
+        "content": "DropdownMenuContent align='end'",
+        "destructiveItem": "DropdownMenuItem className='text-destructive focus:text-destructive'"
+      },
+      "principles": [
+        "Avoid showing multiple action buttons that can wrap/overflow",
+        "DropdownMenu consolidates actions elegantly on all screen sizes",
+        "Use shrink-0 on action containers to prevent compression",
+        "Use min-w-0 on text containers to allow truncation"
+      ]
+    },
+
+    "expandableContent": {
+      "description": "Pattern for content that can be expanded/collapsed",
+      "indicator": {
+        "icon": "ChevronDownIcon with rotate-180 transition when expanded",
+        "position": "Left side of clickable row header"
+      },
+      "animation": {
+        "chevron": "transition-transform",
+        "content": "No animation needed - instant show/hide is fine"
+      },
+      "useCases": [
+        "File previews in file manager",
+        "Collapsible sections in forms",
+        "FAQ-style content"
+      ]
+    },
+
+    "deleteConfirmation": {
+      "description": "All destructive actions require confirmation. Use AlertDialog, never immediate deletion.",
+      "when": [
+        "Deleting entities (songs, setlists, files)",
+        "Removing items from collections",
+        "Any action that cannot be undone"
+      ],
+      "pattern": {
+        "trigger": "Set state to track item being deleted (e.g., fileToDelete, songToDelete)",
+        "dialog": "AlertDialog with open={!!itemToDelete} onOpenChange",
+        "title": "Action-focused: 'Remove file?', 'Delete song?'",
+        "description": "Explain consequence, show item name in bold: 'This will permanently delete <span className=\"font-medium text-foreground\">{item.name}</span>'",
+        "cancelButton": "AlertDialogCancel with disabled={isDeleting}",
+        "confirmButton": "AlertDialogAction with destructive styling and loading state"
+      },
+      "styling": {
+        "confirmButton": "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        "itemName": "font-medium text-foreground (to highlight what's being deleted)"
+      },
+      "states": {
+        "idle": "fileToDelete is null, dialog closed",
+        "confirming": "fileToDelete set, dialog open, isDeleting false",
+        "deleting": "isDeleting true, buttons disabled, show spinner"
+      },
+      "example": "```tsx\nconst [fileToDelete, setFileToDelete] = useState<SongFile | null>(null);\nconst [isDeleting, setIsDeleting] = useState(false);\n\n// Trigger: setFileToDelete(file)\n\n<AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>\n  <AlertDialogContent>\n    <AlertDialogHeader>\n      <AlertDialogTitle>Remove file?</AlertDialogTitle>\n      <AlertDialogDescription>\n        This will permanently delete{\" \"}\n        <span className=\"font-medium text-foreground\">{fileToDelete?.name}</span>.\n        This action cannot be undone.\n      </AlertDialogDescription>\n    </AlertDialogHeader>\n    <AlertDialogFooter>\n      <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>\n      <AlertDialogAction\n        onClick={handleConfirmDelete}\n        disabled={isDeleting}\n        className=\"bg-destructive text-destructive-foreground hover:bg-destructive/90\"\n      >\n        {isDeleting ? (\n          <><Loader2Icon className=\"mr-2 h-4 w-4 animate-spin\" />Removing...</>\n        ) : \"Remove\"}\n      </AlertDialogAction>\n    </AlertDialogFooter>\n  </AlertDialogContent>\n</AlertDialog>\n```"
+    }
+  },
+
   "bestPractices": {
     "doThis": [
       "Use semantic color classes (bg-primary, text-muted-foreground) not raw colors",
@@ -705,7 +907,13 @@
       "Use space-y-* or gap-* for consistent spacing",
       "Wrap interactive elements in proper focus handling",
       "Use variants and sizes from component props, not custom classes",
-      "Keep dark mode in mind - test both themes"
+      "Keep dark mode in mind - test both themes",
+      "Use DropdownMenu for multiple actions to prevent mobile overflow",
+      "Use expandable content instead of always-visible large previews",
+      "Use solid bg-popover for tooltips/popovers, never transparent",
+      "Use min-w-0 on text blocks that should truncate",
+      "Use shrink-0 on action buttons to prevent compression",
+      "Always use AlertDialog for delete/destructive confirmations"
     ],
     "avoidThis": [
       "Don't use arbitrary color values - use CSS variables",
@@ -714,7 +922,12 @@
       "Don't forget loading and error states",
       "Don't skip accessibility (labels, aria attributes)",
       "Don't use fixed pixel values - use the spacing scale",
-      "Don't override component internals - extend via className prop"
+      "Don't override component internals - extend via className prop",
+      "Don't wrap hero sections in Cards on detail pages",
+      "Don't use transparent/blur backgrounds on popovers (unreadable)",
+      "Don't show multiple action buttons that can wrap on mobile",
+      "Don't use large always-visible previews that push content below the fold",
+      "Never delete without confirmation - always use AlertDialog"
     ],
     "cnUtility": {
       "import": "import { cn } from '@/lib/utils'",

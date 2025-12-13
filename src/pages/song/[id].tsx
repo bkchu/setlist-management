@@ -11,9 +11,6 @@ import { SongKeyHistory } from "@/components/songs/SongKeyHistory";
 import { format } from "date-fns";
 import {
   EditIcon,
-  MusicIcon,
-  CalendarIcon,
-  ClockIcon,
   Loader2Icon,
   Trash2Icon,
   MoreVerticalIcon,
@@ -173,108 +170,59 @@ export default function SongPage() {
             ]}
           />
 
-          {/* Hero Section - Glassmorphic */}
-          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl">
-            {/* Decorative gradient */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/8 via-primary/4 to-transparent" />
-            <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
-
-            <div className="relative p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-                  {/* Song icon badge */}
-                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
-                    <MusicIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  </div>
-
-                  <div className="min-w-0 space-y-0.5 sm:space-y-1">
-                    <h1 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground truncate">
-                      {song.title}
-                    </h1>
-                    {song.artist && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        {song.artist}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Desktop: individual buttons */}
-                <div className="hidden sm:flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsEditing(true)}
-                    className="h-9 w-9"
-                  >
-                    <EditIcon className="h-4 w-4" />
-                    <span className="sr-only">Edit song</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-destructive hover:text-destructive"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                  >
-                    <Trash2Icon className="h-4 w-4" />
-                    <span className="sr-only">Delete song</span>
-                  </Button>
-                </div>
-
-                {/* Mobile: dropdown menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 shrink-0 sm:hidden"
-                    >
-                      <MoreVerticalIcon className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setIsEditing(true)}>
-                      <EditIcon className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onSelect={() => setIsDeleteDialogOpen(true)}
-                    >
-                      <Trash2Icon className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {/* Notes */}
-              {song.notes && (
-                <div className="mt-4 rounded-lg border border-white/5 bg-white/3 px-4 py-3">
-                  <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                    {song.notes}
-                  </p>
-                </div>
+          {/* Hero - No card, clean and minimal */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+                {song.title}
+              </h1>
+              {song.artist && (
+                <p className="text-sm text-muted-foreground">{song.artist}</p>
               )}
-
-              {/* Metadata row */}
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  <span>
-                    Created {format(new Date(song.createdAt), "MMM d, yyyy")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ClockIcon className="h-3.5 w-3.5" />
-                  <span>
-                    Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}
-                  </span>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground/70">
+                Updated {format(new Date(song.updatedAt), "MMM d, yyyy")}
+              </p>
             </div>
+
+            {/* Actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                >
+                  <MoreVerticalIcon className="h-4 w-4" />
+                  <span className="sr-only">Actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setIsEditing(true)}>
+                  <EditIcon className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2Icon className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
+          {/* Notes - subtle blockquote style */}
+          {song.notes && (
+            <p className="border-l-2 border-primary/30 pl-3 text-sm text-muted-foreground italic">
+              {song.notes}
+            </p>
+          )}
+
+          {/* Key History - inline, no card */}
+          {song.keyHistory && song.keyHistory.length > 0 && (
+            <SongKeyHistory keyHistory={song.keyHistory} />
+          )}
 
           {/* Files by key */}
           <SongFileManager song={song} onFilesChange={handleFilesChange} />
@@ -321,11 +269,6 @@ export default function SongPage() {
               </Button>
             </CardFooter>
           </Card>
-
-          {/* Key History */}
-          {song.keyHistory && song.keyHistory.length > 0 && (
-            <SongKeyHistory keyHistory={song.keyHistory} />
-          )}
         </div>
       </div>
 

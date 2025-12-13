@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowRightIcon, CalendarIcon, HistoryIcon } from "lucide-react";
+import { ArrowRightIcon, HistoryIcon } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -25,48 +25,41 @@ export function SongKeyHistory({ keyHistory }: SongKeyHistoryProps) {
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
-      <div className="mb-3 flex items-center gap-2">
-        <HistoryIcon className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium text-foreground">Key History</h3>
-        <span className="text-xs text-muted-foreground">
-          ({keyHistory.length})
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <HistoryIcon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Key History
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {keyHistory.map((entry) => (
           <HoverCard key={entry.id} openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
               <Link
                 to={`/setlist/${entry.setlistId}`}
-                className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1.5 pl-1.5 pr-3 transition-all hover:border-primary/30 hover:bg-primary/10"
+                className="group inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs transition-colors hover:bg-primary/10"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-                  {entry.key}
-                </span>
-                <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                <span className="font-semibold text-primary">{entry.key}</span>
+                <span className="text-muted-foreground group-hover:text-foreground">
                   {format(new Date(entry.playedAt), "MMM d")}
                 </span>
               </Link>
             </HoverCardTrigger>
             <HoverCardContent
               side="top"
-              className="w-64 border-white/10 bg-card/95 backdrop-blur-xl"
+              className="w-56 border-white/10 bg-popover shadow-lg"
             >
-              <div className="space-y-2">
-                <p className="font-medium text-foreground line-clamp-1">
-                  {entry.setlistName}
-                </p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <CalendarIcon className="h-3 w-3" />
-                  {format(new Date(entry.playedAt), "EEEE, MMMM d, yyyy")}
-                </div>
-                <div className="flex items-center gap-1 pt-1 text-xs text-primary">
-                  <span>View setlist</span>
-                  <ArrowRightIcon className="h-3 w-3" />
-                </div>
-              </div>
+              <p className="font-medium text-foreground text-sm line-clamp-1">
+                {entry.setlistName}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {format(new Date(entry.playedAt), "EEEE, MMM d, yyyy")}
+              </p>
+              <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                View setlist <ArrowRightIcon className="h-3 w-3" />
+              </p>
             </HoverCardContent>
           </HoverCard>
         ))}
@@ -74,10 +67,3 @@ export function SongKeyHistory({ keyHistory }: SongKeyHistoryProps) {
     </div>
   );
 }
-
-
-
-
-
-
-

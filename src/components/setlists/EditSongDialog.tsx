@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
 import {
   Dialog,
   DialogContent,
@@ -12,21 +14,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { SongFileUploader } from "@/components/songs/song-file-uploader";
 import { useSongs } from "@/hooks/use-songs";
 import { signSongFilePath } from "@/lib/storage";
-import { isImage, isPDF } from "@/lib/utils";
+import { cn, isImage, isPDF } from "@/lib/utils";
 import {
   getFilesForKey,
   hasFilesForSpecificKey,
   SetlistSong,
   SectionOrder,
+  SongFile,
 } from "@/types";
 import {
-  FileIcon,
+  ChevronDownIcon,
+  ExternalLinkIcon,
   Loader2Icon,
   Music2Icon,
   StickyNoteIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { SectionOrderEditor } from "@/components/songs/section-order-editor";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const KEY_OPTIONS = [
   "G",
@@ -65,10 +72,12 @@ export function EditSongDialog({
   );
   const [isEditPreviewLoading, setIsEditPreviewLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
   useEffect(() => {
     if (editingSong) {
       setEditableSong({ ...editingSong });
+      setIsPreviewExpanded(false);
     } else {
       setEditableSong(null);
     }
@@ -126,6 +135,7 @@ export function EditSongDialog({
   const handleKeyChange = (key: string) => {
     if (editableSong) {
       setEditableSong((prev) => ({ ...prev, key }));
+      setIsPreviewExpanded(false);
     }
   };
 
@@ -150,9 +160,20 @@ export function EditSongDialog({
     }
   };
 
+  const handleOpenFile = useCallback(() => {
+    if (editPreviewFileUrl) {
+      window.open(editPreviewFileUrl, "_blank");
+    }
+  }, [editPreviewFileUrl]);
+
   const songInDb = editingSong
     ? songs.find((s) => s.id === editingSong.songId)
     : null;
+
+  const filesForSelectedKey =
+    songInDb && selectedKey ? getFilesForKey(songInDb, selectedKey) : [];
+  const currentFile: SongFile | null =
+    filesForSelectedKey.length > 0 ? filesForSelectedKey[0] : null;
 
   return (
     <Dialog open={!!editingSong} onOpenChange={(open) => onOpenChange(open)}>
@@ -168,14 +189,13 @@ export function EditSongDialog({
               <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 border border-primary/20">
                 <Music2Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <div className="space-y-0.5 sm:space-y-1">
-                <DialogTitle className="text-lg sm:text-xl font-semibold tracking-tight">
-                  Edit Song
+              <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                <DialogTitle className="text-lg sm:text-xl font-semibold tracking-tight truncate">
+                  {editingSong?.song.title || "Edit Song"}
                 </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-                  {editingSong
-                    ? `${editingSong.song.title} — ${editingSong.song.artist}`
-                    : "Update song details for this setlist"}
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {editingSong?.song.artist ||
+                    "Update song details for this setlist"}
                 </DialogDescription>
               </div>
             </div>
@@ -184,12 +204,12 @@ export function EditSongDialog({
 
         {editingSong && editableSong && (
           <div className="relative px-4 sm:px-6 pb-5 sm:pb-6 space-y-4 sm:space-y-5">
-            {/* Key Selection */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label className="text-xs sm:text-sm font-medium text-foreground/90">
+            {/* Key Selection - Compact pills */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Key
               </Label>
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {KEY_OPTIONS.map((key) => {
                   const hasFiles = songInDb
                     ? hasFilesForSpecificKey(songInDb, key)
@@ -197,44 +217,152 @@ export function EditSongDialog({
                   const isSelected = editableSong.key === key;
 
                   return (
-                    <Button
+                    <button
                       key={key}
-                      variant={isSelected ? "default" : "outline"}
-                      size="sm"
-                      className="h-9 sm:h-10 relative px-0 text-xs sm:text-sm font-medium"
+                      type="button"
                       onClick={() => handleKeyChange(key)}
+                      className={cn(
+                        "relative inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : hasFiles
+                          ? "bg-white/10 text-foreground hover:bg-white/15"
+                          : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                      )}
                     >
                       {key}
-                      {hasFiles && (
-                        <span className="absolute -top-0.5 -right-0.5 block h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary" />
+                      {hasFiles && !isSelected && (
+                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
                       )}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Keys with files are marked with a dot
               </p>
             </div>
 
+            {/* File Preview - Expandable */}
+            {selectedKey && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  File for {selectedKey}
+                </Label>
+
+                {isEditPreviewLoading ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-muted-foreground">
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </div>
+                ) : currentFile && editPreviewFileUrl ? (
+                  <div className="rounded-lg bg-white/5 overflow-hidden">
+                    {/* File row - clickable to expand */}
+                    <div
+                      className="group flex items-center justify-between gap-2 px-3 py-2 cursor-pointer hover:bg-white/[0.08] transition-colors"
+                      onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ChevronDownIcon
+                          className={cn(
+                            "h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0",
+                            isPreviewExpanded && "rotate-180"
+                          )}
+                        />
+                        <span className="truncate text-sm text-foreground">
+                          {currentFile.name}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenFile();
+                        }}
+                      >
+                        <ExternalLinkIcon className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Expandable preview */}
+                    {isPreviewExpanded && (
+                      <div className="border-t border-white/5 bg-black/20 p-3">
+                        {isImage(currentFile.name) ? (
+                          <img
+                            src={editPreviewFileUrl}
+                            alt={currentFile.name}
+                            className="mx-auto max-h-48 rounded-md object-contain"
+                            loading="lazy"
+                          />
+                        ) : isPDF(currentFile.name) ? (
+                          <div className="flex justify-center">
+                            <Document
+                              file={editPreviewFileUrl}
+                              loading={
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
+                                </div>
+                              }
+                            >
+                              <Page
+                                pageNumber={1}
+                                width={240}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                              />
+                            </Document>
+                          </div>
+                        ) : (
+                          <p className="text-center text-xs text-muted-foreground py-4">
+                            Preview not available.{" "}
+                            <button
+                              onClick={handleOpenFile}
+                              className="text-primary hover:underline"
+                            >
+                              Open file
+                            </button>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      No file for {selectedKey} yet.
+                    </p>
+                    <SongFileUploader
+                      songId={editingSong.songId}
+                      songKey={selectedKey}
+                      onUploadComplete={() => {
+                        // Song data will be refreshed via React Query
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Section Order */}
-            <div className="space-y-1.5 sm:space-y-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs sm:text-sm font-medium text-foreground/90">
+                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Section Order
                 </Label>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-xs"
+                  className="h-7 px-2 text-xs"
                   disabled={
                     !songInDb?.defaultSectionOrder ||
                     songInDb.defaultSectionOrder.length === 0
                   }
                   onClick={handleResetSectionOrder}
                 >
-                  Reset to song default
+                  Reset to default
                 </Button>
               </div>
               <SectionOrderEditor
@@ -245,108 +373,21 @@ export function EditSongDialog({
             </div>
 
             {/* Performance Notes */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label className="text-xs sm:text-sm font-medium text-foreground/90 flex items-center gap-2">
-                <StickyNoteIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <StickyNoteIcon className="h-3.5 w-3.5" />
                 Performance Notes
               </Label>
               <Textarea
                 value={editableSong.notes || ""}
                 onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder="e.g., Skip verse 2, watch for tempo change in bridge"
-                className="min-h-[80px] sm:min-h-[100px] text-sm resize-none"
+                placeholder="e.g., Skip verse 2, watch for tempo change"
+                className="min-h-[80px] text-sm resize-none"
               />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Notes for this setlist only — visible during live viewing
               </p>
             </div>
-
-            {/* File Preview Section */}
-            {(() => {
-              const selectedKey = editableSong.key;
-
-              if (!songInDb) {
-                return (
-                  <div className="rounded-xl border border-dashed border-muted-foreground/20 p-6 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Song data not found.
-                    </p>
-                  </div>
-                );
-              }
-
-              if (!selectedKey) {
-                return (
-                  <div className="rounded-xl border border-dashed border-muted-foreground/20 p-6 text-center">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Select a key to see files
-                    </p>
-                  </div>
-                );
-              }
-
-              const filesForSelectedKey = getFilesForKey(songInDb, selectedKey);
-
-              if (isEditPreviewLoading) {
-                return (
-                  <div className="flex items-center justify-center p-6 text-sm text-muted-foreground rounded-xl border border-muted-foreground/10 bg-muted/5">
-                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                    Loading preview...
-                  </div>
-                );
-              }
-
-              if (filesForSelectedKey.length > 0 && editPreviewFileUrl) {
-                return (
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-medium text-foreground/90">
-                      File Preview
-                    </Label>
-                    <div className="rounded-xl border border-muted-foreground/10 bg-muted/5 p-3 flex justify-center items-center">
-                      {isImage(filesForSelectedKey[0].name) ? (
-                        <img
-                          src={editPreviewFileUrl}
-                          alt="preview"
-                          className="rounded-lg max-h-48 sm:max-h-60"
-                        />
-                      ) : isPDF(filesForSelectedKey[0].name) ? (
-                        <div className="p-4 text-center">
-                          <FileIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            {filesForSelectedKey[0].name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            PDF preview available in fullscreen
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-center">
-                          <FileIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            {filesForSelectedKey[0].name}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              } else {
-                return (
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-medium text-foreground/90">
-                      Upload File for Key {selectedKey}
-                    </Label>
-                    <SongFileUploader
-                      songId={editingSong.songId}
-                      songKey={selectedKey}
-                      onUploadComplete={() => {
-                        // Song data will be refreshed via React Query
-                      }}
-                    />
-                  </div>
-                );
-              }
-            })()}
 
             {/* Actions */}
             <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-2">
